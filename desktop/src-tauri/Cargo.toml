@@ -1,0 +1,18 @@
+[package]
+name = "live-mtg"
+version = "0.1.0"
+description = "Real-time meeting minutes and meeting copilot"
+authors = ["RakuHub"]
+edition = "2021"
+
+[lib]
+name = "live_mtg_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LiveMTG</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="setup" class="setup">
+    <section class="panel">
+      <div class="brand"><span class="mark"></span><span>LiveMTG</span></div>
+      <p class="eyebrow">DESKTOP SETUP</p>
+      <h1 id="title">議事ライブを準備しています</h1>
+      <p id="lead" class="lead">バックエンドを起動しています。通常は数秒で完了します。</p>
+      <fieldset id="provider-choice" class="provider-choice">
+        <legend>使用するAI</legend>
+        <button type="button" class="provider" data-provider="claude">
+          <span class="provider-name">Claude Code</span>
+          <span class="provider-copy">Anthropicアカウントで利用</span>
+        </button>
+        <button type="button" class="provider" data-provider="codex">
+          <span class="provider-name">Codex</span>
+          <span class="provider-copy">ChatGPTアカウントで利用</span>
+        </button>
+      </fieldset>
+      <div id="checks" class="checks" aria-live="polite">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+      <div id="actions" class="actions hidden">
+        <button id="retry" class="secondary">もう一度確認</button>
+        <button id="continue" class="primary">このまま開く</button>
+      </div>
+      <p id="data-dir" class="data-dir"></p>
+    </section>
+  </main>
+  <iframe id="app" title="LiveMTG" allow="microphone; display-capture" hidden></iframe>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,499 @@
+#!/usr/bin/env node
+import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { dirname, join } from "node:path";
+import { createInterface } from "node:readline/promises";
+import { fileURLToPath } from "node:url";
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const home = process.env.LIVE_MTG_HOME || join(homedir(), ".live-mtg");
+const port = process.env.PORT || "8777";
+const server = join(root, "server.py");
+const pidFile = join(home, "server.pid");
+const configFile = join(home, "config.json");
+const logFile = join(home, "server.log");
+const isMac = platform() === "darwin";
+const isWindows = platform() === "win32";
+const windowsWhisperRoot = join(home, "tools", "whisper.cpp");
+const windowsModel = join(home, "models", "ggml-large-v3-turbo.bin");
+const whisperWindowsRelease = {
+  version: "v1.9.1",
+  url: "https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.1/whisper-bin-x64.zip",
+  sha256: "7d8be46ecd31828e1eb7a2ecdd0d6b314feafd82163038ab6092594b0a063539"
+};
+
+mkdirSync(home, { recursive: true });
+
+function readConfig() {
+  try { return JSON.parse(readFileSync(configFile, "utf8")); } catch { return {}; }
+}
+
+function selectedProvider() {
+  const value = String(process.env.AI_PROVIDER || readConfig().aiProvider || "claude").toLowerCase();
+  return value === "codex" ? "codex" : "claude";
+}
+
+function saveProvider(provider) {
+  const config = readConfig();
+  config.aiProvider = provider;
+  writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
+}
+
+function findFile(rootDir, fileName) {
+  if (!existsSync(rootDir)) return null;
+  const pending = [rootDir];
+  while (pending.length) {
+    const dir = pending.pop();
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (name.toLowerCase() === fileName.toLowerCase()) return path;
+      try { if (statSync(path).isDirectory()) pending.push(path); } catch {}
+    }
+  }
+  return null;
+}
+
+function windowsWhisperExe() {
+  return isWindows ? findFile(windowsWhisperRoot, "whisper-cli.exe") : null;
+}
+
+function effectivePath() {
+  if (!isWindows) return process.env.PATH || "";
+  const paths = [];
+  const whisper = windowsWhisperExe();
+  if (whisper) paths.push(dirname(whisper));
+  if (process.env.LOCALAPPDATA) paths.push(join(process.env.LOCALAPPDATA, "Microsoft", "WinGet", "Links"));
+  paths.push(process.env.PATH || "");
+  return paths.join(";");
+}
+
+function commandEnv() {
+  return { ...process.env, PATH: effectivePath() };
+}
+
+function commandExists(command) {
+  const checker = isWindows ? "where" : "command";
+  const args = isWindows ? [command] : ["-v", command];
+  return spawnSync(checker, args, { shell: !isWindows, stdio: "ignore", env: commandEnv() }).status === 0;
+}
+
+function runInteractive(command, args) {
+  return spawnSync(command, args, { stdio: "inherit", shell: isWindows, env: commandEnv() }).status === 0;
+}
+
+async function confirmStep(question, assumeYes = false) {
+  if (assumeYes) return true;
+  if (!process.stdin.isTTY) return false;
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const answer = (await rl.question(`${question} [Y/n]: `)).trim().toLowerCase();
+  rl.close();
+  return !answer || answer === "y" || answer === "yes";
+}
+
+function isAiLoggedIn(provider) {
+  const command = provider === "codex" ? "codex" : "claude";
+  if (!commandExists(command)) return false;
+  return spawnSync(command, provider === "codex" ? ["login", "status"] : ["auth", "status"],
+    { stdio: "ignore", env: commandEnv() }).status === 0;
+}
+
+async function prepareAi(provider, assumeYes) {
+  const command = provider === "codex" ? "codex" : "claude";
+  const label = provider === "codex" ? "Codex" : "Claude Code";
+  const npmPackage = provider === "codex" ? "@openai/codex" : "@anthropic-ai/claude-code";
+  if (!commandExists(command)) {
+    if (!await confirmStep(`${label}をnpmでインストールしますか？`, assumeYes)) return false;
+    if (!runInteractive("npm", ["install", "-g", npmPackage])) return false;
+  }
+  if (!isAiLoggedIn(provider)) {
+    if (!await confirmStep(`${label}へログインしますか？`, assumeYes)) return false;
+    const loginArgs = provider === "codex" ? ["login"] : ["auth", "login"];
+    if (!runInteractive(command, loginArgs)) return false;
+  }
+  return isAiLoggedIn(provider);
+}
+
+async function installWithSystemManager(label, macArgs, windowsArgs, assumeYes) {
+  if (!await confirmStep(`${label}をインストールしますか？`, assumeYes)) return false;
+  if (isMac) {
+    if (!commandExists("brew")) {
+      console.log("Homebrewがありません。先に https://brew.sh/ の手順でインストールしてください。");
+      return false;
+    }
+    return runInteractive("brew", macArgs);
+  }
+  if (isWindows) {
+    if (!commandExists("winget")) {
+      console.log("wingetがありません。Microsoft StoreのApp Installerを更新してください。");
+      return false;
+    }
+    return runInteractive("winget", windowsArgs);
+  }
+  console.log(`${label}は、お使いのOSのパッケージ管理ツールでインストールしてください。`);
+  return false;
+}
+
+async function prepareRuntime(assumeYes) {
+  if (!pythonCommand()) {
+    await installWithSystemManager("Python 3", ["install", "python@3.12"],
+      ["install", "-e", "--id", "Python.Python.3.12"], assumeYes);
+  }
+  if (!commandExists("ffmpeg")) {
+    await installWithSystemManager("ffmpeg", ["install", "ffmpeg"],
+      ["install", "-e", "--id", "Gyan.FFmpeg"], assumeYes);
+  }
+  if (isMac && !commandExists("mlx_whisper")) {
+    if (!commandExists("pipx")) {
+      await installWithSystemManager("pipx", ["install", "pipx"], [], assumeYes);
+    }
+    if (commandExists("pipx") && await confirmStep("mlx-whisperをインストールしますか？", assumeYes)) {
+      runInteractive("pipx", ["install", "mlx-whisper"]);
+    }
+  }
+  if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
+    if (await confirmStep("Windows用whisper.cppをダウンロードしますか？（約8MB）", assumeYes)) {
+      installWindowsWhisper();
+    }
+  }
+  if (isWindows && !existsSync(windowsModel)) {
+    if (await confirmStep("日本語文字起こしモデルをダウンロードしますか？（約1.6GB）", assumeYes)) {
+      downloadWindowsModel();
+    }
+  }
+}
+
+function powershell(script) {
+  return runInteractive("powershell.exe", ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script]);
+}
+
+function installWindowsWhisper() {
+  const zip = join(home, `whisper-${whisperWindowsRelease.version}.zip`);
+  mkdirSync(windowsWhisperRoot, { recursive: true });
+  console.log(`whisper.cpp ${whisperWindowsRelease.version} を取得しています…`);
+  const downloaded = powershell(`$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri '${whisperWindowsRelease.url}' -OutFile '${zip.replaceAll("'", "''")}'`);
+  if (!downloaded || !existsSync(zip)) return false;
+  const digest = createHash("sha256").update(readFileSync(zip)).digest("hex");
+  if (digest !== whisperWindowsRelease.sha256) {
+    rmSync(zip, { force: true });
+    console.log("whisper.cppの検証に失敗したため展開しませんでした。");
+    return false;
+  }
+  const extracted = powershell(`Expand-Archive -LiteralPath '${zip.replaceAll("'", "''")}' -DestinationPath '${windowsWhisperRoot.replaceAll("'", "''")}' -Force`);
+  rmSync(zip, { force: true });
+  return extracted && Boolean(windowsWhisperExe());
+}
+
+function downloadWindowsModel() {
+  mkdirSync(dirname(windowsModel), { recursive: true });
+  const partial = `${windowsModel}.download`;
+  const url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+  console.log("文字起こしモデルを取得しています。回線によって数分かかります…");
+  const ok = powershell(`$ProgressPreference='Continue'; Invoke-WebRequest -UseBasicParsing -Uri '${url}' -OutFile '${partial.replaceAll("'", "''")}'; Move-Item -LiteralPath '${partial.replaceAll("'", "''")}' -Destination '${windowsModel.replaceAll("'", "''")}' -Force`);
+  if (!ok || !existsSync(windowsModel) || statSync(windowsModel).size < 100_000_000) {
+    rmSync(partial, { force: true });
+    rmSync(windowsModel, { force: true });
+    console.log("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。");
+    return false;
+  }
+  return true;
+}
+
+function pythonCommand() {
+  for (const name of isWindows ? ["python", "py"] : ["python3", "python"]) {
+    if (commandExists(name)) return name;
+  }
+  return null;
+}
+
+function runtimeEnv() {
+  return {
+    ...process.env,
+    LIVE_MTG_DESKTOP: "1",
+    RUN: home,
+    MEETINGS_DIR: join(home, "meetings"),
+    DRIVE_SYNC_DIR: join(home, "meetings"),
+    PROFILE_MD: join(home, "profile.md"),
+    PLAYBOOK_DIR: join(home, "playbooks"),
+    ASR_BACKEND: process.env.ASR_BACKEND || (isMac ? "mlx" : "cpp"),
+    MODEL: process.env.MODEL || (isWindows ? windowsModel : undefined),
+    AI_PROVIDER: selectedProvider(),
+    PATH: effectivePath(),
+    PORT: port
+  };
+}
+
+function openUrl(url) {
+  if (isMac) spawn("open", [url], { detached: true, stdio: "ignore" }).unref();
+  else if (isWindows) spawn("cmd", ["/c", "start", "", url], { detached: true, stdio: "ignore" }).unref();
+  else spawn("xdg-open", [url], { detached: true, stdio: "ignore" }).unref();
+}
+
+async function health() {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/desktop-health`, { signal: AbortSignal.timeout(1800) });
+    return response.ok ? await response.json() : null;
+  } catch { return null; }
+}
+
+function doctor(provider = selectedProvider()) {
+  const asr = isMac ? "mlx_whisper" : "whisper-cli";
+  const aiCommand = provider === "codex" ? "codex" : "claude";
+  const aiLabel = provider === "codex" ? "Codex" : "Claude Code";
+  const aiInstalled = commandExists(aiCommand);
+  const aiLoggedIn = aiInstalled && spawnSync(aiCommand,
+    provider === "codex" ? ["login", "status"] : ["auth", "status"],
+    { stdio: "ignore", env: commandEnv() }).status === 0;
+  const asrInstalled = commandExists(asr) || (isWindows && Boolean(windowsWhisperExe()));
+  const checks = [
+    ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
+    ["Python 3", Boolean(pythonCommand()), "python3"],
+    [aiLabel, aiInstalled, provider === "codex" ? "npm install -g @openai/codex" : "npm install -g @anthropic-ai/claude-code"],
+    [`${aiLabel} ログイン`, aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
+    ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
+    [asr, asrInstalled, isMac ? "pipx install mlx-whisper" : "live-mtg onboard で自動取得"],
+    ...(isWindows ? [["文字起こしモデル", existsSync(windowsModel), "live-mtg onboard で自動取得"]] : [])
+  ];
+  console.log("LiveMTG doctor\n");
+  for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
+  const failed = checks.filter(([, ok]) => !ok).length;
+  console.log(`\nデータ: ${home}`);
+  console.log(`AI: ${provider === "codex" ? "Codex" : "Claude Code"}`);
+  if (failed) console.log(`\n${failed}項目を準備してから live-mtg doctor を再実行してください。`);
+  return failed === 0;
+}
+
+function redactDiagnostic(value) {
+  let text = String(value ?? "");
+  const homes = [homedir(), process.env.USERPROFILE, process.env.HOME].filter(Boolean);
+  for (const path of homes) text = text.split(path).join("~");
+  return text
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
+    .replace(/(token|authorization|api[_-]?key)\s*[:=]\s*[^\s]+/gi, "$1=[redacted]");
+}
+
+function showLogs(lines = 120) {
+  if (!existsSync(logFile)) {
+    console.log(`ログはまだありません: ${logFile}`);
+    return;
+  }
+  const content = readFileSync(logFile, "utf8").split(/\r?\n/);
+  console.log(content.slice(-Math.max(1, lines)).join("\n"));
+}
+
+function commandVersion(command, args = ["--version"]) {
+  if (!commandExists(command)) return "not installed";
+  const result = spawnSync(command, args, { encoding: "utf8", env: commandEnv() });
+  return String(result.stdout || result.stderr || "unknown").trim().split(/\r?\n/)[0];
+}
+
+async function createReport() {
+  const provider = selectedProvider();
+  const recentErrorCount = existsSync(logFile)
+    ? readFileSync(logFile, "utf8").split(/\r?\n/).filter(line => /error|fail|exception|traceback|失敗/i.test(line)).slice(-500).length
+    : 0;
+  const diagnostic = {
+    createdAt: new Date().toISOString(),
+    liveMtg: pkg.version,
+    os: `${platform()} ${process.arch}`,
+    node: process.version,
+    provider,
+    providerVersion: commandVersion(provider === "codex" ? "codex" : "claude"),
+    providerLoggedIn: isAiLoggedIn(provider),
+    python: pythonCommand() || "not installed",
+    ffmpeg: commandVersion("ffmpeg", ["-version"]),
+    asr: isMac ? (commandExists("mlx_whisper") ? "mlx_whisper installed" : "not installed")
+      : (windowsWhisperExe() ? "whisper-cli installed by LiveMTG" : commandVersion("whisper-cli", ["--help"])),
+    modelReady: !isWindows || existsSync(windowsModel),
+    service: await health(),
+    recentErrorCount
+  };
+  const path = join(home, `diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  writeFileSync(path, redactDiagnostic(JSON.stringify(diagnostic, null, 2)) + "\n");
+  console.log(`診断レポートを作成しました: ${path}`);
+  console.log("文字起こし本文・会議資料・APIキーは含めていません。送付前に内容を確認してください。");
+}
+
+function serve() {
+  const python = pythonCommand();
+  if (!python) throw new Error("Python 3がありません。live-mtg doctorで確認してください。");
+  const args = python === "py" ? ["-3", "-u", server] : ["-u", server];
+  writeFileSync(pidFile, String(process.pid));
+  const child = spawn(python, args, { env: runtimeEnv(), stdio: "inherit" });
+  const stop = signal => { if (!child.killed) child.kill(signal); };
+  process.on("SIGINT", () => stop("SIGINT"));
+  process.on("SIGTERM", () => stop("SIGTERM"));
+  child.on("exit", code => { rmSync(pidFile, { force: true }); process.exit(code ?? 0); });
+}
+
+function macPlistPath() { return join(homedir(), "Library", "LaunchAgents", "com.rakuhub.live-mtg.plist"); }
+
+function installDaemon() {
+  if (isMac) {
+    const plist = macPlistPath();
+    mkdirSync(dirname(plist), { recursive: true });
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.rakuhub.live-mtg</string>
+<key>ProgramArguments</key><array><string>${process.execPath}</string><string>${fileURLToPath(import.meta.url)}</string><string>serve</string></array>
+<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+<key>StandardOutPath</key><string>${join(home, "server.log")}</string>
+<key>StandardErrorPath</key><string>${join(home, "server.log")}</string>
+</dict></plist>`;
+    spawnSync("launchctl", ["bootout", `gui/${process.getuid()}`, plist], { stdio: "ignore" });
+    writeFileSync(plist, xml);
+    const result = spawnSync("launchctl", ["bootstrap", `gui/${process.getuid()}`, plist], { stdio: "inherit" });
+    if (result.status !== 0) throw new Error("LaunchAgentを登録できませんでした");
+  } else if (isWindows) {
+    const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve`;
+    const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "inherit" });
+    if (result.status !== 0) throw new Error("Windowsの自動起動を登録できませんでした");
+    spawnSync("schtasks", ["/Run", "/TN", "LiveMTG"], { stdio: "ignore" });
+  } else {
+    console.log("Linuxのsystemd登録は今後対応します。別ターミナルで live-mtg serve を実行してください。");
+  }
+}
+
+async function start() {
+  if (await health()) return console.log("LiveMTGは起動済みです");
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
+  child.unref();
+  for (let i = 0; i < 20; i++) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (await health()) return console.log(`LiveMTGを起動しました: http://127.0.0.1:${port}`);
+  }
+  throw new Error("LiveMTGを起動できませんでした。live-mtg doctorを実行してください。");
+}
+
+function stop() {
+  if (isMac && existsSync(macPlistPath())) {
+    spawnSync("launchctl", ["bootout", `gui/${process.getuid()}`, macPlistPath()], { stdio: "ignore" });
+  } else if (isWindows) {
+    spawnSync("schtasks", ["/End", "/TN", "LiveMTG"], { stdio: "ignore" });
+  }
+  if (existsSync(pidFile)) {
+    const pid = Number(readFileSync(pidFile, "utf8"));
+    try { process.kill(pid, "SIGTERM"); } catch {}
+    rmSync(pidFile, { force: true });
+  }
+  console.log("LiveMTGを停止しました");
+}
+
+async function chooseProvider(requested) {
+  if (requested && !["claude", "codex"].includes(requested)) {
+    throw new Error("--provider は claude または codex を指定してください");
+  }
+  let provider = requested;
+  if (!provider && process.stdin.isTTY) {
+    const current = selectedProvider();
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = (await rl.question(`利用するAIを選んでください [1: Claude Code / 2: Codex]（現在: ${current}）: `)).trim();
+    rl.close();
+    provider = answer === "2" || answer.toLowerCase() === "codex" ? "codex" : "claude";
+  }
+  provider ||= selectedProvider();
+  saveProvider(provider);
+  return provider;
+}
+
+async function onboard(install, requestedProvider, assumeYes = false) {
+  console.log("LiveMTG 初期設定\n");
+  const provider = await chooseProvider(requestedProvider);
+  console.log(`\n${provider === "codex" ? "Codex" : "Claude Code"}を使用します。\n`);
+  await prepareAi(provider, assumeYes);
+  await prepareRuntime(assumeYes);
+  const ok = doctor(provider);
+  if (!ok) return process.exitCode = 1;
+  if (install) installDaemon(); else await start();
+  for (let i = 0; i < 20 && !(await health()); i++) await new Promise(resolve => setTimeout(resolve, 500));
+  openUrl(`http://127.0.0.1:${port}`);
+  console.log("\n初期設定が完了しました。会議データは " + home + " に保存されます。");
+}
+
+async function configureProvider(provider) {
+  provider = await chooseProvider(provider);
+  console.log(`AIを${provider === "codex" ? "Codex" : "Claude Code"}に変更しました。`);
+  if (await health()) {
+    stop();
+    await start();
+  }
+}
+
+async function update() {
+  const channel = pkg.version.includes("-") ? "beta" : "latest";
+  console.log(`LiveMTGを${channel}チャンネルの最新版へ更新します…`);
+  const result = spawnSync("npm", ["install", "-g", `live-mtg@${channel}`],
+    { stdio: "inherit", shell: isWindows });
+  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (isMac && existsSync(macPlistPath())) installDaemon();
+  console.log("更新が完了しました");
+}
+
+async function rollback(requestedVersion) {
+  let version = requestedVersion;
+  if (version && !/^[0-9A-Za-z.+-]+$/.test(version)) throw new Error("バージョンの形式が正しくありません");
+  if (!version) {
+    const result = spawnSync("npm", ["view", "live-mtg", "versions", "--json"],
+      { encoding: "utf8", shell: isWindows });
+    if (result.status !== 0) throw new Error("公開済みバージョンを取得できませんでした");
+    const versions = JSON.parse(result.stdout || "[]");
+    const index = versions.lastIndexOf(pkg.version);
+    version = index > 0 ? versions[index - 1] : versions.filter(v => v !== pkg.version).at(-1);
+  }
+  if (!version) throw new Error("戻せる旧バージョンがありません");
+  console.log(`LiveMTGを ${version} へ戻します…`);
+  const result = spawnSync("npm", ["install", "-g", `live-mtg@${version}`],
+    { stdio: "inherit", shell: isWindows });
+  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (isMac && existsSync(macPlistPath())) installDaemon();
+  console.log(`ロールバックしました。live-mtg doctor で状態を確認してください。`);
+}
+
+function help() {
+  console.log(`LiveMTG
+
+使い方:
+  live-mtg onboard                   AI選択・必要環境の準備・常駐化
+  live-mtg dashboard                 画面を開く
+  live-mtg doctor                    必要環境を診断
+  live-mtg config --provider codex   AIをCodexへ変更（claudeも可）
+  live-mtg start | stop | status     起動・停止・状態確認
+  live-mtg update                    最新版へ更新
+  live-mtg logs [--lines 200]        サーバーログを表示
+  live-mtg report                    個人情報を伏せた診断レポートを作成
+  live-mtg rollback [version]        直前または指定バージョンへ戻す
+  live-mtg onboard --no-daemon       常駐化せず初期設定
+  live-mtg serve                     サーバーを手前で実行
+  live-mtg --version                 バージョン表示
+
+不具合報告: https://github.com/rakuhub/live-mtg/issues`);
+}
+
+const args = process.argv.slice(2);
+const command = args[0] || "dashboard";
+const providerAt = args.indexOf("--provider");
+const requestedProvider = providerAt >= 0 ? String(args[providerAt + 1] || "").toLowerCase() : undefined;
+const linesAt = args.indexOf("--lines");
+const requestedLines = linesAt >= 0 ? Number(args[linesAt + 1] || 120) : 120;
+try {
+  if (command === "doctor") process.exitCode = doctor() ? 0 : 1;
+  else if (command === "serve") serve();
+  else if (command === "start") await start();
+  else if (command === "stop") stop();
+  else if (command === "status") console.log(await health() ? "LiveMTGは起動中です" : "LiveMTGは停止中です");
+  else if (command === "dashboard") { await start(); openUrl(`http://127.0.0.1:${port}`); }
+  else if (command === "onboard") await onboard(!args.includes("--no-daemon"), requestedProvider, args.includes("--yes"));
+  else if (command === "config") await configureProvider(requestedProvider);
+  else if (command === "update") await update();
+  else if (command === "logs") showLogs(Number.isFinite(requestedLines) ? requestedLines : 120);
+  else if (command === "report") await createReport();
+  else if (command === "rollback") await rollback(args[1]);
+  else if (command === "--version" || command === "-v") console.log(pkg.version);
+  else help();
+} catch (error) {
+  console.error(`LiveMTG: ${error.message}`);
+  process.exitCode = 1;
+}

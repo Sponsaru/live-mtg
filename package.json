@@ -1,0 +1,41 @@
+{
+  "name": "live-mtg",
+  "version": "0.1.0-beta.1",
+  "description": "Real-time Japanese meeting minutes and AI meeting copilot for Claude Code or Codex",
+  "type": "module",
+  "bin": {
+    "live-mtg": "cli/live-mtg.mjs"
+  },
+  "files": [
+    "cli/",
+    "defaults/",
+    "server.py",
+    "index.html",
+    "app-logo.svg",
+    "mermaid.min.js",
+    "make-mindmap.py",
+    "make-slides.sh",
+    "slides-template.html",
+    "README.md",
+    "README.npm.md",
+    "install.sh",
+    "install.ps1",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --check cli/live-mtg.mjs && python3 -m py_compile server.py make-mindmap.py",
+    "build:package": "node scripts/build-npm-package.mjs",
+    "pack:check": "npm run build:package && npm pack --dry-run ./dist/npm"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["meeting", "minutes", "transcription", "claude", "codex", "japanese"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rakuhub/live-mtg.git"
+  },
+  "homepage": "https://github.com/rakuhub/live-mtg#readme",
+  "bugs": "https://github.com/rakuhub/live-mtg/issues"
+}

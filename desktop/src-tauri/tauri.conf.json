@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "LiveMTG",
+  "version": "0.1.0",
+  "identifier": "jp.rakuhub.livemtg",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "LiveMTG",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 980,
+        "minHeight": 680,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:18777; frame-src http://127.0.0.1:18777; img-src 'self' data: http://127.0.0.1:18777; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "RakuHub",
+    "category": "Productivity",
+    "shortDescription": "会話をリアルタイムに整理する議事ライブ",
+    "longDescription": "録音、文字起こし、会議ガイド、マインドマップ、議事録作成を一つにまとめたデスクトップアプリです。",
+    "externalBin": ["binaries/live-mtg-backend"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "infoPlist": "Info.plist"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

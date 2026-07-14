@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+build/
+src-tauri/target/
+src-tauri/binaries/live-mtg-backend-*
+src-tauri/icons/
+!src-tauri/binaries/.gitkeep
