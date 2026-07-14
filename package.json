@@ -34,8 +34,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rakuhub/live-mtg.git"
+    "url": "git+https://github.com/Sponsaru/live-mtg.git"
   },
-  "homepage": "https://github.com/rakuhub/live-mtg#readme",
-  "bugs": "https://github.com/rakuhub/live-mtg/issues"
+  "homepage": "https://github.com/Sponsaru/live-mtg#readme",
+  "bugs": "https://github.com/Sponsaru/live-mtg/issues"
 }

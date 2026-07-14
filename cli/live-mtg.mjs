@@ -469,7 +469,7 @@ function help() {
   live-mtg serve                     サーバーを手前で実行
   live-mtg --version                 バージョン表示
 
-不具合報告: https://github.com/rakuhub/live-mtg/issues`);
+不具合報告: https://github.com/Sponsaru/live-mtg/issues`);
 }
 
 const args = process.argv.slice(2);

@@ -9,7 +9,7 @@ live-mtg onboard
 
 `onboard`がAI選択、必要なCLIの導入とログイン、音声環境の準備、常駐起動まで案内します。初期設定後は `live-mtg dashboard` で画面を開きます。更新は `live-mtg update`、環境確認は `live-mtg doctor` です。
 
-不具合時は `live-mtg logs` でログ確認、`live-mtg report` で会議本文を含まない診断レポート作成、`live-mtg rollback` で直前の公開版へ戻せます。報告先は [GitHub Issues](https://github.com/rakuhub/live-mtg/issues) です。
+不具合時は `live-mtg logs` でログ確認、`live-mtg report` で会議本文を含まない診断レポート作成、`live-mtg rollback` で直前の公開版へ戻せます。報告先は [GitHub Issues](https://github.com/Sponsaru/live-mtg/issues) です。
 
 初期設定中に、会議の整理に使うAIを **Claude Code / Codex** から選べます。あとから変更しても会議データはそのままです。
 
