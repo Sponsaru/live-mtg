@@ -171,16 +171,18 @@
   .nexthead{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:900;color:#294d82;margin-bottom:13px;line-height:1.35}
   .nexthead .nextsub{font-size:14px;font-weight:700;color:#6d7f96}
   .nexthead .pulse{width:11px;height:11px;border-radius:50%;background:#4778bd;box-shadow:0 0 0 6px rgba(71,120,189,.13)}
-  .nextchips{display:flex;gap:13px;flex-wrap:wrap;align-items:flex-start}
-  .nextitem{display:flex;flex-direction:column;align-items:flex-start;flex:0 1 auto;max-width:min(760px,100%)}
+  .nextchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:13px;align-items:start;width:100%}
+  .nextitem{display:flex;flex-direction:column;align-items:flex-start;min-width:0;width:100%;max-width:none}
   .nextempty{font-size:16px;color:#687b92;line-height:1.6}
   .nextchip{font-family:inherit;text-align:left;border:1px solid #bfcfeb;background:#fff;color:var(--ink);border-radius:18px;
-    padding:14px 18px;cursor:pointer;font-size:18px;font-weight:800;line-height:1.5;max-width:min(760px,100%);
+    padding:14px 18px;cursor:pointer;font-size:18px;font-weight:800;line-height:1.5;width:100%;max-width:none;
+    display:flex;align-items:flex-start;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;
     box-shadow:0 2px 7px rgba(39,74,126,.08);transition:.15s}
-  .nextchip::before{content:"→";display:inline-grid;place-items:center;width:21px;height:21px;margin-right:8px;border-radius:50%;
+  .nextchip::before{content:"→";display:inline-grid;place-items:center;flex:0 0 auto;width:21px;height:21px;margin-right:8px;border-radius:50%;
     background:#335f9d;color:#fff;font-size:13px;vertical-align:1px}
   .nextchip:hover,.nextchip.active{border-color:#335f9d;background:#f7faff;transform:translateY(-1px)}
-  .nextinlineintent{display:none;width:fit-content;max-width:min(620px,calc(100vw - 86px));margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07)}
+  .nextq,.nextintenttext{display:block;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+  .nextinlineintent{display:none;width:calc(100% - 12px);max-width:none;margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent.show{display:block}.nextinlineintent b{display:block;color:#294d82;font-size:12px;letter-spacing:.04em;margin-bottom:3px}
   /* 会議前の任意作戦チャット */
   .strategy-modal{width:min(1040px,96vw)!important}
@@ -980,7 +982,7 @@ function renderNextQuestions(qs){
   nextQuestions=qs||[];
   $('nextwrap').classList.toggle('show',nextQuestions.length>0||!!curGoal);
   $('nextchips').innerHTML=nextQuestions.length
-    ? nextQuestions.map((x,i)=>{const raw=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim(),short=guideBrief(raw,42),more=raw!==short?`<details class="gmore"><summary></summary><div>${esc(raw)}</div></details>`:'';return `<div class="nextitem" data-i="${i}"><button class="nextchip" onclick="showNextIntent(${i})">${esc(guideBrief(x.q||'',48))}</button><div class="nextinlineintent"><b>${tr('質問の意図','Intent')}</b><span>${esc(short)}${more}</span></div></div>`}).join('')
+    ? nextQuestions.map((x,i)=>{const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();return `<div class="nextitem" data-i="${i}"><button class="nextchip" onclick="showNextIntent(${i})"><span class="nextq">${esc(question)}</span></button><div class="nextinlineintent"><b>${tr('質問の意図','Intent')}</b><span class="nextintenttext">${esc(intent)}</span></div></div>`}).join('')
     : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問がここに出ます。','Suggested questions will appear here once the conversation begins.')}</span>`;
 }
 function showNextIntent(i){
