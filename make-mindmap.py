@@ -6,7 +6,7 @@ sdir = os.environ.get("SDIR", "")
 language = os.environ.get("LIVE_MTG_LANGUAGE", "ja")
 def tr(ja, en): return en if language == "en" else ja
 title = os.environ.get("TITLE", tr("会議", "Meeting"))
-theme = os.environ.get("THEME", "mainichi")
+theme = "neutral"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if not sdir or not os.path.isfile(os.path.join(sdir, "data.json")):
     raise SystemExit("会議データがありません")

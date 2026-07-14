@@ -6,25 +6,11 @@
 <title>LiveMTG｜議事ライブ整理</title>
 <style>
   :root{
-    /* LiveMTGブルーテーマ（既定） */
-    --blue:#00A0E9; --blue-d:#0079b3; --ink:#12232e; --sub:#5b6b76;
-    --bg:#f4f8fb; --card:#ffffff; --line:#e2ebf1;
-    --amber:#e8890c; --red:#d64545; --green:#1a9e6f;
+    /* One product identity for every user. Customer branding is never injected. */
+    --blue:#0071e3; --blue-d:#0057b8; --ink:#1d1d1f; --sub:#6e6e73;
+    --bg:#f5f5f7; --card:#ffffff; --line:#dcdce1;
+    --amber:#9a6700; --red:#d70015; --green:#248a3d;
   }
-  /* sponsaru テーマ：白ベース × ネイビー#15233f × オレンジ#f15a24（about.sponsaru.com 準拠） */
-  body[data-theme="sponsaru"]{
-    --blue:#15233f; --blue-d:#0e1a30; --ink:#15233f; --sub:#8a93a3;
-    --bg:#f5f7fa; --card:#ffffff; --line:#e3e8ef;
-    --amber:#f15a24; --red:#e0533a; --green:#1a9e6f;
-  }
-  /* sponsaru：主CTA(録音)と要約バンド・ドットにオレンジ/ネイビーを効かせる */
-  body[data-theme="sponsaru"] .btn.rec{background:var(--amber);color:#fff}
-  body[data-theme="sponsaru"] .btn.rec.on{background:#d64a1a;color:#fff}
-  body[data-theme="sponsaru"] .summary{background:linear-gradient(135deg,#eef1f5,#e3e8ef);border-left-color:var(--amber);color:var(--ink)}
-  body[data-theme="sponsaru"] .dot.idle{background:#c7ccd6}
-  body[data-theme="sponsaru"] header{box-shadow:0 2px 10px rgba(21,35,63,.25)}
-  body[data-theme="sponsaru"] header .logo{display:none}
-  body[data-theme="sponsaru"] header h1::before{content:"sponsaru."; color:#f37a3d; margin-right:10px; font-weight:900}
   /* ===== PDF専用1枚レイアウト（#pview）＝経営ダッシュボード風 ===== */
   #pview{display:none;position:fixed;left:-9999px;top:0;width:1000px;background:#fff;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}   /* 幅は印刷余白が「既定」でも収まる安全値 */
@@ -141,7 +127,7 @@
     border-left:6px solid var(--blue); margin:18px 22px;
     padding:16px 20px; border-radius:10px; font-size:24px; font-weight:700; color:var(--blue-d);
   }
-  /* 🎯 商談ガイド（参謀パネル。濃紺系＝議事(青)・AIサポート(黄)と区別） */
+  /* 商談ガイド */
   .flabel{display:block;font-size:13px;font-weight:700;color:var(--sub);margin:12px 0 5px}
   .pickrow{display:flex;gap:8px}
   .pickrow input{flex:1;min-width:0}
@@ -430,6 +416,73 @@
   #deck .maptools button.on{background:var(--blue);border-color:var(--blue);color:#fff}
   #deck .relation-map{display:none;width:100%;height:100%;align-items:center;justify-content:center}
   #deck .relation-map.on{display:flex} #deck .tree-map.off{display:none}
+
+  /* LiveMTG unified design: neutral, product-first, and independent of company branding. */
+  :root{
+    --blue:#0071e3;--blue-d:#0058b0;--ink:#1d1d1f;--sub:#6e6e73;
+    --bg:#f5f5f7;--card:#fff;--line:#dcdce1;--amber:#a05a00;--red:#d70015;--green:#248a3d;
+  }
+  body,body[data-theme]{
+    --blue:#0071e3;--blue-d:#0058b0;--ink:#1d1d1f;--sub:#6e6e73;
+    --bg:#f5f5f7;--card:#fff;--line:#dcdce1;--amber:#a05a00;--red:#d70015;--green:#248a3d;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Yu Gothic UI",sans-serif;
+    letter-spacing:-.012em;background:var(--bg);
+  }
+  body[data-theme] header{
+    color:var(--ink);background:rgba(250,250,252,.88);border-bottom:1px solid rgba(0,0,0,.1);
+    box-shadow:none;backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);
+  }
+  body[data-theme] header .logo{display:block;height:24px;background:transparent;padding:0;border-radius:0}
+  body[data-theme] header h1::before{content:none}
+  header h1{font-weight:650;letter-spacing:-.025em}
+  .inline-icon{width:18px;height:18px;display:inline-block;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .gtitle,.ahead,.modal h3,.pickbtn,.modal .row button{display:flex;align-items:center;gap:7px}
+  .controls{gap:8px}.vsep{background:#d2d2d7;margin:5px 4px}
+  .btn,body[data-theme] .btn.rec{border:1px solid transparent;border-radius:999px;background:#e9e9ed;color:var(--ink);font-weight:600;box-shadow:none}
+  .btn:hover,body[data-theme] .btn.rec:hover{background:#dedee3}
+  body[data-theme] .btn.rec{background:var(--ink);color:#fff;padding-inline:18px}
+  body[data-theme] .btn.rec.on{background:var(--red);color:#fff}
+  .btn.ghost{background:transparent;border-color:#d2d2d7}.btn.regen{background:#e9e9ed;color:var(--ink)}
+  select.sess{background:#fff;color:var(--ink);border:1px solid #d2d2d7;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  select.sess option{color:var(--ink)}
+  .viewseg{background:#e9e9ed;border-radius:999px;padding:3px}.viewseg button{color:var(--sub);font-weight:600;border-radius:999px}
+  .viewseg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .status{color:var(--sub)}.lastupdate.stale{color:var(--red)}.dot.idle{background:#a1a1a6}
+  .menu{border:1px solid rgba(0,0,0,.08);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.16);padding:8px}
+  .menu-item{font-weight:600;border-radius:11px}.menu-item:hover{background:#f0f0f2;color:var(--ink)}
+  .menu-group summary{font-weight:650;color:var(--sub)}.menu-group summary:hover{background:#f5f5f7}
+  .summary{background:#fff;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:20px;color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.03);padding:20px 24px}
+  .nextwrap{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .nexthead,.nextinlineintent b{color:var(--ink)}.nexthead .pulse{background:var(--blue);box-shadow:0 0 0 6px rgba(0,113,227,.1)}
+  .nextchip{border-color:#d2d2d7;border-radius:14px;box-shadow:none}.nextchip::before{background:var(--blue)}
+  .nextchip:hover,.nextchip.active{border-color:var(--blue);background:#f7faff}
+  .nextinlineintent{border-color:#d2d2d7;border-left-color:var(--blue);box-shadow:none}
+  .ghead{background:var(--ink);border-radius:18px;box-shadow:none}.gbody{background:#f0f0f2;border-color:var(--line);border-radius:0 0 18px 18px}
+  .gpanel,.card,.prep-board,.strategy-log,.pbcard{border-color:var(--line);box-shadow:none;border-radius:16px}
+  .gsection-title,.gpanel h4,.grow b,.research-card>summary,.prep-board h4{color:var(--ink)}
+  .grow b,.detail-status{background:#eeeef0;color:var(--ink)}
+  .assist .ahead,.apanel .aq{color:var(--ink)}.achip{border-color:#d2d2d7;background:#fff;color:var(--ink);box-shadow:none}
+  .achip::before{background:#e9e9ed;color:var(--ink)}.achip:hover{background:#f5f5f7}.achip.active{background:var(--ink);border-color:var(--ink)}
+  .apanel{background:#fff;border-color:var(--line);border-left-color:var(--ink);border-radius:16px}.averify{border-top-color:var(--line)}
+  .grid{gap:16px}.card{padding:20px}.card h2{font-weight:650;border-bottom:1px solid var(--line)}
+  .card h2 .tag,h2.d .tag,h2.t .tag,h2.o .tag{background:#e9e9ed;color:var(--ink)}
+  li::before,.decisions li::before,.open li::before{background:#8e8e93}.who{background:#eeeef0;color:var(--ink);border-color:#d2d2d7}
+  .drawer-bg,.modal-bg{background:rgba(0,0,0,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .drawer,.modal{border:1px solid rgba(0,0,0,.08);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,.22)}
+  .drawer .dh{background:#fff;color:var(--ink);border-bottom:1px solid var(--line)}.drawer .dh .x{background:#e9e9ed;color:var(--ink)}
+  .modal input,.modal textarea,.fq-in{border:1px solid #c7c7cc;border-radius:12px;background:#fff}.modal input:focus,.modal textarea:focus,.fq-in:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.13)}
+  .modal .ok,.send-btn{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important;border-radius:999px!important;box-shadow:none!important}
+  .modal .cancel{background:#e9e9ed;color:var(--ink);border-color:transparent;border-radius:999px}
+  .prep-quick button{background:#fff;border-color:#d2d2d7;color:var(--ink);font-weight:600}.prep-quick button:hover{background:#f0f0f2}
+  .smsg.user{background:var(--blue)}.smsg.assistant{border-color:var(--line)}
+  .prep-save{background:#fff;border-color:var(--line);border-radius:14px}.prep-save .save-icon{display:none}
+  #deck .ds{background:#fff}#deck .dhead{border-bottom-color:#d2d2d7}#deck .dkick{color:var(--sub)}
+  #deck .tree-lines path{stroke:#8e8e93}#deck .tree-node{box-shadow:none;border:1px solid #d2d2d7;color:var(--ink)}
+  #deck .tree-node.root{background:var(--ink);color:#fff}#deck .tree-node.branch{background:#e8e8ed}
+  #deck .tree-node.group{background:#f2f2f4}#deck .tree-node.item,#deck .tree-node.leaf,#deck .tree-node.leaf.tone-1,#deck .tree-node.leaf.tone-2,#deck .tree-node.leaf.tone-3,#deck .tree-node.leaf.tone-4{background:#fff}
+  #deck .tree-detail{background:#f5f5f7;border-color:#d2d2d7}#deck .maptools button.on{background:var(--ink);border-color:var(--ink)}
+  #pview .pband{background:var(--ink);border-radius:16px}#pview .psum{background:#f5f5f7;border-left-color:var(--ink)}
+  #pview .pkpi,#pview .pcard{border-color:#d2d2d7}#pview .pwho{background:#eeeef0;color:var(--ink);border-color:#d2d2d7}
 </style>
 </head>
 <body>
@@ -447,9 +500,12 @@
   <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
-  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.5a1.8 1.8 0 0 0 0-3.6H12a1.7 1.7 0 0 1 0-3.4h3a6 6 0 0 0 6-6c0-3-4-5-9-5z"/><circle cx="7.5" cy="9" r=".8"/><circle cx="10" cy="6.5" r=".8"/><circle cx="14" cy="6.5" r=".8"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M8.5 15.5A7 7 0 1 1 15.5 15.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5z"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19zM12 9v5M12 17.5v.5"/></symbol>
 </svg>
 <header>
   <img class="logo" src="/app-logo.svg" alt="LiveMTG" onerror="this.style.display='none'">
@@ -457,14 +513,14 @@
   <h1>議事ライブ整理</h1>
   <div class="controls">
     <select class="sess" id="sess" title="会議を切り替え"></select>
-    <button class="btn rec" id="rec">▶ 録音開始</button>
+    <button class="btn rec" id="rec">録音開始</button>
     <span class="vsep"></span>
     <div class="viewseg" id="viewseg" title="ライブ表示の切替（リスト／マインドマップ）">
       <button data-v="list" class="on">リスト</button>
       <button data-v="slide">マインドマップ</button>
     </div>
     <div class="menuwrap">
-      <button class="btn ghost" id="menubtn" title="操作メニュー">≡ メニュー ▾</button>
+      <button class="btn ghost" id="menubtn" title="操作メニュー">メニュー</button>
       <div class="menu" id="menu">
         <button class="menu-item" id="strategybtn" title="構想の壁打ち・仮説・質問候補を整理し、選択フォルダとライブ参謀へ反映する"><svg class="menu-icon"><use href="#i-chat"/></svg><span class="menu-label">この会議の事前準備室</span></button>
         <button class="menu-item" id="full"><svg class="menu-icon"><use href="#i-file"/></svg><span class="menu-label">会話全文を見る</span></button>
@@ -487,7 +543,6 @@
             <button class="menu-item" id="new"><svg class="menu-icon"><use href="#i-plus"/></svg><span class="menu-label">新規会議</span></button>
             <button class="menu-item" id="profbtn" title="あなたが誰かをAIに教える"><svg class="menu-icon"><use href="#i-user"/></svg><span class="menu-label">プロフィール</span></button>
             <button class="menu-item" id="language"><svg class="menu-icon"><use href="#i-globe"/></svg><span class="menu-label">言語：日本語</span></button>
-            <button class="menu-item" id="theme"><svg class="menu-icon"><use href="#i-palette"/></svg><span class="menu-label">デザイン：ブルー</span></button>
             <button class="menu-item danger" id="delete" title="表示中の会議のデータと同期コピーを削除"><svg class="menu-icon"><use href="#i-trash"/></svg><span class="menu-label">この会議を削除</span></button>
           </div>
         </details>
@@ -497,7 +552,7 @@
   </div>
 </header>
 
-<div class="downbar" id="down">⚠ サーバが停止しています。ターミナルで <b>live-mtg.sh</b> を起動し直してください（録音の停止は画面の「■ 録音停止」ボタンです。ターミナルのCtrl+Cはサーバごと終了します）。</div>
+<div class="downbar" id="down"><svg class="inline-icon"><use href="#i-alert"/></svg>サーバが停止しています。ターミナルで <b>live-mtg.sh</b> を起動し直してください（録音の停止は画面の「録音停止」ボタンです。ターミナルのCtrl+Cはサーバごと終了します）。</div>
 
 <div id="pview"></div>
 
@@ -510,10 +565,10 @@
   <div class="nextchips" id="nextchips"></div>
 </div>
 
-<!-- 🎯 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
+<!-- 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
 <div class="gwrap" id="gwrap">
   <div class="ghead" id="ghead">
-    <span class="gtitle">🎯 ガイド</span>
+    <span class="gtitle"><svg class="inline-icon"><use href="#i-target"/></svg>ガイド</span>
     <span class="gprog" id="gprog">—</span>
     <span class="gcaret" id="gcaret">▾</span>
   </div>
@@ -521,7 +576,7 @@
 </div>
 
 <div class="assist" id="assist">
-  <div class="ahead">💡 AIサポート <span class="sub">タップで回答（参考情報・要確認）</span></div>
+  <div class="ahead"><svg class="inline-icon"><use href="#i-bulb"/></svg>AIサポート <span class="sub">タップで回答（参考情報・要確認）</span></div>
   <div class="achips" id="achips"></div>
   <div class="apanel" id="apanel"></div>
 </div>
@@ -558,8 +613,8 @@
     <input id="mtitle" placeholder="会議名（例：DX部 定例 7/9）" autocomplete="off">
     <label class="flabel">背景フォルダ（任意）— 指定するとAIが中の資料を読んで文脈に使う</label>
     <div class="pickrow">
-      <input id="mproj" list="projdl" placeholder="📁で選択（または過去の候補・パス入力）" autocomplete="off">
-      <button type="button" class="pickbtn" id="mpick">📁 選択</button>
+      <input id="mproj" list="projdl" placeholder="選択または過去の候補・パス入力" autocomplete="off">
+      <button type="button" class="pickbtn" id="mpick"><svg class="inline-icon"><use href="#i-folder"/></svg>選択</button>
     </div>
     <datalist id="projdl"></datalist>
     <label class="flabel">用途（任意）— 選ぶとその用途のプレイブック（蓄積ノウハウ）をAIが参照</label>
@@ -574,7 +629,7 @@
       <option value="提案する側"><option value="ヒアリングする側"><option value="面接官">
       <option value="司会・進行"><option value="報告する側"><option value="参加者">
     </datalist>
-    <label class="flabel">🎯 目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON</label>
+    <label class="flabel">目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON</label>
     <textarea id="mgoal" rows="2" placeholder="例：見積もりAI導入の合意を取る。予算感と決裁者を聞き出す。"></textarea>
     <div class="row">
       <button class="cancel" id="mcancel">キャンセル</button>
@@ -590,7 +645,7 @@
     <p>文字起こしから、whisperが誤認識しやすい固有名詞を洗い出しました。<b>合っていればそのまま、違えば正しい表記に直して</b>ください。この内容を最優先で清書します。</p>
     <div id="fqbox" class="fqbox"></div>
     <div class="row" style="justify-content:space-between">
-      <button class="cancel" id="fregen" title="新しく話した内容を反映して質問を作り直す">🔄 質問を作り直す</button>
+      <button class="cancel" id="fregen" title="新しく話した内容を反映して質問を作り直す"><svg class="inline-icon"><use href="#i-refresh"/></svg>質問を作り直す</button>
       <span style="display:flex;gap:10px">
         <button class="cancel" id="fcancel">キャンセル</button>
         <button class="ok" id="fok">この内容で清書</button>
@@ -599,10 +654,10 @@
   </div>
 </div>
 
-<!-- 🎯 商談ガイド設定モーダル -->
+<!-- 商談ガイド設定モーダル -->
 <div class="modal-bg" id="gbg">
   <div class="modal">
-    <h3>🎯 商談ガイド設定</h3>
+    <h3><svg class="inline-icon"><use href="#i-target"/></svg>商談ガイド設定</h3>
     <p>目標を設定すると、会話の流れと背景資料を踏まえた<b>次の質問の提案（意図つき）・相手の発言解析</b>が常時更新されます。必要な資料はAIが自動で調べに行きます。</p>
     <label class="flabel">用途 — その用途のプレイブック（蓄積ノウハウ）を参照</label>
     <input id="gtype" list="mtypedl" placeholder="商談 / 採用面接 / ヒアリング …" autocomplete="off">
@@ -612,8 +667,8 @@
     <textarea id="ggoal" rows="3" placeholder="例：見積もりAI化の導入合意を取る。予算感と決裁者を聞き出す。"></textarea>
     <label class="flabel">背景フォルダ</label>
     <div class="pickrow">
-      <input id="gproj" list="projdl" placeholder="📁で選択（または過去の候補・パス入力）" autocomplete="off">
-      <button type="button" class="pickbtn" id="gpick">📁 選択</button>
+      <input id="gproj" list="projdl" placeholder="選択または過去の候補・パス入力" autocomplete="off">
+      <button type="button" class="pickbtn" id="gpick"><svg class="inline-icon"><use href="#i-folder"/></svg>選択</button>
     </div>
     <div class="row">
       <button class="cancel" id="gcancel">キャンセル</button>
@@ -622,17 +677,17 @@
   </div>
 </div>
 
-<!-- 💬 会議前の作戦会議（任意） -->
+<!-- 会議前の作戦会議（任意） -->
 <div class="modal-bg" id="sbg">
   <div class="modal strategy-modal">
-    <h3>💬 この会議の事前準備室</h3>
+    <h3><svg class="inline-icon"><use href="#i-chat"/></svg>この会議の事前準備室</h3>
     <p>ラフな構想をそのまま投げてください。AI参謀が整理しつつ仮説・反論・質問候補を広げ、右の準備ボードを更新します。内容は<b>選択中の背景フォルダへ逐次保存</b>され、会議中のライブ参謀にも反映されます。</p>
     <div class="prep-quick">
-      <button data-prep="今回の会議の着地点を整理したい。">🎯 着地点</button>
-      <button data-prep="相手について分かっていることを共有する。">👤 相手情報</button>
-      <button data-prep="今の構想に対する仮説や別の切り口を広げてほしい。">💡 仮説を広げる</button>
-      <button data-prep="相手から出そうな反論・懸念・見落としを洗い出してほしい。">🛡 懸念を洗う</button>
-      <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">❓ 質問を作る</button>
+      <button data-prep="今回の会議の着地点を整理したい。">着地点</button>
+      <button data-prep="相手について分かっていることを共有する。">相手情報</button>
+      <button data-prep="今の構想に対する仮説や別の切り口を広げてほしい。">仮説を広げる</button>
+      <button data-prep="相手から出そうな反論・懸念・見落としを洗い出してほしい。">懸念を洗う</button>
+      <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">質問を作る</button>
     </div>
     <div class="strategy-workspace">
       <div class="strategy-chatcol">
@@ -654,18 +709,18 @@
   </div>
 </div>
 
-<!-- 👤 プロフィール（私は誰か。一問一答で答えるだけ・全会議共通でAIに注入） -->
+<!-- プロフィール（私は誰か。一問一答で答えるだけ・全会議共通でAIに注入） -->
 <div class="modal-bg" id="profbg">
   <div class="modal">
-    <h3>👤 プロフィール（私は誰か）</h3>
-    <p>質問に答えるだけでOK。録音している<b>あなたが誰か</b>をAIが理解し、話者の名前ラベル・🎯ガイドの助言・清書が正確になります。<b>全会議で共通</b>・いつでも変更できます。</p>
+    <h3><svg class="inline-icon"><use href="#i-user"/></svg>プロフィール（私は誰か）</h3>
+    <p>質問に答えるだけでOK。録音している<b>あなたが誰か</b>をAIが理解し、話者の名前ラベル・ガイドの助言・清書が正確になります。<b>全会議で共通</b>・いつでも変更できます。</p>
     <label class="flabel">Q1. お名前は？（呼ばれ方も）</label>
     <input id="prof_name" placeholder="例：山田 太郎（山田さん）" autocomplete="off">
     <label class="flabel">Q2. 会社・役職は？</label>
     <input id="prof_org" placeholder="例：〇〇株式会社 AX支援担当" autocomplete="off">
     <label class="flabel">Q3. 補足があれば（よく出る関係者など・任意）</label>
     <textarea id="prof_notes" rows="2" placeholder="例：佐藤部長＝顧客側の決裁者。社内では「山田さん」と呼ばれる"></textarea>
-    <p style="margin:10px 0 0;font-size:13px;color:var(--sub)">※会議ごとに変わる「あなたの立場」（提案する側・面接官 等）は、新規会議または 🎯 商談ガイド設定で会議ごとに設定します。</p>
+    <p style="margin:10px 0 0;font-size:13px;color:var(--sub)">※会議ごとに変わる「あなたの立場」（提案する側・面接官 等）は、新規会議または商談ガイド設定で会議ごとに設定します。</p>
     <div class="row">
       <button class="cancel" id="profcancel">キャンセル</button>
       <button class="ok" id="profok">保存</button>
@@ -673,10 +728,10 @@
   </div>
 </div>
 
-<!-- 📚 学びの確認モーダル（承認制。編集してから追記できる） -->
+<!-- 学びの確認モーダル（承認制。編集してから追記できる） -->
 <div class="modal-bg" id="lbg">
   <div class="modal fmodal">
-    <h3>📚 この会議からの学び</h3>
+    <h3><svg class="inline-icon"><use href="#i-book"/></svg>この会議からの学び</h3>
     <p>AIが抽出した学びです。<b>編集して「プレイブックに追記」</b>を押すと、用途別プレイブックに蓄積され、次回以降のガイドが賢くなります。不要な行は消してください。</p>
     <textarea id="llearn" rows="12" style="font-size:14px;line-height:1.7"></textarea>
     <div class="row">
@@ -694,8 +749,8 @@
     <label style="display:block;font-size:13px;font-weight:700;color:var(--sub);margin-bottom:5px">使用するマイク</label>
     <select id="micsel" style="width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink)"></select>
     <div class="row">
-      <button class="cancel" id="rmic">🎙 マイクのみ</button>
-      <button class="ok" id="rtab">🖥 会議音声も取り込む</button>
+      <button class="cancel" id="rmic"><svg class="inline-icon"><use href="#i-mic"/></svg>マイクのみ</button>
+      <button class="ok" id="rtab"><svg class="inline-icon"><use href="#i-screen"/></svg>会議音声も取り込む</button>
     </div>
   </div>
 </div>
@@ -707,29 +762,33 @@ const $ = id => document.getElementById(id);
 let uiLanguage=localStorage.getItem('livemtg_language')||((navigator.language||'ja').toLowerCase().startsWith('en')?'en':'ja');
 const tr=(ja,en)=>uiLanguage==='en'?en:ja;
 const EN_TEXT=new Map([
-  ['議事ライブ整理','Live meeting copilot'],['会議を切り替え','Switch meeting'],['▶ 録音開始','▶ Start recording'],['■ 録音停止','■ Stop recording'],
-  ['リスト','List'],['マインドマップ','Mind map'],['≡ メニュー ▾','≡ Menu ▾'],['この会議の事前準備室','Meeting prep room'],
+  ['録音開始','Start recording'],['録音停止','Stop recording'],['メニュー','Menu'],
+  ['ガイド','Guide'],['AIサポート','AI support'],['選択','Choose'],['質問を作り直す','Regenerate questions'],
+  ['商談ガイド設定','Meeting guide settings'],['着地点','Outcome'],['相手情報','Counterpart'],
+  ['仮説を広げる','Expand hypotheses'],['懸念を洗う','Explore risks'],['質問を作る','Draft questions'],
+  ['プロフィール（私は誰か）','Profile'],['この会議からの学び','Learnings from this meeting'],
+  ['マイクのみ','Microphone only'],['会議音声も取り込む','Include meeting audio'],
+  ['議事ライブ整理','Live meeting copilot'],['会議を切り替え','Switch meeting'],
+  ['リスト','List'],['マインドマップ','Mind map'],['この会議の事前準備室','Meeting prep room'],
   ['会話全文を見る','View full transcript'],['目標・ガイド設定','Goal & guide settings'],['会議後の成果物・振り返り','Post-meeting outputs'],
   ['高精度に清書','Create polished minutes'],['マインドマップ化','Create mind map'],['マインドマップを作り直す','Regenerate mind map'],
   ['スライド化','Create slides'],['スライドを作り直す','Regenerate slides'],['1ページPDF保存','Save one-page PDF'],['学びを抽出','Extract learnings'],
   ['設定・会議管理','Settings & meetings'],['新規会議','New meeting'],['プロフィール','Profile'],['言語：日本語','Language: Japanese'],
   ['デザイン：ブルー','Design: Blue'],['この会議を削除','Delete this meeting'],['接続中…','Connecting…'],['最終解析：確認中…','Last analysis: checking…'],
   ['音声を待っています…','Waiting for audio…'],['今、次にするべき質問','Best next questions'],['タップで意図を表示','Tap to show intent'],
-  ['🎯 ガイド','🎯 Guide'],['💡 AIサポート','💡 AI support'],['タップで回答（参考情報・要確認）','Tap for an answer'],
+  ['タップで回答（参考情報・要確認）','Tap for an answer'],
   ['議題','Agenda'],['論点・意見','Discussion points'],['決定事項','Decisions'],['未解決・要確認','Open questions'],['会話全文','Full transcript'],
   ['新しい会議を始める','Start a new meeting'],['いま録音中なら停止し、新しい会議として整理を始めます。','If recording, it will stop and a new meeting will begin.'],
   ['背景フォルダ（任意）— 指定するとAIが中の資料を読んで文脈に使う','Context folder (optional) — AI reads its files for context'],
-  ['📁 選択','📁 Choose'],['用途（任意）— 選ぶとその用途のプレイブック（蓄積ノウハウ）をAIが参照','Meeting type (optional) — uses the matching playbook'],
+  ['用途（任意）— 選ぶとその用途のプレイブック（蓄積ノウハウ）をAIが参照','Meeting type (optional) — uses the matching playbook'],
   ['この会議でのあなたの立場（任意）— ガイド・議事の視点がこの立場になる','Your role in this meeting (optional)'],
-  ['🎯 目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON','🎯 Goal (optional) — enables suggested questions and analysis'],
-  ['キャンセル','Cancel'],['開始','Start'],['保存','Save'],['清書の前に確認','Review before polishing'],['🔄 質問を作り直す','🔄 Regenerate questions'],
-  ['この内容で清書','Create polished minutes'],['🎯 商談ガイド設定','🎯 Meeting guide settings'],['この会議の目標','Meeting goal'],['背景フォルダ','Context folder'],
-  ['💬 この会議の事前準備室','💬 Meeting prep room'],['🎯 着地点','🎯 Outcome'],['👤 相手情報','👤 Counterpart'],['💡 仮説を広げる','💡 Expand hypotheses'],
-  ['🛡 懸念を洗う','🛡 Explore risks'],['❓ 質問を作る','❓ Draft questions'],['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
-  ['👤 プロフィール（私は誰か）','👤 Profile'],['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
-  ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],['📚 この会議からの学び','📚 Learnings from this meeting'],
+  ['目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON','Goal (optional) — enables suggested questions and analysis'],
+  ['キャンセル','Cancel'],['開始','Start'],['保存','Save'],['清書の前に確認','Review before polishing'],
+  ['この内容で清書','Create polished minutes'],['この会議の目標','Meeting goal'],['背景フォルダ','Context folder'],
+  ['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
+  ['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
+  ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],
   ['破棄','Discard'],['プレイブックに追記','Add to playbook'],['録音を開始','Start recording'],['使用するマイク','Microphone'],
-  ['🎙 マイクのみ','🎙 Microphone only'],['🖥 会議音声も取り込む','🖥 Include meeting audio'],
   ['文字起こしから、whisperが誤認識しやすい固有名詞を洗い出しました。','We found names and terms that may have been misheard.'],
   ['合っていればそのまま、違えば正しい表記に直して','Keep correct spellings and fix incorrect ones'],['ください。この内容を最優先で清書します。','before creating polished minutes.'],
   ['目標を設定すると、会話の流れと背景資料を踏まえた','Set a goal to receive continuously updated'],['次の質問の提案（意図つき）・相手の発言解析','suggested questions and statement analysis'],
@@ -737,14 +796,14 @@ const EN_TEXT=new Map([
   ['ラフな構想をそのまま投げてください。AI参謀が整理しつつ仮説・反論・質問候補を広げ、右の準備ボードを更新します。内容は','Share rough ideas here. AI will organize them, expand hypotheses and questions, and update the preparation board. Notes are'],
   ['選択中の背景フォルダへ逐次保存','saved continuously to the selected context folder'],['され、会議中のライブ参謀にも反映されます。','and used during the live meeting.'],
   ['質問に答えるだけでOK。録音している','Answer these questions so AI understands'],['あなたが誰か','who you are'],
-  ['をAIが理解し、話者の名前ラベル・🎯ガイドの助言・清書が正確になります。','and can improve speaker labels, guidance, and polished minutes.'],['全会議で共通','Shared across meetings'],['・いつでも変更できます。','and editable anytime.'],
+  ['をAIが理解し、話者の名前ラベル・ガイドの助言・清書が正確になります。','and can improve speaker labels, guidance, and polished minutes.'],['全会議で共通','Shared across meetings'],['・いつでも変更できます。','and editable anytime.'],
   ['AIが抽出した学びです。','These learnings were extracted by AI.'],['編集して「プレイブックに追記」','Edit them and choose “Add to playbook”'],
   ['を押すと、用途別プレイブックに蓄積され、次回以降のガイドが賢くなります。不要な行は消してください。','to reuse them in future meetings of this type. Delete anything you do not want to keep.'],
   ['オンライン会議の','To transcribe'],['相手の声も','other participants in an online meeting'],['文字起こしするには「会議音声も取り込む」を選び、次の共有画面で','choose “Include meeting audio,” select the meeting tab, and enable'],
   ['会議のタブ','the meeting tab'],['「タブの音声を共有」にチェック','Share tab audio'],['してください（自分の声はマイクから拾います）。','Your own voice will come from the microphone.']
 ]);
 const EN_ATTR=new Map([
-  ['会議名（例：DX部 定例 7/9）','Meeting title (e.g. Product weekly sync)'],['📁で選択（または過去の候補・パス入力）','Choose a folder or enter its path'],
+  ['会議名（例：DX部 定例 7/9）','Meeting title (e.g. Product weekly sync)'],['選択または過去の候補・パス入力','Choose a folder or enter its path'],
   ['商談 / 採用面接 / ヒアリング / 社内定例 …（自由入力可）','Sales / Interview / Research / Internal sync…'],
   ['提案する側 / 面接官 / ヒアリングする側 …（自由入力可）','Presenter / Interviewer / Researcher…'],
   ['例：見積もりAI導入の合意を取る。予算感と決裁者を聞き出す。','Example: Agree on an AI pilot and identify budget and decision maker.'],
@@ -815,7 +874,7 @@ function renderLastUpdate(){
   const sec=Math.max(0,Math.floor(Date.now()/1000-dataUpdatedAt));
   const ago=sec<20?tr('たった今','just now'):sec<60?tr(`${sec}秒前`,`${sec}s ago`):sec<3600?tr(`${Math.floor(sec/60)}分前`,`${Math.floor(sec/60)}m ago`):tr(`${Math.floor(sec/3600)}時間前`,`${Math.floor(sec/3600)}h ago`);
   const stale=transcriptUpdatedAt>dataUpdatedAt+5&&!stateAnalyzing;
-  el.textContent=tr(`${stale?'⚠ ':''}最終解析 ${hh}:${mm}（${ago}）`,`${stale?'⚠ ':''}Last analysis ${hh}:${mm} (${ago})`);
+  el.textContent=tr(`${stale?'要更新 · ':''}最終解析 ${hh}:${mm}（${ago}）`,`${stale?'Update pending · ':''}Last analysis ${hh}:${mm} (${ago})`);
   el.classList.toggle('stale',stale);
 }
 function applyState(s){
@@ -823,11 +882,11 @@ function applyState(s){
   recording = s.recording;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
   $('dot').className = 'dot ' + (recording?'live':'idle');
-  $('rec').textContent = recording ? tr('■ 録音停止','■ Stop recording') : tr('▶ 録音開始','▶ Start recording');
+  $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
-  $('st').textContent = (recording ? tr('● 録音中','● Recording') : tr('停止中','Stopped'))
-    + (s.analyzing ? tr(' ｜🧠 解析中',' | 🧠 Analyzing') : '')
-    + (s.exploring ? tr(' ｜📚 背景読込中',' | 📚 Reading context') : '') + (s.researching>0 ? tr(' ｜🔍 調査中',' | 🔍 Researching') : '');
+  $('st').textContent = (recording ? tr('録音中','Recording') : tr('停止中','Stopped'))
+    + (s.analyzing ? tr(' · 解析中',' · Analyzing') : '')
+    + (s.exploring ? tr(' · 背景読込中',' · Reading context') : '') + (s.researching>0 ? tr(' · 調査中',' · Researching') : '');
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
   setMenuLabel('goalbtn',curGoal ? tr('目標・ガイド設定（ON）','Goal & guide settings (ON)') : tr('目標・ガイド設定','Goal & guide settings'));
@@ -845,7 +904,7 @@ function applyState(s){
   if(sel.dataset.sig!==sig){
     sel.dataset.sig=sig;
     sel.innerHTML = s.sessions.map(x=>{
-      const t=(x.created?x.created.slice(5)+' ':'')+x.title+(x.hasSlides?' 🖥':'');
+      const t=(x.created?x.created.slice(5)+' ':'')+x.title+(x.hasSlides?tr(' · マップあり',' · Mind map ready'):'');
       return `<option value="${esc(x.id)}"${x.id===cur?' selected':''}>${esc(t)}</option>`;
     }).join('');
   }
@@ -873,7 +932,7 @@ async function pollState(){
     if(serverDown){ serverDown=false; $('down').classList.remove('show'); }
   }catch(e){
     serverDown=true; $('down').classList.add('show');
-    $('st').textContent=tr('⚠ サーバ停止','⚠ Server stopped'); $('dot').className='dot idle';
+    $('st').textContent=tr('サーバ停止','Server stopped'); $('dot').className='dot idle';
   }
 }
 async function pollData(){
@@ -895,10 +954,10 @@ async function pollData(){
     renderGuide(d.guide);
     const sig=JSON.stringify(d);
     if(view==='slide' && sig!==deckSig){ deckSig=sig; buildDeck(d); }
-  }catch(e){ $('st').textContent = serverDown ? tr('⚠ サーバ停止','⚠ Server stopped') : tr('待機中…','Waiting…'); }
+  }catch(e){ $('st').textContent = serverDown ? tr('サーバ停止','Server stopped') : tr('待機中…','Waiting…'); }
 }
 
-// ===== 🎯 商談ガイド：畳んだバー＋展開パネル（困った時に開く）=====
+// ===== 商談ガイド：畳んだバー＋展開パネル（困った時に開く）=====
 let guideSig='';
 $('ghead').onclick = ()=>{ $('gwrap').classList.toggle('open'); $('gcaret').textContent = $('gwrap').classList.contains('open') ? '▴' : '▾'; };
 let nextQuestions=[];
@@ -980,8 +1039,8 @@ function toggleAssist(i){
   [...$('achips').children].forEach((c,j)=>c.classList.toggle('active', j===i));
   const x=assistData[i]||{};
   $('apanel').innerHTML = `<div class="aq">Q. ${esc(x.q||'')}</div><div class="aa">${esc(x.a||'')}</div>`
-    + (x.check?`<div class="acheck">⚠ ${tr('要確認','Verify')}：${esc(x.check)}</div>`:'')
-    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" onclick="verifyAssist(${i})">🔎 ${tr('Web検索で確認','Verify on the web')}</button><div class="vresult" id="vres"></div></div>` : '');
+    + (x.check?`<div class="acheck">${tr('要確認','Verify')}：${esc(x.check)}</div>`:'')
+    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" onclick="verifyAssist(${i})"><svg class="inline-icon"><use href="#i-globe"/></svg>${tr('Web検索で確認','Verify on the web')}</button><div class="vresult" id="vres"></div></div>` : '');
   $('apanel').className='apanel show';
 }
 // Markdownの[リンク](url)・**太字**・改行を最小限HTML化（出典リンク表示用）
@@ -1072,14 +1131,14 @@ function bindLiveTree(){
   requestAnimationFrame(drawLiveTree);
 }
 window.addEventListener('resize',drawLiveTree);
-// live画面のMermaidをマイニチブルーで描画（崩れても代替表示）
+// Live mind map uses the same neutral product palette as generated outputs.
 let mermaidReady=false, mmdSeq=0;
 function initMermaid(){
   if(mermaidReady || typeof mermaid==='undefined') return;
   try{ mermaid.initialize({startOnLoad:false, securityLevel:'loose', theme:'base',
-    themeVariables:{fontFamily:'"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif', fontSize:'20px',
-      primaryColor:'#e0f4fd', primaryBorderColor:'#00A0E9', primaryTextColor:'#12232e',
-      lineColor:'#0079b3', secondaryColor:'#eef7fd', tertiaryColor:'#f3f8fc'}});
+    themeVariables:{fontFamily:'-apple-system,"SF Pro Text","Helvetica Neue","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif', fontSize:'20px',
+      primaryColor:'#f5f5f7', primaryBorderColor:'#a1a1a6', primaryTextColor:'#1d1d1f',
+      lineColor:'#86868b', secondaryColor:'#ffffff', tertiaryColor:'#f0f0f2'}});
     mermaidReady=true; }catch(e){}
 }
 async function renderLiveMermaid(){
@@ -1193,14 +1252,14 @@ async function doStart(withTab){
   try{ applyState(await api('/api/start',{})); }catch(e){}
   await acquireWakeLock();   // 録音中は画面を消させない
   recording=true; $('rec').disabled=false;
-  $('rec').textContent=tr('■ 録音停止','■ Stop recording'); $('rec').classList.add('on');
-  $('dot').className='dot live'; $('st').textContent=tr('● 録音中','● Recording');
+  $('rec').textContent=tr('録音停止','Stop recording'); $('rec').classList.add('on');
+  $('dot').className='dot live'; $('st').textContent=tr('録音中','Recording');
 }
 async function doStop(){
   $('rec').disabled=true; stopCapture(); releaseWakeLock();
   try{ applyState(await api('/api/stop',{})); }catch(e){}
   recording=false; $('rec').disabled=false;
-  $('rec').textContent=tr('▶ 録音開始','▶ Start recording'); $('rec').classList.remove('on');
+  $('rec').textContent=tr('録音開始','Start recording'); $('rec').classList.remove('on');
   $('dot').className='dot idle'; $('st').textContent=tr('停止中','Stopped');
   await pollData();
 }
@@ -1231,7 +1290,7 @@ $('delete').onclick=async()=>{
   }catch(e){ hideToast(); toast(tr('削除に失敗しました','Deletion failed.')); }
   $('delete').disabled=recording||!currentSessionId;
 };
-// 📚 学びの抽出 → 承認 → プレイブック追記
+// 学びの抽出 → 承認 → プレイブック追記
 $('learnbtn').onclick = async ()=>{
   if(!curType){ toast(tr('先に商談ガイド設定でこの会議の用途（商談/面接等）を設定してください','Set the meeting type in Goal & guide settings first.')); return; }
   $('learnbtn').disabled=true;
@@ -1267,9 +1326,9 @@ $('mok').onclick = async ()=>{
   const pd = $('mproj').value.trim(), gl = $('mgoal').value.trim(), mt = $('mtype').value.trim(), st = $('mstance').value.trim();
   applyState(await api('/api/new', {title:$('mtitle').value, project_dir:pd, goal:gl, mtype:mt, stance:st, language:uiLanguage}));
   await pollData();
-  toast((gl?tr('🎯ガイドON。','🎯 Guide ON. '):'') + (pd ? tr('新しい会議を作成。背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）','New meeting created. Reading the context folder…') : tr('新しい会議を作成しました','New meeting created.')));
+  toast((gl?tr('ガイドを有効にしました。','Guide enabled. '):'') + (pd ? tr('新しい会議を作成。背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）','New meeting created. Reading the context folder…') : tr('新しい会議を作成しました','New meeting created.')));
 };
-// 📁 フォルダ選択（macOSネイティブダイアログをサーバ経由で開く）
+// フォルダ選択（macOSネイティブダイアログをサーバ経由で開く）
 async function pickDir(input){
   toast(tr('フォルダ選択ダイアログを開きました（他のウィンドウの後ろに出ることがあります）','Folder picker opened. It may appear behind another window.'), true);
   try{
@@ -1280,7 +1339,7 @@ async function pickDir(input){
 }
 $('mpick').onclick = ()=> pickDir($('mproj'));
 $('gpick').onclick = ()=> pickDir($('gproj'));
-// 🎯 商談ガイド設定
+// 商談ガイド設定
 $('goalbtn').onclick = ()=>{ $('ggoal').value=curGoal; $('gproj').value=curProj; $('gtype').value=curType; $('gstance').value=curStance; $('gbg').classList.add('show'); setTimeout(()=>$('ggoal').focus(),50); };
 $('gcancel').onclick = ()=> $('gbg').classList.remove('show');
 $('gok').onclick = async ()=>{
@@ -1289,7 +1348,7 @@ $('gok').onclick = async ()=>{
   if(r.ok){ toast(r.exploring ? tr('ガイドON。背景フォルダを読み込み中…','Guide enabled. Reading the context folder…') : tr('商談ガイドを設定しました','Goal and guide settings saved.')); await pollState(); }
   else toast(tr('設定に失敗：','Could not save settings: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
 };
-// 💬 会議事前準備室：壁打ちと準備ボードを同時更新し、選択フォルダ＋ライブAIに反映
+// 会議事前準備室：壁打ちと準備ボードを同時更新し、選択フォルダ＋ライブAIに反映
 let strategyExportPath='',strategyFolderMode=false;
 function drawPrepBoard(board){
   const b=board||{}, list=(title,a)=>a&&a.length?`<div class="pbcard"><div class="pbt">${title}</div><ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
@@ -1314,10 +1373,10 @@ function drawStrategy(msgs,board,exportPath,folderMode){
   if(strategyExportPath){
     const project=(curProj||'').split('/').filter(Boolean).pop()||tr('選択フォルダ','Selected folder');
     const meeting=strategyExportPath.split('/').filter(Boolean).pop().replace(/^\d{8}-\d{6}\s+/, '');
-    $('spath').innerHTML=`<div class="save-icon">${strategyFolderMode?'📖':'💾'}</div><div class="save-info"><span>${strategyFolderMode?tr('AI資料参照 ON · 自動更新先','AI source access ON · Auto-save location'):tr('自動更新先','Auto-save location')}</span><strong>${esc(project+' › '+tr('会議準備','Meeting prep')+' › '+meeting)}</strong><small>${tr('事前準備.md を毎回更新','Updates meeting-prep.md after every message')}</small></div><button onclick="openStrategyFolder()">${tr('Finderで開く','Open folder')}</button>`;
+    $('spath').innerHTML=`<div class="save-info"><span>${strategyFolderMode?tr('AI資料参照 ON · 自動更新先','AI source access ON · Auto-save location'):tr('自動更新先','Auto-save location')}</span><strong>${esc(project+' › '+tr('会議準備','Meeting prep')+' › '+meeting)}</strong><small>${tr('事前準備.md を毎回更新','Updates meeting-prep.md after every message')}</small></div><button onclick="openStrategyFolder()">${tr('Finderで開く','Open folder')}</button>`;
     $('spath').title=strategyExportPath+'/事前準備.md';
   }else{
-    $('spath').innerHTML=`<div class="save-icon">📁</div><div class="save-info"><span>${tr('保存先','Save location')}</span><strong>${tr('背景フォルダが未設定です','No context folder selected')}</strong><small>${tr('設定すると事前準備.mdを自動更新','Select one to auto-update meeting-prep.md')}</small></div><button onclick="openGoalFromPrep()">${tr('設定する','Set up')}</button>`;
+    $('spath').innerHTML=`<div class="save-info"><span>${tr('保存先','Save location')}</span><strong>${tr('背景フォルダが未設定です','No context folder selected')}</strong><small>${tr('設定すると事前準備.mdを自動更新','Select one to auto-update meeting-prep.md')}</small></div><button onclick="openGoalFromPrep()">${tr('設定する','Set up')}</button>`;
     $('spath').title='';
   }
 }
@@ -1349,7 +1408,7 @@ $('sreset').onclick=async()=>{
   if(!confirm(tr('事前準備の壁打ち履歴・準備ボード・フォルダへの書き出しを消し、最初から始めますか？','Clear the prep chat, preparation board, and exported file, then start over?')))return;
   const r=await api('/api/strategy',{reset:true}); if(r.ok){drawStrategy([],{},'',!!curProj);await pollState();}
 };
-// 👤 プロフィール（私は誰か・一問一答）
+// プロフィール（私は誰か・一問一答）
 const PROF_KEYS = ['name','org','notes'];
 $('profbtn').onclick = async ()=>{
   let f = {};
@@ -1396,7 +1455,7 @@ async function genSlides(){
   $('slides').disabled=true; $('regen').disabled=true;
   toast('1画面のマインドマップを生成中…', true);
   try{
-    const r = await api('/api/slides', {theme: document.body.dataset.theme || 'mainichi'});   // 選択中デザインでデッキを作る
+    const r = await api('/api/slides', {theme:'neutral'});
     hideToast(); $('slides').disabled=false; $('regen').disabled=false;
     if(r.ok){ toast('マインドマップが完成しました'); window.open(r.url, '_blank'); await pollState(); }
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
@@ -1410,7 +1469,7 @@ async function genDeck(){
   $('deckbtn').disabled=true; $('deckregen').disabled=true;
   toast('経営者向けスライドを生成中…（数十秒〜数分）', true);
   try{
-    const r = await api('/api/deck', {theme: document.body.dataset.theme || 'mainichi'});
+    const r = await api('/api/deck', {theme:'neutral'});
     hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false;
     if(r.ok){ toast('スライドが完成しました'); window.open(r.url, '_blank'); await pollState(); }
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
@@ -1435,7 +1494,7 @@ $('final').onclick = async ()=>{
   const r = await loadPrep(false);
   if(!r) return;
   buildFinalizeForm(r.questions||[], r.answers||{});
-  if(r.cached) toast('前回の確認内容を復元しました（作り直す場合は「🔄 質問を作り直す」）');
+  if(r.cached) toast('前回の確認内容を復元しました（作り直す場合は「質問を作り直す」）');
   $('fbg').classList.add('show');
   const first=document.querySelector('.fq-in'); if(first) setTimeout(()=>first.focus(),50);
 };
@@ -1533,20 +1592,14 @@ $('pdf').onclick = ()=>{
   window.addEventListener('afterprint',cleanup);
   setTimeout(()=>window.print(),150);
 };
-// デザインテーマ切替。localStorageで記憶
-function setTheme(t){
-  document.body.dataset.theme = (t === 'sponsaru') ? 'sponsaru' : 'mainichi';
-  localStorage.setItem('livemtg_theme', document.body.dataset.theme);
-  setMenuLabel('theme',(document.body.dataset.theme === 'sponsaru') ? tr('デザイン：ライト','Design: Light') : tr('デザイン：ブルー','Design: Blue'));
-}
-$('theme').onclick = ()=> setTheme(document.body.dataset.theme === 'sponsaru' ? 'mainichi' : 'sponsaru');
+document.body.dataset.theme='neutral';
+localStorage.removeItem('livemtg_theme');
 setMenuLabel('language',tr('言語：日本語','Language: English'));
 $('language').onclick=async()=>{
   const next=uiLanguage==='en'?'ja':'en';
   try{const r=await api('/api/settings',{language:next});if(!r.ok)throw new Error();localStorage.setItem('livemtg_language',next);location.reload();}
   catch(e){toast(tr('言語の変更に失敗しました','Could not change the language'));}
 };
-setTheme(localStorage.getItem('livemtg_theme') || 'mainichi');
 // ドロップダウンメニュー：開閉と、項目クリックで自動で閉じる
 $('menubtn').onclick = e=>{ e.stopPropagation(); $('menu').classList.toggle('show'); };
 document.addEventListener('click', e=>{ if(!$('menu').contains(e.target) && e.target!==$('menubtn')) $('menu').classList.remove('show'); });

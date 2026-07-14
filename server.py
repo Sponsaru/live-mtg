@@ -64,7 +64,7 @@ SILENCE_DB   = float(os.environ.get("SILENCE_DB", "-45")) # mean_volumeがこれ
 # フォルダ（案件の事実）とは別軸で、どの案件で使っても同じ用途なら同じプレイブックが効く。
 # 共有ドライブ内に置く＝チームで読める・手でも編集できる（ナレッジは.mdで管理の方針）
 PLAYBOOK_DIR = os.environ.get("PLAYBOOK_DIR", os.path.join(RUN, "playbooks") if DESKTOP else os.path.join(SCRIPT_DIR, "playbooks"))
-# 依頼主プロフィール（録音している本人＝私は誰か）。画面メニュー「👤 プロフィール」で設定し、
+# 依頼主プロフィール（録音している本人＝私は誰か）。画面メニュー「プロフィール」で設定し、
 # ライブ整理・ガイド・清書・自動下調べの全AIに注入する（話者ラベル・助言の立場・話者推定の精度が上がる）
 PROFILE_MD   = os.environ.get("PROFILE_MD", os.path.join(RUN, "profile.md") if DESKTOP else os.path.join(SCRIPT_DIR, "profile.md"))
 
@@ -492,7 +492,7 @@ NOISE = re.compile(r'^[\s、。.!！]*((ブ[ーぶ]*)+|(ブー*バ?イ?)+|んー
 
 EMPTY_DATA = json.dumps({
     "updated": _t("待機中", "Waiting"),
-    "summary": _t("ヘッダーの「▶ 録音開始」を押すと整理が始まります。", "Press Start recording in the header to begin."),
+    "summary": _t("ヘッダーの「録音開始」を押すと整理が始まります。", "Press Start recording in the header to begin."),
     "agenda": [], "points": [], "decisions": [], "todos": [], "open": []
 }, ensure_ascii=False)
 
@@ -1401,7 +1401,7 @@ def _bg_block(sid, meta):
     res = _load_research(sid)
     if res:
         parts.append("【調査結果（背景フォルダから取得済み）】\n" +
-                     "\n".join("● %s\n%s" % (r.get("need", ""), (r.get("answer", "") or "")[:600]) for r in res[-5:]))
+                     "\n".join("- %s\n%s" % (r.get("need", ""), (r.get("answer", "") or "")[:600]) for r in res[-5:]))
     return ("\n\n".join(parts) + "\n") if parts else ""
 
 def _overlap_wav(sid, wav):
@@ -1605,7 +1605,7 @@ def recover_pending_chunks():
     return current_recovered
 
 # ---------- 1画面マインドマップ生成 ----------
-def make_slides(theme="mainichi"):
+def make_slides(theme="neutral"):
     m = read_meta(current_id)
     env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
                SLIDE_MODEL=SLIDE_MODEL, THEME=theme, LIVE_MTG_LANGUAGE=LANGUAGE)   # 画面で選択中のデザインをデッキにも反映
@@ -1619,7 +1619,7 @@ def make_slides(theme="mainichi"):
         sync_to_project(current_id)   # 清書済みなら背景フォルダの一式もスライド込みに更新（清書前は内部でスキップ）
     return ok, (r.stderr or r.stdout or "").strip()
 
-def make_deck(theme="mainichi"):
+def make_deck(theme="neutral"):
     """従来の経営者向けスライドデッキ生成（make-slides.sh→$SDIR/slides.html）。
     v52でマインドマップに置き換えられたが、依頼者要望（2026-07-14）でマインドマップと併存の形で復活。"""
     m = read_meta(current_id)
@@ -1644,7 +1644,7 @@ def refresh_mindmap(sid):
         try:
             m = read_meta(sid)
             env = dict(_claude_env(), SDIR=sdir(sid), TITLE=m.get("title", "会議"),
-                       THEME="sponsaru" if "sponsaru" in (m.get("project_dir", "").lower()) else "mainichi")
+                       THEME="neutral")
             cmd = ([sys.executable, "--live-mtg-helper", "make-mindmap.py"] if getattr(sys, "frozen", False)
                    else [sys.executable, os.path.join(SCRIPT_DIR, "make-mindmap.py")])
             subprocess.run(cmd,
@@ -2155,7 +2155,7 @@ def extract_learnings(sid):
     m = read_meta(sid)
     mtype = (m.get("mtype") or "").strip()
     if not mtype:
-        return False, "この会議に「用途」が設定されていません（🎯設定から選んでください）"
+        return False, "この会議に「用途」が設定されていません（目標・ガイド設定から選んでください）"
     d = sdir(sid)
     txt = ""
     for fn in ("transcript-full.txt", "transcript.txt"):
@@ -2178,6 +2178,30 @@ def extract_learnings(sid):
         return False, "抽出に失敗：%r" % e
 
 # ---------- HTTP ----------
+def neutral_generated_html(path):
+    """Render old generated files with the current product identity.
+
+    Older decks embedded a customer logo as base64 and carried company-specific
+    palettes. Keep their meeting content, but remove that branding at serve time
+    so users do not have to regenerate every historical deck.
+    """
+    if not os.path.isfile(path):
+        return None
+    text = _read_text(path)
+    if not text:
+        return text
+    text = re.sub(
+        r'background:\s*url\(["\']data:image/[^"\']+["\']\)\s*no-repeat left center;',
+        'background: none;', text, flags=re.I)
+    text = text.replace("\U0001f5a8 PDF保存", "PDF保存")
+    overrides = """<style id="livemtg-neutral-identity">
+:root{--ink:#1d1d1f;--ink2:#424245;--gray:#86868b;--panel:#f5f5f7;--line:#d2d2d7;--blue:#0071e3;--blue-ink:#0066cc;--blue-deep:#1d1d1f;--blue-soft:#eef5fc;--blue-soft2:#f5f5f7;--mark:#d9e8fb}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Yu Gothic UI",sans-serif!important}
+.slide::after{content:"LiveMTG"!important;background:none!important;width:auto!important;height:auto!important;color:#6e6e73!important;font-size:17px!important;font-weight:650!important;letter-spacing:-.02em!important}
+.tree-lines path{stroke:#8e8e93!important}.tree-node{border:1px solid #d2d2d7!important;color:#1d1d1f!important;box-shadow:none!important}.tree-node.root{background:#1d1d1f!important;color:#fff!important}.tree-node.branch{background:#e8e8ed!important}.tree-node.group{background:#f2f2f4!important}.tree-node.item,.tree-node.leaf{background:#fff!important}.tree-detail{background:#f5f5f7!important;border-color:#d2d2d7!important}
+</style>"""
+    return text.replace("</head>", overrides + "\n</head>", 1)
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 静かに
         pass
@@ -2267,14 +2291,14 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, EMPTY_DATA)
         if p == "/slides.html":
             if current_id:
-                return self._file(os.path.join(sdir(current_id), "mindmap.html"),
-                                  "text/html; charset=utf-8")
+                html = neutral_generated_html(os.path.join(sdir(current_id), "mindmap.html"))
+                return self._send(200, html, "text/html; charset=utf-8") if html is not None else self._send(404, "not found", "text/plain; charset=utf-8")
             return self._send(404, "no slides", "text/plain; charset=utf-8")
         if p == "/deck.html":
             # 従来の経営者向けスライドデッキ（マインドマップとは別成果物）
             if current_id:
-                return self._file(os.path.join(sdir(current_id), "slides.html"),
-                                  "text/html; charset=utf-8")
+                html = neutral_generated_html(os.path.join(sdir(current_id), "slides.html"))
+                return self._send(200, html, "text/html; charset=utf-8") if html is not None else self._send(404, "not found", "text/plain; charset=utf-8")
             return self._send(404, "no deck", "text/plain; charset=utf-8")
         if p == "/api/state":
             with lock:
@@ -2415,7 +2439,7 @@ class H(BaseHTTPRequestHandler):
             # 生成は時間がかかる（opusで数十秒）。ロックは取らず、現IDを固定して実行。
             if not current_id:
                 return self._send(400, json.dumps({"ok": False, "err": "会議がありません"}))
-            theme = (b or {}).get("theme") or "mainichi"
+            theme = "neutral"
             ok, msg = make_slides(theme)
             return self._send(200, json.dumps(
                 {"ok": ok, "url": "/slides.html?ts=%d" % int(time.time()), "msg": msg},
@@ -2425,7 +2449,7 @@ class H(BaseHTTPRequestHandler):
             # 従来の経営者向けスライドデッキ生成（マインドマップ=/api/slidesとは別）
             if not current_id:
                 return self._send(400, json.dumps({"ok": False, "err": "会議がありません"}))
-            theme = (b or {}).get("theme") or "mainichi"
+            theme = "neutral"
             ok, msg = make_deck(theme)
             return self._send(200, json.dumps(
                 {"ok": ok, "url": "/deck.html?ts=%d" % int(time.time()), "msg": msg},

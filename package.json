@@ -1,6 +1,6 @@
 {
   "name": "live-mtg",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "Real-time bilingual meeting minutes and AI meeting copilot for Claude Code or Codex",
   "type": "module",
   "bin": {
@@ -24,7 +24,7 @@
     "VERSION"
   ],
   "scripts": {
-    "test": "node --check cli/live-mtg.mjs && node scripts/check-index-js.mjs && python3 -m py_compile server.py make-mindmap.py && python3 scripts/test-i18n.py",
+    "test": "node --check cli/live-mtg.mjs && node scripts/check-index-js.mjs && python3 -m py_compile server.py make-mindmap.py && python3 scripts/test-i18n.py && python3 scripts/test-branding.py",
     "build:package": "node scripts/build-npm-package.mjs",
     "pack:check": "npm run build:package && npm pack --dry-run ./dist/npm"
   },
