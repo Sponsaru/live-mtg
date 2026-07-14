@@ -367,14 +367,14 @@ def sync_to_project(sid):
             sl = os.path.join(d, "mindmap.html")
             has_slides = os.path.isfile(sl)
             if has_slides:
-                with open(sl, encoding="utf-8") as f:
-                    txt = f.read().replace('src="../../mermaid.min.js"', 'src="../mermaid.min.js"')
+                txt = (neutral_generated_html(sl, persist=True) or "").replace(
+                    'src="../../mermaid.min.js"', 'src="../mermaid.min.js"')
                 with open(os.path.join(stage, "マインドマップ.html"), "w", encoding="utf-8") as f:
                     f.write(txt)
             dk = os.path.join(d, "slides.html")
             if os.path.isfile(dk):
-                with open(dk, encoding="utf-8") as f:
-                    txt = f.read().replace('src="../../mermaid.min.js"', 'src="../mermaid.min.js"')
+                txt = (neutral_generated_html(dk, persist=True) or "").replace(
+                    'src="../../mermaid.min.js"', 'src="../mermaid.min.js"')
                 with open(os.path.join(stage, "スライド.html"), "w", encoding="utf-8") as f:
                     f.write(txt)
             base = os.path.join(pdir, "議事録")
@@ -2178,7 +2178,7 @@ def extract_learnings(sid):
         return False, "抽出に失敗：%r" % e
 
 # ---------- HTTP ----------
-def neutral_generated_html(path):
+def neutral_generated_html(path, persist=False):
     """Render old generated files with the current product identity.
 
     Older decks embedded a customer logo as base64 and carried company-specific
@@ -2190,17 +2190,45 @@ def neutral_generated_html(path):
     text = _read_text(path)
     if not text:
         return text
+    original = text
     text = re.sub(
-        r'background:\s*url\(["\']data:image/[^"\']+["\']\)\s*no-repeat left center;',
+        r'background:\s*url\(["\']data:image/[^"\']+["\']\)\s*no-repeat left center;?',
         'background: none;', text, flags=re.I)
+    # Remove the former company-theme wordmark block itself, not just its image.
+    text = re.sub(
+        r'/\*\s*sponsaru テーマ.*?body\[data-theme="sponsaru"\]\s*\.slide::after\s*\{.*?\}\s*',
+        '', text, flags=re.I | re.S)
+    text = text.replace('data-theme="mainichi"', 'data-theme="neutral"')
+    text = text.replace('data-theme="sponsaru"', 'data-theme="neutral"')
+    text = re.sub(
+        r'(<div class="cover-meta">[^<]*?｜)[^<]*?議事サマリ(</div>)',
+        r'\1 LiveMTG\2', text)
+    # Legacy Mermaid scripts contain fixed corporate colors; normalize both branches.
+    color_map = {
+        "#00a0e9": "#0071e3", "#0079b3": "#86868b", "#007cb8": "#0066cc",
+        "#11233a": "#1d1d1f", "#12232e": "#1d1d1f", "#33485f": "#424245",
+        "#0a3a5c": "#1d1d1f", "#e0f4fd": "#f5f5f7", "#eef7fd": "#ffffff",
+        "#f3f8fc": "#f5f5f7", "#dde8f1": "#d2d2d7", "#15233f": "#1d1d1f",
+        "#f15a24": "#0071e3", "#0e1a30": "#1d1d1f", "#fdeee5": "#f5f5f7",
+        "#f5f7fa": "#ffffff", "#e3e8ef": "#d2d2d7",
+    }
+    for old, new in color_map.items():
+        text = re.sub(re.escape(old), new, text, flags=re.I)
     text = text.replace("\U0001f5a8 PDF保存", "PDF保存")
     overrides = """<style id="livemtg-neutral-identity">
 :root{--ink:#1d1d1f;--ink2:#424245;--gray:#86868b;--panel:#f5f5f7;--line:#d2d2d7;--blue:#0071e3;--blue-ink:#0066cc;--blue-deep:#1d1d1f;--blue-soft:#eef5fc;--blue-soft2:#f5f5f7;--mark:#d9e8fb}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Yu Gothic UI",sans-serif!important}
 .slide::after{content:"LiveMTG"!important;background:none!important;width:auto!important;height:auto!important;color:#6e6e73!important;font-size:17px!important;font-weight:650!important;letter-spacing:-.02em!important}
-.tree-lines path{stroke:#8e8e93!important}.tree-node{border:1px solid #d2d2d7!important;color:#1d1d1f!important;box-shadow:none!important}.tree-node.root{background:#1d1d1f!important;color:#fff!important}.tree-node.branch{background:#e8e8ed!important}.tree-node.group{background:#f2f2f4!important}.tree-node.item,.tree-node.leaf{background:#fff!important}.tree-detail{background:#f5f5f7!important;border-color:#d2d2d7!important}
+.tree-lines path{stroke:#8e8e93!important}.tree-node{border:1px solid #d2d2d7!important;color:#1d1d1f!important;box-shadow:none!important}.tree-node.root{background:#1d1d1f!important;color:#fff!important}.tree-node.branch{background:#e8e8ed!important}.tree-node.group{background:#f2f2f4!important}.tree-node.item,.tree-node.leaf,.tree-node.item.tone-1,.tree-node.item.tone-2,.tree-node.item.tone-3,.tree-node.item.tone-4,.tree-node.leaf.tone-1,.tree-node.leaf.tone-2,.tree-node.leaf.tone-3,.tree-node.leaf.tone-4{background:#fff!important}.tree-detail{background:#f5f5f7!important;border-color:#d2d2d7!important}
 </style>"""
-    return text.replace("</head>", overrides + "\n</head>", 1)
+    if 'id="livemtg-neutral-identity"' not in text:
+        text = text.replace("</head>", overrides + "\n</head>", 1)
+    if persist and text != original:
+        tmp = path + ".neutral.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    return text
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 静かに
@@ -2291,13 +2319,15 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, EMPTY_DATA)
         if p == "/slides.html":
             if current_id:
-                html = neutral_generated_html(os.path.join(sdir(current_id), "mindmap.html"))
+                html = neutral_generated_html(os.path.join(sdir(current_id), "mindmap.html"), persist=True)
+                sync_to_project(current_id)
                 return self._send(200, html, "text/html; charset=utf-8") if html is not None else self._send(404, "not found", "text/plain; charset=utf-8")
             return self._send(404, "no slides", "text/plain; charset=utf-8")
         if p == "/deck.html":
             # 従来の経営者向けスライドデッキ（マインドマップとは別成果物）
             if current_id:
-                html = neutral_generated_html(os.path.join(sdir(current_id), "slides.html"))
+                html = neutral_generated_html(os.path.join(sdir(current_id), "slides.html"), persist=True)
+                sync_to_project(current_id)
                 return self._send(200, html, "text/html; charset=utf-8") if html is not None else self._send(404, "not found", "text/plain; charset=utf-8")
             return self._send(404, "no deck", "text/plain; charset=utf-8")
         if p == "/api/state":
