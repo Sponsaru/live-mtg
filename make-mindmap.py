@@ -3,7 +3,9 @@
 import html, json, os, re
 
 sdir = os.environ.get("SDIR", "")
-title = os.environ.get("TITLE", "会議")
+language = os.environ.get("LIVE_MTG_LANGUAGE", "ja")
+def tr(ja, en): return en if language == "en" else ja
+title = os.environ.get("TITLE", tr("会議", "Meeting"))
 theme = os.environ.get("THEME", "mainichi")
 script_dir = os.path.dirname(os.path.abspath(__file__))
 if not sdir or not os.path.isfile(os.path.join(sdir, "data.json")):
@@ -31,7 +33,7 @@ def items(key, limit):
     out = []
     for x in vals[:limit]:
         if isinstance(x, dict):
-            text = ((x.get("who") or "未定") + "：" + (x.get("what") or "")).strip("：")
+            text = ((x.get("who") or tr("未定", "Unassigned")) + (": " if language == "en" else "：") + (x.get("what") or "")).strip("：: ")
         else:
             text = str(x)
         if full(text): out.append(full(text))
@@ -54,26 +56,26 @@ if isinstance(data.get("mindmap"), list) and data["mindmap"]:
             branches.append((label(topic.get("topic"), 28), groups))
 else:
     summary = full(data.get("summary"))
-    if summary: branches.append(("要旨", [{"label":"全体像", "items":[{"label":headline(summary), "detail":summary, "status":"要旨", "source":""}]}]))
-    for heading, key, count in (("主要論点", "points", 3), ("決定事項", "decisions", 3),
-                                ("ToDo", "todos", 3), ("未解決", "open", 3)):
+    if summary: branches.append((tr("要旨", "Summary"), [{"label":tr("全体像", "Overview"), "items":[{"label":headline(summary), "detail":summary, "status":tr("要旨", "Summary"), "source":""}]}]))
+    for heading, key, count in ((tr("主要論点", "Key points"), "points", 3), (tr("決定事項", "Decisions"), "decisions", 3),
+                                ("ToDo", "todos", 3), (tr("未解決", "Open questions"), "open", 3)):
         vals = items(key, count)
-        if vals: branches.append((heading, [{"label":"内容", "items":[{"label":headline(x), "detail":full(x), "status":heading, "source":""} for x in vals]}]))
+        if vals: branches.append((heading, [{"label":tr("内容", "Details"), "items":[{"label":headline(x), "detail":full(x), "status":heading, "source":""} for x in vals]}]))
 
 prep = data.get("preparation") if isinstance(data.get("preparation"), dict) else {}
-if prep and not any("事前準備" in x[0] for x in branches):
+if prep and not any(("事前準備" in x[0] or "Preparation" in x[0]) for x in branches):
     pgroups = []
     def prep_one(group_label, item_label, detail):
         if full(detail):
-            pgroups.append({"label":group_label, "items":[{"label":item_label, "detail":full(detail), "status":"事前準備", "source":""}]})
-    prep_one("構想・狙い", "事前準備で共有した構想", prep.get("brief"))
-    prep_one("着地点", "会議の成功条件", prep.get("outcome"))
-    prep_one("相手情報", "相手の状況・関心", prep.get("counterpart"))
-    for glabel, key in (("検証する仮説","hypotheses"),("会議で聞くこと","questions"),
-                        ("懸念・見落とし","risks"),("避けること","avoid")):
+            pgroups.append({"label":group_label, "items":[{"label":item_label, "detail":full(detail), "status":tr("事前準備", "Preparation"), "source":""}]})
+    prep_one(tr("構想・狙い", "Intent"), tr("事前準備で共有した構想", "Preparation brief"), prep.get("brief"))
+    prep_one(tr("着地点", "Outcome"), tr("会議の成功条件", "Meeting success criteria"), prep.get("outcome"))
+    prep_one(tr("相手情報", "Counterpart"), tr("相手の状況・関心", "Counterpart context"), prep.get("counterpart"))
+    for glabel, key in ((tr("検証する仮説", "Hypotheses"),"hypotheses"),(tr("会議で聞くこと", "Questions to ask"),"questions"),
+                        (tr("懸念・見落とし", "Risks"),"risks"),(tr("避けること", "Avoid"),"avoid")):
         vals = [full(x) for x in (prep.get(key) or []) if full(x)]
-        if vals: pgroups.append({"label":glabel, "items":[{"label":headline(x),"detail":x,"status":"事前準備","source":""} for x in vals[:5]]})
-    if pgroups: branches.insert(0, ("事前準備", pgroups))
+        if vals: pgroups.append({"label":glabel, "items":[{"label":headline(x),"detail":x,"status":tr("事前準備", "Preparation"),"source":""} for x in vals[:5]]})
+    if pgroups: branches.insert(0, (tr("事前準備", "Preparation"), pgroups))
 
 def node(text, cls, node_id, parent="", detail="", status="", source=""):
     p = (' data-parent="%s"' % parent) if parent else ""
@@ -95,7 +97,7 @@ for i, (heading, groups) in enumerate(branches):
             iid = "%s-item-%d" % (gid, k)
             detail = ((('<span class="detail-status">%s</span><br>' % html.escape(x.get("status", "")))
                        if x.get("status") else "") + html.escape(x.get("detail", "")) +
-                      (('<br><small>根拠：%s</small>' % html.escape(x.get("source", ""))) if x.get("source") else ""))
+                      (('<br><small>%s%s</small>' % (tr("根拠：", "Source: "), html.escape(x.get("source", "")))) if x.get("source") else ""))
             item_rows.append('<div class="tree-detailrow">%s<div class="tree-node tree-detail" data-node-id="%s-detail" data-parent="%s">%s</div></div>' %
                              (node(x["label"], "item tone-%d" % (i % 5), iid, gid), iid, iid, detail))
         its = "".join(item_rows)
@@ -107,17 +109,17 @@ for i, (heading, groups) in enumerate(branches):
     </section>''' % ("" if i == 0 else " collapsed", node(heading, "branch tone-%d" % (i % 5), bid, "root"), "".join(leaves)))
 
 body = '''<div class="slide mindmap-page">
-  <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">議論の全体像・決定・次の行動</div></div>
+  <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div></div>
   <div class="stage"><div class="tree-map" data-tree>
     <svg class="tree-lines" aria-hidden="true"></svg>
     <div class="tree-root-wrap">%s</div>
     <div class="tree-branches">%s</div>
   </div></div>
-</div>''' % (html.escape(title), node(label(title, 32), "root", "root"), "".join(rows))
+</div>''' % (html.escape(title), tr("議論の全体像・決定・次の行動", "Discussion overview, decisions, and next actions"), node(label(title, 32), "root", "root"), "".join(rows))
 
 with open(os.path.join(script_dir, "slides-template.html"), encoding="utf-8") as f:
     template = f.read()
-out = (template.replace("{{TITLE}}", title + " ｜ 議事マインドマップ")
+out = (template.replace("{{TITLE}}", title + tr(" ｜ 議事マインドマップ", " | Meeting mind map"))
                .replace("{{THEME}}", theme)
                .replace("{{DATA_UPDATED}}", json.dumps(str(data.get("updated", "")), ensure_ascii=False))
                .replace("{{SLIDES}}", body))

@@ -1,5 +1,7 @@
 # 議事ライブ整理システム（live-mtg）
 
+> **English is supported.** During `live-mtg onboard`, choose English, or switch anytime with `live-mtg config --language en`. The dashboard, English transcription, AI analysis, meeting preparation, web research, mind maps, and slides will all use English. Switch back with `live-mtg config --language ja`.
+
 > **配布方式**：OpenClawと同じく、主経路はnpmのグローバルCLI＋オンボーディング＋常駐サービス。Mac用DMG/Windowsアプリは補助経路として [`desktop/`](desktop/) に残す。
 
 ## インストール（OpenClaw方式）

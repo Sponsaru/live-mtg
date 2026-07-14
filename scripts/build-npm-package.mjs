@@ -10,7 +10,7 @@ mkdirSync(out, { recursive: true });
 for (const path of [
   "cli", "defaults", "server.py", "index.html", "app-logo.svg", "mermaid.min.js",
   "make-mindmap.py", "make-slides.sh", "slides-template.html", "install.sh",
-  "install.ps1", "LICENSE"
+  "install.ps1", "LICENSE", "VERSION"
 ]) cpSync(join(root, path), join(out, path), { recursive: true });
 
 cpSync(join(root, "README.npm.md"), join(out, "README.md"));

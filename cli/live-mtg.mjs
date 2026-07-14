@@ -31,6 +31,22 @@ function readConfig() {
   try { return JSON.parse(readFileSync(configFile, "utf8")); } catch { return {}; }
 }
 
+function normalizeLanguage(value) {
+  const language = String(value || "").trim().toLowerCase();
+  return language.startsWith("en") || language === "英語" ? "en" : "ja";
+}
+
+function detectedLanguage() {
+  const locale = Intl.DateTimeFormat().resolvedOptions().locale || process.env.LANG || "ja";
+  return normalizeLanguage(locale);
+}
+
+function selectedLanguage() {
+  return normalizeLanguage(process.env.LIVE_MTG_LANGUAGE || readConfig().language || detectedLanguage());
+}
+
+function t(ja, en) { return selectedLanguage() === "en" ? en : ja; }
+
 function selectedProvider() {
   const value = String(process.env.AI_PROVIDER || readConfig().aiProvider || "claude").toLowerCase();
   return value === "codex" ? "codex" : "claude";
@@ -39,6 +55,12 @@ function selectedProvider() {
 function saveProvider(provider) {
   const config = readConfig();
   config.aiProvider = provider;
+  writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
+}
+
+function saveLanguage(language) {
+  const config = readConfig();
+  config.language = normalizeLanguage(language);
   writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
 }
 
@@ -105,11 +127,11 @@ async function prepareAi(provider, assumeYes) {
   const label = provider === "codex" ? "Codex" : "Claude Code";
   const npmPackage = provider === "codex" ? "@openai/codex" : "@anthropic-ai/claude-code";
   if (!commandExists(command)) {
-    if (!await confirmStep(`${label}をnpmでインストールしますか？`, assumeYes)) return false;
+    if (!await confirmStep(t(`${label}をnpmでインストールしますか？`, `Install ${label} with npm?`), assumeYes)) return false;
     if (!runInteractive("npm", ["install", "-g", npmPackage])) return false;
   }
   if (!isAiLoggedIn(provider)) {
-    if (!await confirmStep(`${label}へログインしますか？`, assumeYes)) return false;
+    if (!await confirmStep(t(`${label}へログインしますか？`, `Sign in to ${label}?`), assumeYes)) return false;
     const loginArgs = provider === "codex" ? ["login"] : ["auth", "login"];
     if (!runInteractive(command, loginArgs)) return false;
   }
@@ -117,22 +139,22 @@ async function prepareAi(provider, assumeYes) {
 }
 
 async function installWithSystemManager(label, macArgs, windowsArgs, assumeYes) {
-  if (!await confirmStep(`${label}をインストールしますか？`, assumeYes)) return false;
+  if (!await confirmStep(t(`${label}をインストールしますか？`, `Install ${label}?`), assumeYes)) return false;
   if (isMac) {
     if (!commandExists("brew")) {
-      console.log("Homebrewがありません。先に https://brew.sh/ の手順でインストールしてください。");
+      console.log(t("Homebrewがありません。先に https://brew.sh/ の手順でインストールしてください。", "Homebrew is missing. Install it first from https://brew.sh/."));
       return false;
     }
     return runInteractive("brew", macArgs);
   }
   if (isWindows) {
     if (!commandExists("winget")) {
-      console.log("wingetがありません。Microsoft StoreのApp Installerを更新してください。");
+      console.log(t("wingetがありません。Microsoft StoreのApp Installerを更新してください。", "winget is missing. Update App Installer from Microsoft Store."));
       return false;
     }
     return runInteractive("winget", windowsArgs);
   }
-  console.log(`${label}は、お使いのOSのパッケージ管理ツールでインストールしてください。`);
+  console.log(t(`${label}は、お使いのOSのパッケージ管理ツールでインストールしてください。`, `Install ${label} using your OS package manager.`));
   return false;
 }
 
@@ -149,17 +171,17 @@ async function prepareRuntime(assumeYes) {
     if (!commandExists("pipx")) {
       await installWithSystemManager("pipx", ["install", "pipx"], [], assumeYes);
     }
-    if (commandExists("pipx") && await confirmStep("mlx-whisperをインストールしますか？", assumeYes)) {
+    if (commandExists("pipx") && await confirmStep(t("mlx-whisperをインストールしますか？", "Install mlx-whisper?"), assumeYes)) {
       runInteractive("pipx", ["install", "mlx-whisper"]);
     }
   }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
-    if (await confirmStep("Windows用whisper.cppをダウンロードしますか？（約8MB）", assumeYes)) {
+    if (await confirmStep(t("Windows用whisper.cppをダウンロードしますか？（約8MB）", "Download whisper.cpp for Windows (about 8 MB)?"), assumeYes)) {
       installWindowsWhisper();
     }
   }
   if (isWindows && !existsSync(windowsModel)) {
-    if (await confirmStep("日本語文字起こしモデルをダウンロードしますか？（約1.6GB）", assumeYes)) {
+    if (await confirmStep(t("文字起こしモデルをダウンロードしますか？（約1.6GB）", "Download the transcription model (about 1.6 GB)?"), assumeYes)) {
       downloadWindowsModel();
     }
   }
@@ -172,13 +194,13 @@ function powershell(script) {
 function installWindowsWhisper() {
   const zip = join(home, `whisper-${whisperWindowsRelease.version}.zip`);
   mkdirSync(windowsWhisperRoot, { recursive: true });
-  console.log(`whisper.cpp ${whisperWindowsRelease.version} を取得しています…`);
+  console.log(t(`whisper.cpp ${whisperWindowsRelease.version} を取得しています…`, `Downloading whisper.cpp ${whisperWindowsRelease.version}…`));
   const downloaded = powershell(`$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri '${whisperWindowsRelease.url}' -OutFile '${zip.replaceAll("'", "''")}'`);
   if (!downloaded || !existsSync(zip)) return false;
   const digest = createHash("sha256").update(readFileSync(zip)).digest("hex");
   if (digest !== whisperWindowsRelease.sha256) {
     rmSync(zip, { force: true });
-    console.log("whisper.cppの検証に失敗したため展開しませんでした。");
+    console.log(t("whisper.cppの検証に失敗したため展開しませんでした。", "whisper.cpp checksum verification failed; the archive was not extracted."));
     return false;
   }
   const extracted = powershell(`Expand-Archive -LiteralPath '${zip.replaceAll("'", "''")}' -DestinationPath '${windowsWhisperRoot.replaceAll("'", "''")}' -Force`);
@@ -190,12 +212,12 @@ function downloadWindowsModel() {
   mkdirSync(dirname(windowsModel), { recursive: true });
   const partial = `${windowsModel}.download`;
   const url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
-  console.log("文字起こしモデルを取得しています。回線によって数分かかります…");
+  console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…", "Downloading the transcription model. This may take several minutes…"));
   const ok = powershell(`$ProgressPreference='Continue'; Invoke-WebRequest -UseBasicParsing -Uri '${url}' -OutFile '${partial.replaceAll("'", "''")}'; Move-Item -LiteralPath '${partial.replaceAll("'", "''")}' -Destination '${windowsModel.replaceAll("'", "''")}' -Force`);
   if (!ok || !existsSync(windowsModel) || statSync(windowsModel).size < 100_000_000) {
     rmSync(partial, { force: true });
     rmSync(windowsModel, { force: true });
-    console.log("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。");
+    console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
     return false;
   }
   return true;
@@ -220,6 +242,7 @@ function runtimeEnv() {
     ASR_BACKEND: process.env.ASR_BACKEND || (isMac ? "mlx" : "cpp"),
     MODEL: process.env.MODEL || (isWindows ? windowsModel : undefined),
     AI_PROVIDER: selectedProvider(),
+    LIVE_MTG_LANGUAGE: selectedLanguage(),
     PATH: effectivePath(),
     PORT: port
   };
@@ -251,17 +274,18 @@ function doctor(provider = selectedProvider()) {
     ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
     ["Python 3", Boolean(pythonCommand()), "python3"],
     [aiLabel, aiInstalled, provider === "codex" ? "npm install -g @openai/codex" : "npm install -g @anthropic-ai/claude-code"],
-    [`${aiLabel} ログイン`, aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
+    [t(`${aiLabel} ログイン`, `${aiLabel} sign-in`), aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
     ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
-    [asr, asrInstalled, isMac ? "pipx install mlx-whisper" : "live-mtg onboard で自動取得"],
-    ...(isWindows ? [["文字起こしモデル", existsSync(windowsModel), "live-mtg onboard で自動取得"]] : [])
+    [asr, asrInstalled, isMac ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
+    ...(isWindows ? [[t("文字起こしモデル", "Transcription model"), existsSync(windowsModel), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
   ];
   console.log("LiveMTG doctor\n");
   for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
   const failed = checks.filter(([, ok]) => !ok).length;
-  console.log(`\nデータ: ${home}`);
+  console.log(t(`\nデータ: ${home}`, `\nData: ${home}`));
   console.log(`AI: ${provider === "codex" ? "Codex" : "Claude Code"}`);
-  if (failed) console.log(`\n${failed}項目を準備してから live-mtg doctor を再実行してください。`);
+  console.log(t(`言語: ${selectedLanguage() === "en" ? "英語" : "日本語"}`, `Language: ${selectedLanguage() === "en" ? "English" : "Japanese"}`));
+  if (failed) console.log(t(`\n${failed}項目を準備してから live-mtg doctor を再実行してください。`, `\nPrepare the ${failed} missing item(s), then run live-mtg doctor again.`));
   return failed === 0;
 }
 
@@ -276,7 +300,7 @@ function redactDiagnostic(value) {
 
 function showLogs(lines = 120) {
   if (!existsSync(logFile)) {
-    console.log(`ログはまだありません: ${logFile}`);
+    console.log(t(`ログはまだありません: ${logFile}`, `No logs yet: ${logFile}`));
     return;
   }
   const content = readFileSync(logFile, "utf8").split(/\r?\n/);
@@ -300,6 +324,7 @@ async function createReport() {
     os: `${platform()} ${process.arch}`,
     node: process.version,
     provider,
+    language: selectedLanguage(),
     providerVersion: commandVersion(provider === "codex" ? "codex" : "claude"),
     providerLoggedIn: isAiLoggedIn(provider),
     python: pythonCommand() || "not installed",
@@ -312,13 +337,13 @@ async function createReport() {
   };
   const path = join(home, `diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   writeFileSync(path, redactDiagnostic(JSON.stringify(diagnostic, null, 2)) + "\n");
-  console.log(`診断レポートを作成しました: ${path}`);
-  console.log("文字起こし本文・会議資料・APIキーは含めていません。送付前に内容を確認してください。");
+  console.log(t(`診断レポートを作成しました: ${path}`, `Diagnostic report created: ${path}`));
+  console.log(t("文字起こし本文・会議資料・APIキーは含めていません。送付前に内容を確認してください。", "The report excludes transcripts, meeting files, and API keys. Review it before sharing."));
 }
 
 function serve() {
   const python = pythonCommand();
-  if (!python) throw new Error("Python 3がありません。live-mtg doctorで確認してください。");
+  if (!python) throw new Error(t("Python 3がありません。live-mtg doctorで確認してください。", "Python 3 is missing. Run live-mtg doctor."));
   const args = python === "py" ? ["-3", "-u", server] : ["-u", server];
   writeFileSync(pidFile, String(process.pid));
   const child = spawn(python, args, { env: runtimeEnv(), stdio: "inherit" });
@@ -346,26 +371,26 @@ function installDaemon() {
     spawnSync("launchctl", ["bootout", `gui/${process.getuid()}`, plist], { stdio: "ignore" });
     writeFileSync(plist, xml);
     const result = spawnSync("launchctl", ["bootstrap", `gui/${process.getuid()}`, plist], { stdio: "inherit" });
-    if (result.status !== 0) throw new Error("LaunchAgentを登録できませんでした");
+    if (result.status !== 0) throw new Error(t("LaunchAgentを登録できませんでした", "Could not register the LaunchAgent"));
   } else if (isWindows) {
     const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve`;
     const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "inherit" });
-    if (result.status !== 0) throw new Error("Windowsの自動起動を登録できませんでした");
+    if (result.status !== 0) throw new Error(t("Windowsの自動起動を登録できませんでした", "Could not register Windows auto-start"));
     spawnSync("schtasks", ["/Run", "/TN", "LiveMTG"], { stdio: "ignore" });
   } else {
-    console.log("Linuxのsystemd登録は今後対応します。別ターミナルで live-mtg serve を実行してください。");
+    console.log(t("Linuxのsystemd登録は今後対応します。別ターミナルで live-mtg serve を実行してください。", "Linux systemd setup is not available yet. Run live-mtg serve in another terminal."));
   }
 }
 
 async function start() {
-  if (await health()) return console.log("LiveMTGは起動済みです");
+  if (await health()) return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
   const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
   child.unref();
   for (let i = 0; i < 20; i++) {
     await new Promise(resolve => setTimeout(resolve, 500));
-    if (await health()) return console.log(`LiveMTGを起動しました: http://127.0.0.1:${port}`);
+    if (await health()) return console.log(t(`LiveMTGを起動しました: http://127.0.0.1:${port}`, `LiveMTG started: http://127.0.0.1:${port}`));
   }
-  throw new Error("LiveMTGを起動できませんでした。live-mtg doctorを実行してください。");
+  throw new Error(t("LiveMTGを起動できませんでした。live-mtg doctorを実行してください。", "Could not start LiveMTG. Run live-mtg doctor."));
 }
 
 function stop() {
@@ -379,18 +404,18 @@ function stop() {
     try { process.kill(pid, "SIGTERM"); } catch {}
     rmSync(pidFile, { force: true });
   }
-  console.log("LiveMTGを停止しました");
+  console.log(t("LiveMTGを停止しました", "LiveMTG stopped"));
 }
 
 async function chooseProvider(requested) {
   if (requested && !["claude", "codex"].includes(requested)) {
-    throw new Error("--provider は claude または codex を指定してください");
+    throw new Error(t("--provider は claude または codex を指定してください", "--provider must be claude or codex"));
   }
   let provider = requested;
   if (!provider && process.stdin.isTTY) {
     const current = selectedProvider();
     const rl = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = (await rl.question(`利用するAIを選んでください [1: Claude Code / 2: Codex]（現在: ${current}）: `)).trim();
+    const answer = (await rl.question(t(`利用するAIを選んでください [1: Claude Code / 2: Codex]（現在: ${current}）: `, `Choose your AI [1: Claude Code / 2: Codex] (current: ${current}): `))).trim();
     rl.close();
     provider = answer === "2" || answer.toLowerCase() === "codex" ? "codex" : "claude";
   }
@@ -399,10 +424,24 @@ async function chooseProvider(requested) {
   return provider;
 }
 
-async function onboard(install, requestedProvider, assumeYes = false) {
-  console.log("LiveMTG 初期設定\n");
+async function chooseLanguage(requested) {
+  let language = requested ? normalizeLanguage(requested) : selectedLanguage();
+  if (!requested && process.stdin.isTTY && !readConfig().language) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = (await rl.question(`Language / 言語 [1: 日本語 / 2: English] (current: ${language}): `)).trim().toLowerCase();
+    rl.close();
+    if (answer === "2" || answer === "en" || answer === "english") language = "en";
+    else if (answer === "1" || answer === "ja" || answer === "japanese" || answer === "日本語") language = "ja";
+  }
+  saveLanguage(language);
+  return language;
+}
+
+async function onboard(install, requestedProvider, requestedLanguage, assumeYes = false) {
+  await chooseLanguage(requestedLanguage);
+  console.log(t("LiveMTG 初期設定\n", "LiveMTG setup\n"));
   const provider = await chooseProvider(requestedProvider);
-  console.log(`\n${provider === "codex" ? "Codex" : "Claude Code"}を使用します。\n`);
+  console.log(t(`\n${provider === "codex" ? "Codex" : "Claude Code"}を使用します。\n`, `\nUsing ${provider === "codex" ? "Codex" : "Claude Code"}.\n`));
   await prepareAi(provider, assumeYes);
   await prepareRuntime(assumeYes);
   const ok = doctor(provider);
@@ -410,12 +449,19 @@ async function onboard(install, requestedProvider, assumeYes = false) {
   if (install) installDaemon(); else await start();
   for (let i = 0; i < 20 && !(await health()); i++) await new Promise(resolve => setTimeout(resolve, 500));
   openUrl(`http://127.0.0.1:${port}`);
-  console.log("\n初期設定が完了しました。会議データは " + home + " に保存されます。");
+  console.log(t("\n初期設定が完了しました。会議データは " + home + " に保存されます。", `\nSetup complete. Meeting data is stored in ${home}.`));
 }
 
-async function configureProvider(provider) {
-  provider = await chooseProvider(provider);
-  console.log(`AIを${provider === "codex" ? "Codex" : "Claude Code"}に変更しました。`);
+async function configure(provider, language) {
+  if (language) {
+    await chooseLanguage(language);
+    console.log(t(`言語を${selectedLanguage() === "en" ? "英語" : "日本語"}に変更しました。`, `Language changed to ${selectedLanguage() === "en" ? "English" : "Japanese"}.`));
+  }
+  if (provider) {
+    provider = await chooseProvider(provider);
+    console.log(t(`AIを${provider === "codex" ? "Codex" : "Claude Code"}に変更しました。`, `AI changed to ${provider === "codex" ? "Codex" : "Claude Code"}.`));
+  }
+  if (!provider && !language) throw new Error(t("--provider または --language を指定してください", "Specify --provider or --language"));
   if (await health()) {
     stop();
     await start();
@@ -424,42 +470,60 @@ async function configureProvider(provider) {
 
 async function update() {
   const channel = pkg.version.includes("-") ? "beta" : "latest";
-  console.log(`LiveMTGを${channel}チャンネルの最新版へ更新します…`);
+  console.log(t(`LiveMTGを${channel}チャンネルの最新版へ更新します…`, `Updating LiveMTG from the ${channel} channel…`));
   const result = spawnSync("npm", ["install", "-g", `live-mtg@${channel}`],
     { stdio: "inherit", shell: isWindows });
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (isMac && existsSync(macPlistPath())) installDaemon();
-  console.log("更新が完了しました");
+  console.log(t("更新が完了しました", "Update complete"));
 }
 
 async function rollback(requestedVersion) {
   let version = requestedVersion;
-  if (version && !/^[0-9A-Za-z.+-]+$/.test(version)) throw new Error("バージョンの形式が正しくありません");
+  if (version && !/^[0-9A-Za-z.+-]+$/.test(version)) throw new Error(t("バージョンの形式が正しくありません", "Invalid version format"));
   if (!version) {
     const result = spawnSync("npm", ["view", "live-mtg", "versions", "--json"],
       { encoding: "utf8", shell: isWindows });
-    if (result.status !== 0) throw new Error("公開済みバージョンを取得できませんでした");
+    if (result.status !== 0) throw new Error(t("公開済みバージョンを取得できませんでした", "Could not retrieve published versions"));
     const versions = JSON.parse(result.stdout || "[]");
     const index = versions.lastIndexOf(pkg.version);
     version = index > 0 ? versions[index - 1] : versions.filter(v => v !== pkg.version).at(-1);
   }
-  if (!version) throw new Error("戻せる旧バージョンがありません");
-  console.log(`LiveMTGを ${version} へ戻します…`);
+  if (!version) throw new Error(t("戻せる旧バージョンがありません", "No previous version is available"));
+  console.log(t(`LiveMTGを ${version} へ戻します…`, `Rolling LiveMTG back to ${version}…`));
   const result = spawnSync("npm", ["install", "-g", `live-mtg@${version}`],
     { stdio: "inherit", shell: isWindows });
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (isMac && existsSync(macPlistPath())) installDaemon();
-  console.log(`ロールバックしました。live-mtg doctor で状態を確認してください。`);
+  console.log(t(`ロールバックしました。live-mtg doctor で状態を確認してください。`, `Rollback complete. Run live-mtg doctor to verify the installation.`));
 }
 
 function help() {
-  console.log(`LiveMTG
+  console.log(selectedLanguage() === "en" ? `LiveMTG
+
+Usage:
+  live-mtg onboard                     Choose AI and prepare dependencies
+  live-mtg dashboard                   Open the dashboard
+  live-mtg doctor                      Check required dependencies
+  live-mtg config --provider codex     Switch AI (claude is also supported)
+  live-mtg config --language en        Switch language (ja is also supported)
+  live-mtg start | stop | status       Start, stop, or check status
+  live-mtg update                      Update to the latest release
+  live-mtg logs [--lines 200]          Show server logs
+  live-mtg report                      Create a privacy-safe diagnostic report
+  live-mtg rollback [version]          Roll back to a previous version
+  live-mtg onboard --no-daemon         Set up without auto-start
+  live-mtg serve                       Run the server in the foreground
+  live-mtg --version                   Show version
+
+Issues: https://github.com/Sponsaru/live-mtg/issues` : `LiveMTG
 
 使い方:
   live-mtg onboard                   AI選択・必要環境の準備・常駐化
   live-mtg dashboard                 画面を開く
   live-mtg doctor                    必要環境を診断
   live-mtg config --provider codex   AIをCodexへ変更（claudeも可）
+  live-mtg config --language en      言語を英語へ変更（jaも可）
   live-mtg start | stop | status     起動・停止・状態確認
   live-mtg update                    最新版へ更新
   live-mtg logs [--lines 200]        サーバーログを表示
@@ -476,6 +540,12 @@ const args = process.argv.slice(2);
 const command = args[0] || "dashboard";
 const providerAt = args.indexOf("--provider");
 const requestedProvider = providerAt >= 0 ? String(args[providerAt + 1] || "").toLowerCase() : undefined;
+const languageAt = args.indexOf("--language");
+const requestedLanguage = languageAt >= 0 ? String(args[languageAt + 1] || "").toLowerCase() : undefined;
+if (requestedLanguage !== undefined && !["ja", "en", "japanese", "english", "日本語", "英語"].includes(requestedLanguage)) {
+  console.error("LiveMTG: --language must be ja or en");
+  process.exit(1);
+}
 const linesAt = args.indexOf("--lines");
 const requestedLines = linesAt >= 0 ? Number(args[linesAt + 1] || 120) : 120;
 try {
@@ -483,10 +553,10 @@ try {
   else if (command === "serve") serve();
   else if (command === "start") await start();
   else if (command === "stop") stop();
-  else if (command === "status") console.log(await health() ? "LiveMTGは起動中です" : "LiveMTGは停止中です");
+  else if (command === "status") console.log(await health() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
   else if (command === "dashboard") { await start(); openUrl(`http://127.0.0.1:${port}`); }
-  else if (command === "onboard") await onboard(!args.includes("--no-daemon"), requestedProvider, args.includes("--yes"));
-  else if (command === "config") await configureProvider(requestedProvider);
+  else if (command === "onboard") await onboard(!args.includes("--no-daemon"), requestedProvider, requestedLanguage, args.includes("--yes"));
+  else if (command === "config") await configure(requestedProvider, requestedLanguage);
   else if (command === "update") await update();
   else if (command === "logs") showLogs(Number.isFinite(requestedLines) ? requestedLines : 120);
   else if (command === "report") await createReport();

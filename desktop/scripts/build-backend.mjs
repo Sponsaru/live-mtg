@@ -34,6 +34,7 @@ const args = [
   ...addData("make-mindmap.py"),
   ...addData("slides-template.html"),
   ...addData("make-slides.sh"),
+  ...addData("VERSION"),
   ...addData("desktop/resources/playbooks", "playbooks"),
   join(source, "server.py")
 ];

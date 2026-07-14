@@ -22,6 +22,7 @@ python3 - "$SDIR" "$PROMPT" <<'PY'
 import sys, os
 sdir, outp = sys.argv[1], sys.argv[2]
 title = os.environ.get("TITLE", "会議")
+language = os.environ.get("LIVE_MTG_LANGUAGE", "ja")
 today = os.environ.get("TODAY", "")
 data = open(os.path.join(sdir, "data.json"), encoding="utf-8").read()
 # 清書(finalize)済みなら高精度版の文字起こし(transcript-full)を優先して使う
@@ -102,6 +103,8 @@ prompt = (tpl.replace("__TITLE__", title)
              .replace("__TODAY__", today)
              .replace("__DATA__", data)
              .replace("__TRANSCRIPT__", transcript))
+if language == "en":
+    prompt += "\n\nIMPORTANT: Write every visible slide title, label, sentence, and Mermaid node in English. Keep the required HTML classes unchanged."
 open(outp, "w", encoding="utf-8").write(prompt)
 PY
 
@@ -128,7 +131,8 @@ import sys, os
 tpl_path, out_path, title, body_path = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 slides = open(body_path, encoding="utf-8").read()
 tpl = open(tpl_path, encoding="utf-8").read()
-tpl = (tpl.replace("{{TITLE}}", title + " ｜ 議事スライド")
+suffix = " | Meeting slides" if os.environ.get("LIVE_MTG_LANGUAGE", "ja") == "en" else " ｜ 議事スライド"
+tpl = (tpl.replace("{{TITLE}}", title + suffix)
           .replace("{{THEME}}", os.environ.get("THEME", "mainichi"))
           .replace("{{SLIDES}}", slides))
 open(out_path, "w", encoding="utf-8").write(tpl)

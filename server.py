@@ -14,6 +14,14 @@ SCRIPT_DIR = os.environ.get(
     "LIVE_MTG_RESOURCE_DIR",
     getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))),
 )
+try:
+    with open(os.path.join(SCRIPT_DIR, "package.json"), encoding="utf-8") as _package_file:
+        APP_VERSION = json.load(_package_file).get("version", "development")
+except Exception:
+    try:
+        APP_VERSION = open(os.path.join(SCRIPT_DIR, "VERSION"), encoding="utf-8").read().strip()
+    except Exception:
+        APP_VERSION = os.environ.get("LIVE_MTG_VERSION", "development")
 DESKTOP    = os.environ.get("LIVE_MTG_DESKTOP", "") == "1"
 RUN        = os.environ.get("RUN", os.path.expanduser("~/mtg-live"))            # ローカル: state.json / 一時wav
 # 会議データの保存先＝ローカル（2026-07-10変更）。録音中の高頻度I/OをGoogle Driveに当てると
@@ -32,21 +40,24 @@ MLX_MODEL    = os.environ.get("MLX_MODEL", "mlx-community/whisper-large-v3-mlx")
 # cpp(whisper-cli)用モデル。Windows等でmlxが使えない環境向け
 MODEL        = os.environ.get("MODEL", os.path.expanduser("~/.cache/whisper-cpp/ggml-large-v3-turbo.bin"))
 # 固有名詞の誤変換を減らす辞書ヒント（whisperのinitial prompt）。会議で頻出する社名・人名・専門語を並べる
-ASR_HINT     = os.environ.get("ASR_HINT",
-    "日本語の会議。人名・会社名・商品名・数字を文脈に沿って正確に文字起こしする。")
+ASR_HINT     = os.environ.get("ASR_HINT", "")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "haiku")    # ライブ更新は速度最優先。清書・スライドは下記の品質優先モデルを使う
 SLIDE_MODEL  = os.environ.get("SLIDE_MODEL", "opus")      # スライド生成モデル（品質優先）
 ASSIST_MODEL = os.environ.get("ASSIST_MODEL", "sonnet")  # AIサポートのWeb検索裏取り用（オンデマンド。速さ優先でsonnet）
 ASSIST_TOOLS = os.environ.get("ASSIST_TOOLS", "WebSearch,WebFetch")  # 非対話のclaude -pにWeb検索を許可（これが無いとツール許可待ちでハングする）
 AI_PROVIDER  = os.environ.get("AI_PROVIDER", "claude").strip().lower()
 SETTINGS_FILE = os.path.join(RUN, "config.json")
-if "AI_PROVIDER" not in os.environ and os.path.isfile(SETTINGS_FILE):
-    try:
-        AI_PROVIDER = str(json.load(open(SETTINGS_FILE, encoding="utf-8")).get("aiProvider", AI_PROVIDER)).lower()
-    except Exception:
-        pass
+try:
+    _SETTINGS = json.load(open(SETTINGS_FILE, encoding="utf-8")) if os.path.isfile(SETTINGS_FILE) else {}
+except Exception:
+    _SETTINGS = {}
+if "AI_PROVIDER" not in os.environ:
+    AI_PROVIDER = str(_SETTINGS.get("aiProvider", AI_PROVIDER)).lower()
 if AI_PROVIDER not in ("claude", "codex"):
     AI_PROVIDER = "claude"
+LANGUAGE = str(os.environ.get("LIVE_MTG_LANGUAGE", _SETTINGS.get("language", "ja"))).strip().lower()
+if LANGUAGE not in ("ja", "en"):
+    LANGUAGE = "ja"
 CODEX_MODEL   = os.environ.get("CODEX_MODEL", "").strip()  # 空ならCodex CLI側の推奨既定モデル
 SILENCE_DB   = float(os.environ.get("SILENCE_DB", "-45")) # mean_volumeがこれ未満(dB)なら無音とみなす
 # 用途別プレイブック（商談.md / 採用面接.md 等）＝「やり方のノウハウ」の蓄積場所。
@@ -56,6 +67,26 @@ PLAYBOOK_DIR = os.environ.get("PLAYBOOK_DIR", os.path.join(RUN, "playbooks") if 
 # 依頼主プロフィール（録音している本人＝私は誰か）。画面メニュー「👤 プロフィール」で設定し、
 # ライブ整理・ガイド・清書・自動下調べの全AIに注入する（話者ラベル・助言の立場・話者推定の精度が上がる）
 PROFILE_MD   = os.environ.get("PROFILE_MD", os.path.join(RUN, "profile.md") if DESKTOP else os.path.join(SCRIPT_DIR, "profile.md"))
+
+def _t(ja, en):
+    return en if LANGUAGE == "en" else ja
+
+def _localized_prompt(prompt):
+    if LANGUAGE == "en":
+        return str(prompt) + "\n\nIMPORTANT LANGUAGE RULE: Write every user-facing value in English. Keep JSON keys and Mermaid syntax unchanged."
+    return str(prompt) + "\n\n重要な言語ルール：ユーザー向けの値はすべて日本語で書く。JSONキーとMermaid記法は変更しない。"
+
+def _save_setting(key, value):
+    config = {}
+    try:
+        if os.path.isfile(SETTINGS_FILE):
+            config = json.load(open(SETTINGS_FILE, encoding="utf-8"))
+    except Exception:
+        config = {}
+    config[key] = value
+    os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
 
 def _init_runtime():
     """GUI起動でもCLIを発見できるPATHと、書き込み可能な初期データ領域を用意する。"""
@@ -92,7 +123,7 @@ def desktop_health():
     ai_cmd, ai_label = ("codex", "Codex") if AI_PROVIDER == "codex" else ("claude", "Claude Code")
     ai_installed = bool(shutil.which(ai_cmd))
     ai_login_cmd = ["codex", "login", "status"] if AI_PROVIDER == "codex" else ["claude", "auth", "status"]
-    ai_login_help = "codex login を実行してください" if AI_PROVIDER == "codex" else "claude auth login を実行してください"
+    ai_login_help = ("Run codex login" if LANGUAGE == "en" else "codex login を実行してください") if AI_PROVIDER == "codex" else ("Run claude auth login" if LANGUAGE == "en" else "claude auth login を実行してください")
     ai_logged_in = False
     if ai_installed:
         try:
@@ -105,20 +136,20 @@ def desktop_health():
          "required": True,
          "help": ("npm install -g @openai/codex" if AI_PROVIDER == "codex"
                   else "npm install -g @anthropic-ai/claude-code")},
-        {"id": "ai-login", "label": "%sへのログイン" % ai_label, "ok": ai_logged_in,
+        {"id": "ai-login", "label": (("%s sign-in" if LANGUAGE == "en" else "%sへのログイン") % ai_label), "ok": ai_logged_in,
          "required": True, "help": ai_login_help},
-        {"id": "ffmpeg", "label": "音声変換（ffmpeg）", "ok": bool(shutil.which("ffmpeg")),
-         "required": True, "help": "Macは brew install ffmpeg、Windowsは winget install Gyan.FFmpeg"},
-        {"id": "asr", "label": "文字起こし（%s）" % asr_name, "ok": bool(shutil.which(asr_name)),
+        {"id": "ffmpeg", "label": _t("音声変換（ffmpeg）", "Audio conversion (ffmpeg)"), "ok": bool(shutil.which("ffmpeg")),
+         "required": True, "help": _t("Macは brew install ffmpeg、Windowsは winget install Gyan.FFmpeg", "Mac: brew install ffmpeg; Windows: winget install Gyan.FFmpeg")},
+        {"id": "asr", "label": (_t("文字起こし（%s）", "Transcription (%s)") % asr_name), "ok": bool(shutil.which(asr_name)),
          "required": True,
-         "help": "Macは pipx install mlx-whisper、Windowsはwhisper.cppのwhisper-cliとモデルを設定してください"},
+         "help": _t("Macは pipx install mlx-whisper、Windowsはwhisper.cppのwhisper-cliとモデルを設定してください", "Mac: pipx install mlx-whisper; Windows: configure whisper-cli and its model")},
     ]
     if ASR_BACKEND == "cpp":
-        checks.append({"id": "model", "label": "文字起こしモデル", "ok": os.path.isfile(MODEL),
-                       "required": True, "help": "ggml-large-v3-turbo.binを取得し、MODELに保存先を設定してください"})
+        checks.append({"id": "model", "label": _t("文字起こしモデル", "Transcription model"), "ok": os.path.isfile(MODEL),
+                       "required": True, "help": _t("ggml-large-v3-turbo.binを取得し、MODELに保存先を設定してください", "Download ggml-large-v3-turbo.bin and set MODEL to its path")})
     return {"ok": all(x["ok"] for x in checks if x["required"]), "checks": checks,
-            "platform": platform.system(), "dataDir": RUN, "version": "0.1.0-beta.1",
-            "aiProvider": AI_PROVIDER}
+            "platform": platform.system(), "dataDir": RUN, "version": APP_VERSION,
+            "aiProvider": AI_PROVIDER, "language": LANGUAGE}
 
 def set_ai_provider(provider):
     global AI_PROVIDER
@@ -126,16 +157,16 @@ def set_ai_provider(provider):
     if provider not in ("claude", "codex"):
         return False
     AI_PROVIDER = provider
-    config = {}
-    try:
-        if os.path.isfile(SETTINGS_FILE):
-            config = json.load(open(SETTINGS_FILE, encoding="utf-8"))
-    except Exception:
-        config = {}
-    config["aiProvider"] = provider
-    os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+    _save_setting("aiProvider", provider)
+    return True
+
+def set_language(language):
+    global LANGUAGE
+    language = str(language or "").strip().lower()
+    if language not in ("ja", "en"):
+        return False
+    LANGUAGE = language
+    _save_setting("language", language)
     return True
 
 def _ai_env():
@@ -166,6 +197,7 @@ def _kill_process_tree(p):
 
 def _ai_text(prompt, timeout=120, cwd=None, model=None, web=False, schema=None):
     """選択中のClaude Code/Codexを非対話実行し、最終回答テキストを返す。"""
+    prompt = _localized_prompt(prompt)
     cwd = cwd if cwd and os.path.isdir(cwd) else tempfile.gettempdir()
     if AI_PROVIDER == "claude":
         cmd = ["claude", "-p", "--model", model or ASSIST_MODEL]
@@ -454,13 +486,15 @@ def _read_text(path, timeout=20):
 # whisperが無音・雑音時に吐きやすい定型ハルシネーション句（単独行なら捨てる）
 HALLU = re.compile(r'^[\s]*(おやすみなさい|ご視聴ありがとうございました|ご清聴ありがとうございました|'
                    r'最後までご覧いただきありがとうございました|チャンネル登録|高評価|バイバイ|'
-                   r'ありがとうございました)[\s、。.!！]*$')
+                   r'ありがとうございました|thanks for watching|thank you for watching|subscribe to the channel)[\s、。.!！]*$', re.I)
 # 聞き取り不能時にwhisperが吐く無意味な擬音・短断片（単独行なら捨てる。例:「ブーブー」「ブーバイブー」）
 NOISE = re.compile(r'^[\s、。.!！]*((ブ[ーぶ]*)+|(ブー*バ?イ?)+|んー*|あー*|えー*|うー*|[ぁ-んゝ]{1,2})[\s、。.!！]*$')
 
-EMPTY_DATA = ('{"updated":"待機中",'
-              '"summary":"ヘッダーの「▶ 録音開始」を押すと整理が始まります。",'
-              '"agenda":[],"points":[],"decisions":[],"todos":[],"open":[]}')
+EMPTY_DATA = json.dumps({
+    "updated": _t("待機中", "Waiting"),
+    "summary": _t("ヘッダーの「▶ 録音開始」を押すと整理が始まります。", "Press Start recording in the header to begin."),
+    "agenda": [], "points": [], "decisions": [], "todos": [], "open": []
+}, ensure_ascii=False)
 
 os.makedirs(SESS, exist_ok=True)
 
@@ -505,19 +539,22 @@ def list_sessions():
     out.sort(key=lambda x: x["id"], reverse=True)
     return out
 
-def new_session(title, project_dir="", goal="", mtype="", stance=""):
+def new_session(title, project_dir="", goal="", mtype="", stance="", language=None):
     sid = time.strftime("%Y%m%d-%H%M%S")
     d = sdir(sid)
     deleted_sessions.discard(sid)
     os.makedirs(d, exist_ok=True)   # 一時wavはドライブに置かない（WAVROOT側で管理）
     now = time.strftime("%Y-%m-%d %H:%M")
-    title = (title or "").strip() or ("会議 " + now)
+    language = str(language or LANGUAGE).lower()
+    if language not in ("ja", "en"): language = LANGUAGE
+    title = (title or "").strip() or ((_t("会議 ", "Meeting ")) + now)
     project_dir = (project_dir or "").strip()
     if project_dir and not os.path.isdir(project_dir):
         project_dir = ""
     write_meta(sid, {"id": sid, "title": title, "created": now, "updated": now,
                      "project_dir": project_dir, "goal": (goal or "").strip(),
-                     "mtype": (mtype or "").strip(), "stance": (stance or "").strip()})
+                     "mtype": (mtype or "").strip(), "stance": (stance or "").strip(),
+                     "language": language})
     with open(os.path.join(d, "transcript.txt"), "w", encoding="utf-8") as f:
         f.write("")
     with open(os.path.join(d, "data.json"), "w", encoding="utf-8") as f:
@@ -700,6 +737,7 @@ def _claude_explore(project_dir, prompt, timeout=240, json_schema=None,
         except Exception as e:
             sys.stderr.write("[CODEX] 探索失敗 %r\n" % e); sys.stderr.flush()
             return ""
+    prompt = _localized_prompt(prompt)
     cmd = (["claude", "-p", prompt] if os.name == "nt"
            else ["script", "-q", "/dev/null", "claude", "-p", prompt])
     cmd += ["--model", model or ASSIST_MODEL, "--tools", tools,
@@ -989,20 +1027,31 @@ def _learn_terms(answers):
 
 def _asr_hint(sid=None):
     """最小限の会議名・本人名だけを自然文で渡す。全会議共通の学習語は混入源になるため使わない。"""
+    lang = LANGUAGE
     context = []
     if sid and is_session(sid):
         m = read_meta(sid)
-        if m.get("title"): context.append("話題は「%s」" % m["title"][:80])
+        lang = str(m.get("language") or LANGUAGE).lower()
+        if m.get("title"):
+            context.append(("The meeting topic is \"%s\"" if lang == "en" else "話題は「%s」") % m["title"][:80])
     prof = _profile_text()
-    mm = re.search(r"(?:名前|氏名)[:：]\s*([^\n、]{1,30})", prof or "")
-    if mm: context.append("話者名は%s" % mm.group(1).strip())
-    return ASR_HINT + (" " + "。".join(context) + "。" if context else "")
+    mm = re.search(r"(?:名前|氏名|Name)[:：]\s*([^\n、,]{1,30})", prof or "", re.I)
+    if mm: context.append(("The speaker's name is %s" if lang == "en" else "話者名は%s") % mm.group(1).strip())
+    base = ASR_HINT or ("English meeting. Transcribe names, companies, products, and numbers accurately from context."
+                        if lang == "en" else "日本語の会議。人名・会社名・商品名・数字を文脈に沿って正確に文字起こしする。")
+    sep = ". " if lang == "en" else "。"
+    return base + ((" " if base.endswith((".", "。")) else sep) + sep.join(context) + ("." if lang == "en" else "。") if context else "")
+
+def _asr_language(sid=None):
+    if sid and is_session(sid):
+        return "en" if str(read_meta(sid).get("language") or LANGUAGE).lower() == "en" else "ja"
+    return "en" if LANGUAGE == "en" else "ja"
 
 def _whisper_mlx_once(wav, sid=None):
     """mlx_whisperを1回呼ぶ（分割なし）。txtを読んで返す。"""
     base = os.path.splitext(wav)[0]
     name = os.path.basename(base)
-    _run(["mlx_whisper", "--model", MLX_MODEL, "--language", "ja",
+    _run(["mlx_whisper", "--model", MLX_MODEL, "--language", _asr_language(sid),
           "--initial-prompt", _asr_hint(sid), "--condition-on-previous-text", "False",
           "-f", "txt", "--output-name", name, "-o", os.path.dirname(base) or ".", wav])
     txt = ""
@@ -1044,7 +1093,7 @@ def _whisper_mlx(wav, sid=None):
 def _whisper_cpp(wav, sid=None):
     """whisper-cli(whisper.cpp)で文字起こし。mlxが使えない環境(Windows等)向けフォールバック。"""
     base = os.path.splitext(wav)[0]
-    _run(["whisper-cli", "-m", MODEL, "-f", wav, "-l", "ja", "-otxt", "-of", base,
+    _run(["whisper-cli", "-m", MODEL, "-f", wav, "-l", _asr_language(sid), "-otxt", "-of", base,
           "--no-timestamps", "-np", "--prompt", _asr_hint(sid)])
     txt = ""
     try:
@@ -1558,8 +1607,8 @@ def recover_pending_chunks():
 # ---------- 1画面マインドマップ生成 ----------
 def make_slides(theme="mainichi"):
     m = read_meta(current_id)
-    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", "会議"),
-               SLIDE_MODEL=SLIDE_MODEL, THEME=theme)   # 画面で選択中のデザインをデッキにも反映
+    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
+               SLIDE_MODEL=SLIDE_MODEL, THEME=theme, LIVE_MTG_LANGUAGE=LANGUAGE)   # 画面で選択中のデザインをデッキにも反映
     cmd = ([sys.executable, "--live-mtg-helper", "make-mindmap.py"] if getattr(sys, "frozen", False)
            else [sys.executable, os.path.join(SCRIPT_DIR, "make-mindmap.py")])
     r = subprocess.run(cmd,
@@ -1574,9 +1623,9 @@ def make_deck(theme="mainichi"):
     """従来の経営者向けスライドデッキ生成（make-slides.sh→$SDIR/slides.html）。
     v52でマインドマップに置き換えられたが、依頼者要望（2026-07-14）でマインドマップと併存の形で復活。"""
     m = read_meta(current_id)
-    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", "会議"),
+    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
                SLIDE_MODEL=SLIDE_MODEL, THEME=theme, AI_PROVIDER=AI_PROVIDER,
-               CODEX_MODEL=CODEX_MODEL)
+               CODEX_MODEL=CODEX_MODEL, LIVE_MTG_LANGUAGE=LANGUAGE)
     r = subprocess.run(["bash", os.path.join(SCRIPT_DIR, "make-slides.sh")],
                        env=env, capture_output=True, text=True, timeout=420)
     ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(current_id), "slides.html"))
@@ -2193,6 +2242,7 @@ class H(BaseHTTPRequestHandler):
             "recentProjects": _recent_projects(),
             "slideModel": SLIDE_MODEL,
             "aiProvider": AI_PROVIDER,
+            "language": LANGUAGE,
             "chunk": int(CHUNK),
         }
 
@@ -2201,7 +2251,8 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/desktop-health":
             return self._send(200, json.dumps(desktop_health(), ensure_ascii=False))
         if p == "/api/settings":
-            return self._send(200, json.dumps({"ok": True, "aiProvider": AI_PROVIDER}, ensure_ascii=False))
+            return self._send(200, json.dumps({"ok": True, "aiProvider": AI_PROVIDER,
+                                                "language": LANGUAGE}, ensure_ascii=False))
         if p in ("/", "/index.html"):
             return self._file(os.path.join(SCRIPT_DIR, "index.html"), "text/html; charset=utf-8")
         if p == "/app-logo.svg":
@@ -2262,9 +2313,17 @@ class H(BaseHTTPRequestHandler):
 
         if p == "/api/settings":
             body = self._body_json()
-            ok = set_ai_provider(body.get("aiProvider"))
+            results = []
+            if "aiProvider" in body: results.append(set_ai_provider(body.get("aiProvider")))
+            if "language" in body:
+                language_ok = set_language(body.get("language"))
+                results.append(language_ok)
+                if language_ok and current_id and is_session(current_id):
+                    meta = read_meta(current_id); meta["language"] = LANGUAGE; write_meta(current_id, meta)
+            ok = bool(results) and all(results)
             return self._send(200 if ok else 400,
-                              json.dumps({"ok": ok, "aiProvider": AI_PROVIDER}, ensure_ascii=False))
+                              json.dumps({"ok": ok, "aiProvider": AI_PROVIDER,
+                                          "language": LANGUAGE}, ensure_ascii=False))
 
         # 音声チャンク（バイナリ）: ブラウザのMediaRecorderから届く webm を受けてキューへ
         if p == "/api/chunk":
@@ -2311,7 +2370,8 @@ class H(BaseHTTPRequestHandler):
                 _caffeinate(False)
                 clear_queue()
                 current_id = new_session(b.get("title", ""), b.get("project_dir", ""),
-                                         b.get("goal", ""), b.get("mtype", ""), b.get("stance", ""))
+                                         b.get("goal", ""), b.get("mtype", ""), b.get("stance", ""),
+                                         b.get("language", LANGUAGE))
                 save_state()
                 return self._send(200, json.dumps(self._state(), ensure_ascii=False))
 
@@ -2407,9 +2467,9 @@ class H(BaseHTTPRequestHandler):
                     fields = {k: str(fields.get(k, "")).strip()
                               for k in ("name", "org", "notes")}
                     lines = []
-                    if fields["name"]:  lines.append("名前：" + fields["name"])
-                    if fields["org"]:   lines.append("会社・役職：" + fields["org"])
-                    if fields["notes"]: lines.append("補足：" + fields["notes"])
+                    if fields["name"]:  lines.append(_t("名前：", "Name: ") + fields["name"])
+                    if fields["org"]:   lines.append(_t("会社・役職：", "Company and role: ") + fields["org"])
+                    if fields["notes"]: lines.append(_t("補足：", "Notes: ") + fields["notes"])
                     txt = "\n".join(lines)
                     with open(os.path.splitext(PROFILE_MD)[0] + ".json", "w", encoding="utf-8") as f:
                         json.dump(fields, f, ensure_ascii=False, indent=2)

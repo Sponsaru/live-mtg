@@ -26,13 +26,13 @@ if ! command -v node >/dev/null 2>&1; then
   if [ "$(uname -s)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then
     run brew install node
   else
-    echo "Node.js 20以上を先にインストールしてください: https://nodejs.org/" >&2
+    echo "Node.js 20 or later is required: https://nodejs.org/" >&2
     exit 1
   fi
 fi
 
 major=$(node -p 'Number(process.versions.node.split(".")[0])')
-if [ "$major" -lt 20 ]; then echo "Node.js 20以上が必要です（現在: $(node -v)）" >&2; exit 1; fi
+if [ "$major" -lt 20 ]; then echo "Node.js 20 or later is required (current: $(node -v))" >&2; exit 1; fi
 
 if ! command -v python3 >/dev/null 2>&1 && [ "$(uname -s)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then
   run brew install python
@@ -46,5 +46,5 @@ run npm install -g "live-mtg@${VERSION}"
 if [ "$ONBOARD" = 1 ]; then
   run live-mtg onboard
 else
-  echo "インストール完了。初期設定: live-mtg onboard"
+  echo "Installation complete. Run: live-mtg onboard"
 fi

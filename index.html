@@ -169,6 +169,7 @@
   .grow{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:14px;line-height:1.55;margin-top:5px;color:#52667c}
   .grow b{font-size:12px;color:#33507e;background:#edf3fb;border-radius:10px;padding:2px 8px;text-align:center;align-self:start;white-space:nowrap}
   .gmore{margin-top:4px}.gmore summary{cursor:pointer;list-style:none;width:fit-content;font-size:12px;font-weight:800;color:#587aa7}.gmore summary::-webkit-details-marker{display:none}.gmore summary::after{content:" 詳細を見る"}.gmore[open] summary::after{content:" 閉じる"}.gmore div{margin-top:5px;padding:7px 9px;background:#f6f8fb;border-radius:7px;font-size:13px;line-height:1.55;color:#607286}
+  html[lang="en"] .gmore summary::after{content:" Show details"}html[lang="en"] .gmore[open] summary::after{content:" Close"}
   .ginsight .quote{font-size:15px;font-weight:800;color:var(--ink);line-height:1.5}.ginsight .reading{font-size:14px;color:#607286;line-height:1.6;margin-top:5px}
   .gresearch{border-top:1px solid #edf1f6;padding:9px 0}.gresearch:first-of-type{border-top:0;padding-top:0}.gresearch:last-child{padding-bottom:0}
   .gresearch summary{cursor:pointer;list-style:none;font-size:15px;font-weight:800;color:#294d82;line-height:1.45;display:flex;gap:8px;align-items:flex-start}
@@ -448,6 +449,7 @@
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.5a1.8 1.8 0 0 0 0-3.6H12a1.7 1.7 0 0 1 0-3.4h3a6 6 0 0 0 6-6c0-3-4-5-9-5z"/><circle cx="7.5" cy="9" r=".8"/><circle cx="10" cy="6.5" r=".8"/><circle cx="14" cy="6.5" r=".8"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></symbol>
 </svg>
 <header>
   <img class="logo" src="/app-logo.svg" alt="LiveMTG" onerror="this.style.display='none'">
@@ -484,6 +486,7 @@
           <div class="menu-items">
             <button class="menu-item" id="new"><svg class="menu-icon"><use href="#i-plus"/></svg><span class="menu-label">新規会議</span></button>
             <button class="menu-item" id="profbtn" title="あなたが誰かをAIに教える"><svg class="menu-icon"><use href="#i-user"/></svg><span class="menu-label">プロフィール</span></button>
+            <button class="menu-item" id="language"><svg class="menu-icon"><use href="#i-globe"/></svg><span class="menu-label">言語：日本語</span></button>
             <button class="menu-item" id="theme"><svg class="menu-icon"><use href="#i-palette"/></svg><span class="menu-label">デザイン：ブルー</span></button>
             <button class="menu-item danger" id="delete" title="表示中の会議のデータと同期コピーを削除"><svg class="menu-icon"><use href="#i-trash"/></svg><span class="menu-label">この会議を削除</span></button>
           </div>
@@ -701,6 +704,87 @@
 
 <script>
 const $ = id => document.getElementById(id);
+let uiLanguage=localStorage.getItem('livemtg_language')||((navigator.language||'ja').toLowerCase().startsWith('en')?'en':'ja');
+const tr=(ja,en)=>uiLanguage==='en'?en:ja;
+const EN_TEXT=new Map([
+  ['議事ライブ整理','Live meeting copilot'],['会議を切り替え','Switch meeting'],['▶ 録音開始','▶ Start recording'],['■ 録音停止','■ Stop recording'],
+  ['リスト','List'],['マインドマップ','Mind map'],['≡ メニュー ▾','≡ Menu ▾'],['この会議の事前準備室','Meeting prep room'],
+  ['会話全文を見る','View full transcript'],['目標・ガイド設定','Goal & guide settings'],['会議後の成果物・振り返り','Post-meeting outputs'],
+  ['高精度に清書','Create polished minutes'],['マインドマップ化','Create mind map'],['マインドマップを作り直す','Regenerate mind map'],
+  ['スライド化','Create slides'],['スライドを作り直す','Regenerate slides'],['1ページPDF保存','Save one-page PDF'],['学びを抽出','Extract learnings'],
+  ['設定・会議管理','Settings & meetings'],['新規会議','New meeting'],['プロフィール','Profile'],['言語：日本語','Language: Japanese'],
+  ['デザイン：ブルー','Design: Blue'],['この会議を削除','Delete this meeting'],['接続中…','Connecting…'],['最終解析：確認中…','Last analysis: checking…'],
+  ['音声を待っています…','Waiting for audio…'],['今、次にするべき質問','Best next questions'],['タップで意図を表示','Tap to show intent'],
+  ['🎯 ガイド','🎯 Guide'],['💡 AIサポート','💡 AI support'],['タップで回答（参考情報・要確認）','Tap for an answer'],
+  ['議題','Agenda'],['論点・意見','Discussion points'],['決定事項','Decisions'],['未解決・要確認','Open questions'],['会話全文','Full transcript'],
+  ['新しい会議を始める','Start a new meeting'],['いま録音中なら停止し、新しい会議として整理を始めます。','If recording, it will stop and a new meeting will begin.'],
+  ['背景フォルダ（任意）— 指定するとAIが中の資料を読んで文脈に使う','Context folder (optional) — AI reads its files for context'],
+  ['📁 選択','📁 Choose'],['用途（任意）— 選ぶとその用途のプレイブック（蓄積ノウハウ）をAIが参照','Meeting type (optional) — uses the matching playbook'],
+  ['この会議でのあなたの立場（任意）— ガイド・議事の視点がこの立場になる','Your role in this meeting (optional)'],
+  ['🎯 目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON','🎯 Goal (optional) — enables suggested questions and analysis'],
+  ['キャンセル','Cancel'],['開始','Start'],['保存','Save'],['清書の前に確認','Review before polishing'],['🔄 質問を作り直す','🔄 Regenerate questions'],
+  ['この内容で清書','Create polished minutes'],['🎯 商談ガイド設定','🎯 Meeting guide settings'],['この会議の目標','Meeting goal'],['背景フォルダ','Context folder'],
+  ['💬 この会議の事前準備室','💬 Meeting prep room'],['🎯 着地点','🎯 Outcome'],['👤 相手情報','👤 Counterpart'],['💡 仮説を広げる','💡 Expand hypotheses'],
+  ['🛡 懸念を洗う','🛡 Explore risks'],['❓ 質問を作る','❓ Draft questions'],['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
+  ['👤 プロフィール（私は誰か）','👤 Profile'],['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
+  ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],['📚 この会議からの学び','📚 Learnings from this meeting'],
+  ['破棄','Discard'],['プレイブックに追記','Add to playbook'],['録音を開始','Start recording'],['使用するマイク','Microphone'],
+  ['🎙 マイクのみ','🎙 Microphone only'],['🖥 会議音声も取り込む','🖥 Include meeting audio'],
+  ['文字起こしから、whisperが誤認識しやすい固有名詞を洗い出しました。','We found names and terms that may have been misheard.'],
+  ['合っていればそのまま、違えば正しい表記に直して','Keep correct spellings and fix incorrect ones'],['ください。この内容を最優先で清書します。','before creating polished minutes.'],
+  ['目標を設定すると、会話の流れと背景資料を踏まえた','Set a goal to receive continuously updated'],['次の質問の提案（意図つき）・相手の発言解析','suggested questions and statement analysis'],
+  ['が常時更新されます。必要な資料はAIが自動で調べに行きます。','based on the conversation and context files.'],
+  ['ラフな構想をそのまま投げてください。AI参謀が整理しつつ仮説・反論・質問候補を広げ、右の準備ボードを更新します。内容は','Share rough ideas here. AI will organize them, expand hypotheses and questions, and update the preparation board. Notes are'],
+  ['選択中の背景フォルダへ逐次保存','saved continuously to the selected context folder'],['され、会議中のライブ参謀にも反映されます。','and used during the live meeting.'],
+  ['質問に答えるだけでOK。録音している','Answer these questions so AI understands'],['あなたが誰か','who you are'],
+  ['をAIが理解し、話者の名前ラベル・🎯ガイドの助言・清書が正確になります。','and can improve speaker labels, guidance, and polished minutes.'],['全会議で共通','Shared across meetings'],['・いつでも変更できます。','and editable anytime.'],
+  ['AIが抽出した学びです。','These learnings were extracted by AI.'],['編集して「プレイブックに追記」','Edit them and choose “Add to playbook”'],
+  ['を押すと、用途別プレイブックに蓄積され、次回以降のガイドが賢くなります。不要な行は消してください。','to reuse them in future meetings of this type. Delete anything you do not want to keep.'],
+  ['オンライン会議の','To transcribe'],['相手の声も','other participants in an online meeting'],['文字起こしするには「会議音声も取り込む」を選び、次の共有画面で','choose “Include meeting audio,” select the meeting tab, and enable'],
+  ['会議のタブ','the meeting tab'],['「タブの音声を共有」にチェック','Share tab audio'],['してください（自分の声はマイクから拾います）。','Your own voice will come from the microphone.']
+]);
+const EN_ATTR=new Map([
+  ['会議名（例：DX部 定例 7/9）','Meeting title (e.g. Product weekly sync)'],['📁で選択（または過去の候補・パス入力）','Choose a folder or enter its path'],
+  ['商談 / 採用面接 / ヒアリング / 社内定例 …（自由入力可）','Sales / Interview / Research / Internal sync…'],
+  ['提案する側 / 面接官 / ヒアリングする側 …（自由入力可）','Presenter / Interviewer / Researcher…'],
+  ['例：見積もりAI導入の合意を取る。予算感と決裁者を聞き出す。','Example: Agree on an AI pilot and identify budget and decision maker.'],
+  ['例：山田 太郎（山田さん）','Example: Alex Smith'],['例：〇〇株式会社 AX支援担当','Example: Acme Inc., Product Lead'],
+  ['例：佐藤部長＝顧客側の決裁者。社内では「山田さん」と呼ばれる','Example: Taylor is the customer decision maker.']
+]);
+const EN_MESSAGES=new Map([
+  ['タブ音声が共有されませんでした（マイクのみで継続）','Tab audio was not shared; continuing with microphone only.'],
+  ['録音を停止してから削除してください','Stop recording before deleting this meeting.'],['会議データを削除中…','Deleting meeting data…'],
+  ['学びを抽出中…（30〜60秒。会議の記録を読み直しています）','Extracting learnings… (30–60 seconds)'],
+  ['新しい会議を作成しました','New meeting created.'],['フォルダ選択ダイアログを開きました（他のウィンドウの後ろに出ることがあります）','Folder picker opened. It may appear behind another window.'],
+  ['商談ガイドを設定しました','Meeting guide updated.'],['事前準備をライブ参謀に反映しました','Meeting preparation applied.'],
+  ['プロフィールを保存しました（以後の整理・ガイド・清書に反映）','Profile saved and applied to future analysis.'],
+  ['1画面のマインドマップを生成中…','Generating the mind map…'],['マインドマップが完成しました','Mind map ready.'],
+  ['経営者向けスライドを生成中…（数十秒〜数分）','Generating slides… This may take a few minutes.'],['スライドが完成しました','Slides ready.'],
+  ['準備に失敗しました','Preparation failed.'],['録音を停止してから清書してください','Stop recording before creating polished minutes.'],
+  ['清書が完成しました（画面を高精度版に更新）','Polished minutes are ready.'],['清書に失敗しました','Could not create polished minutes.'],
+  ['確認に失敗しました','Verification failed.'],['生成に失敗しました','Generation failed.'],['抽出に失敗しました','Extraction failed.'],
+  ['送信に失敗しました','Could not send the message.']
+]);
+function localizeMessage(value){
+  let s=String(value||'');if(uiLanguage!=='en')return s;if(EN_MESSAGES.has(s))return EN_MESSAGES.get(s);
+  return s.replaceAll('不明なエラー','Unknown error').replace(/^設定に失敗：/,'Could not save settings: ')
+    .replace(/^生成に失敗しました：/,'Generation failed: ').replace(/^清書に失敗：/,'Polishing failed: ')
+    .replace(/^準備に失敗：/,'Preparation failed: ').replace(/^抽出に失敗：/,'Extraction failed: ')
+    .replace(/^削除に失敗：/,'Deletion failed: ').replace(/^保存に失敗：/,'Save failed: ').replace(/^失敗：/,'Failed: ');
+}
+function translateStatic(){
+  document.documentElement.lang=uiLanguage;
+  if(uiLanguage!=='en')return;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{if(n.parentElement&&['SCRIPT','STYLE'].includes(n.parentElement.tagName))return;const raw=n.nodeValue,trim=raw.trim(),value=EN_TEXT.get(trim);if(value)n.nodeValue=raw.replace(trim,value);});
+  document.querySelectorAll('[title],[placeholder]').forEach(el=>['title','placeholder'].forEach(a=>{const v=el.getAttribute(a),x=EN_ATTR.get(v)||EN_TEXT.get(v);if(x)el.setAttribute(a,x);}));
+  $('mtypedl').innerHTML='<option value="Sales"><option value="Interview"><option value="Research"><option value="Internal sync"><option value="1-on-1"><option value="Leadership meeting">';
+  $('stancedl').innerHTML='<option value="Presenter"><option value="Researcher"><option value="Interviewer"><option value="Facilitator"><option value="Reporter"><option value="Participant">';
+  const prep=['Clarify the desired outcome for this meeting.','Share what is known about the other party.','Expand the current hypotheses and alternative angles.','Identify likely objections, risks, and blind spots.','Draft the questions needed to achieve the meeting goal.'];
+  document.querySelectorAll('[data-prep]').forEach((el,i)=>{if(prep[i])el.dataset.prep=prep[i];});
+  document.title='LiveMTG | Live meeting copilot';
+}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function fill(id, arr, render){
   const ul=$(id), items=arr||[];
@@ -713,6 +797,7 @@ async function api(path, body){
 }
 let toastTimer=null;
 function toast(msg, spinning){
+  msg=localizeMessage(msg);
   $('toast').innerHTML = (spinning?'<span class="spin"></span>':'') + esc(msg);
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
@@ -725,27 +810,28 @@ let startupPending=true; // 初回表示で前回の別会議を勝手に表示�
 function setMenuLabel(id,text){const b=$(id),label=b&&b.querySelector('.menu-label');if(label)label.textContent=text;}
 function renderLastUpdate(){
   const el=$('lastupdate'); if(!el)return;
-  if(!dataUpdatedAt){el.textContent='最終解析：まだありません';el.classList.remove('stale');return;}
+  if(!dataUpdatedAt){el.textContent=tr('最終解析：まだありません','Last analysis: none yet');el.classList.remove('stale');return;}
   const d=new Date(dataUpdatedAt*1000), hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
   const sec=Math.max(0,Math.floor(Date.now()/1000-dataUpdatedAt));
-  const ago=sec<20?'たった今':sec<60?`${sec}秒前`:sec<3600?`${Math.floor(sec/60)}分前`:`${Math.floor(sec/3600)}時間前`;
+  const ago=sec<20?tr('たった今','just now'):sec<60?tr(`${sec}秒前`,`${sec}s ago`):sec<3600?tr(`${Math.floor(sec/60)}分前`,`${Math.floor(sec/60)}m ago`):tr(`${Math.floor(sec/3600)}時間前`,`${Math.floor(sec/3600)}h ago`);
   const stale=transcriptUpdatedAt>dataUpdatedAt+5&&!stateAnalyzing;
-  el.textContent=`${stale?'⚠ ':''}最終解析 ${hh}:${mm}（${ago}）`;
+  el.textContent=tr(`${stale?'⚠ ':''}最終解析 ${hh}:${mm}（${ago}）`,`${stale?'⚠ ':''}Last analysis ${hh}:${mm} (${ago})`);
   el.classList.toggle('stale',stale);
 }
 function applyState(s){
+  if(s.language&&s.language!==uiLanguage){localStorage.setItem('livemtg_language',s.language);location.reload();return;}
   recording = s.recording;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
   $('dot').className = 'dot ' + (recording?'live':'idle');
-  $('rec').textContent = recording ? '■ 録音停止' : '▶ 録音開始';
+  $('rec').textContent = recording ? tr('■ 録音停止','■ Stop recording') : tr('▶ 録音開始','▶ Start recording');
   $('rec').classList.toggle('on', recording);
-  $('st').textContent = (recording ? '● 録音中' : '停止中')
-    + (s.analyzing ? ' ｜🧠 解析中' : '')
-    + (s.exploring ? ' ｜📚 背景読込中' : '') + (s.researching>0 ? ' ｜🔍 調査中' : '');
+  $('st').textContent = (recording ? tr('● 録音中','● Recording') : tr('停止中','Stopped'))
+    + (s.analyzing ? tr(' ｜🧠 解析中',' | 🧠 Analyzing') : '')
+    + (s.exploring ? tr(' ｜📚 背景読込中',' | 📚 Reading context') : '') + (s.researching>0 ? tr(' ｜🔍 調査中',' | 🔍 Researching') : '');
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
-  setMenuLabel('goalbtn',curGoal ? '目標・ガイド設定（ON）' : '目標・ガイド設定');
-  setMenuLabel('strategybtn',s.hasStrategy ? 'この会議の事前準備室（準備済み）' : 'この会議の事前準備室');
+  setMenuLabel('goalbtn',curGoal ? tr('目標・ガイド設定（ON）','Goal & guide settings (ON)') : tr('目標・ガイド設定','Goal & guide settings'));
+  setMenuLabel('strategybtn',s.hasStrategy ? tr('この会議の事前準備室（準備済み）','Meeting prep room (ready)') : tr('この会議の事前準備室','Meeting prep room'));
   const pj = (s.recentProjects||[]);
   const psig = pj.join(',');
   if($('projdl').dataset.sig !== psig){
@@ -764,19 +850,19 @@ function applyState(s){
     }).join('');
   }
   hasSlides = !!s.hasSlides;
-  setMenuLabel('slides',hasSlides ? 'マインドマップを開く' : 'マインドマップ化');
-  $('slides').title = hasSlides ? '生成済みマインドマップをすぐ開く' : 'この会議を1画面のマインドマップに変換';
+  setMenuLabel('slides',hasSlides ? tr('マインドマップを開く','Open mind map') : tr('マインドマップ化','Create mind map'));
+  $('slides').title = hasSlides ? tr('生成済みマインドマップをすぐ開く','Open the generated mind map') : tr('この会議を1画面のマインドマップに変換','Turn this meeting into a one-page mind map');
   $('regen').style.display = hasSlides ? '' : 'none';
   hasDeck = !!s.hasDeck;
-  setMenuLabel('deckbtn',hasDeck ? 'スライドを開く' : 'スライド化');
-  $('deckbtn').title = hasDeck ? '生成済みスライドデッキをすぐ開く' : 'この会議を経営者向けスライドデッキに変換';
+  setMenuLabel('deckbtn',hasDeck ? tr('スライドを開く','Open slides') : tr('スライド化','Create slides'));
+  $('deckbtn').title = hasDeck ? tr('生成済みスライドデッキをすぐ開く','Open the generated slide deck') : tr('この会議を経営者向けスライドデッキに変換','Turn this meeting into an executive slide deck');
   $('deckregen').style.display = hasDeck ? '' : 'none';
   // 清書ボタン：保存音声があれば押せる。清書済みなら表示を変える
   $('final').disabled = !s.hasAudio;
   $('delete').disabled = recording || !currentSessionId;
-  setMenuLabel('final',s.hasFinal ? '清書済み（再清書）' : '高精度に清書');
-  $('final').title = s.hasAudio ? '会議後：保存した全音声を1本にまとめ、分断なしで高精度に議事録を作り直す（数分）'
-                                : '保存された音声がまだありません（録音して発話が入ると押せます）';
+  setMenuLabel('final',s.hasFinal ? tr('清書済み（再清書）','Polished (regenerate)') : tr('高精度に清書','Create polished minutes'));
+  $('final').title = s.hasAudio ? tr('会議後：保存した全音声を1本にまとめ、分断なしで高精度に議事録を作り直す（数分）','After the meeting, rebuild accurate minutes from all saved audio. This may take a few minutes.')
+                                : tr('保存された音声がまだありません（録音して発話が入ると押せます）','No saved audio yet. Record some speech first.');
   if(s.chunk) chunkMs = s.chunk*1000;
   const t=(s.current&&s.current.title)||'';
   if(t!==meetingTitle){ meetingTitle=t; if(view==='slide'&&lastData) buildDeck(lastData); }
@@ -787,7 +873,7 @@ async function pollState(){
     if(serverDown){ serverDown=false; $('down').classList.remove('show'); }
   }catch(e){
     serverDown=true; $('down').classList.add('show');
-    $('st').textContent='⚠ サーバ停止'; $('dot').className='dot idle';
+    $('st').textContent=tr('⚠ サーバ停止','⚠ Server stopped'); $('dot').className='dot idle';
   }
 }
 async function pollData(){
@@ -800,16 +886,16 @@ async function pollData(){
     fill('agenda', d.agenda, x=>`<li>${esc(x)}</li>`);
     fill('points', d.points, x=>`<li>${esc(x)}</li>`);
     fill('decisions', d.decisions, x=>`<li>${esc(x)}</li>`);
-    fill('todos', d.todos, x=>`<li><span class="who">${esc(x.who||'未定')}</span>${esc(x.what||'')}</li>`);
+    fill('todos', d.todos, x=>`<li><span class="who">${esc(x.who||tr('未定','Unassigned'))}</span>${esc(x.what||'')}</li>`);
     fill('open', d.open, x=>`<li>${esc(x)}</li>`);
     const sp=d.speakers||[];
-    $('who').innerHTML = sp.length ? '<b>参加者</b>'+sp.map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
+    $('who').innerHTML = sp.length ? `<b>${tr('参加者','Participants')}</b>`+sp.map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
     $('who').classList.toggle('show', sp.length>0);
     renderAssist(d.assist||[]);
     renderGuide(d.guide);
     const sig=JSON.stringify(d);
     if(view==='slide' && sig!==deckSig){ deckSig=sig; buildDeck(d); }
-  }catch(e){ $('st').textContent = serverDown ? '⚠ サーバ停止' : '待機中…'; }
+  }catch(e){ $('st').textContent = serverDown ? tr('⚠ サーバ停止','⚠ Server stopped') : tr('待機中…','Waiting…'); }
 }
 
 // ===== 🎯 商談ガイド：畳んだバー＋展開パネル（困った時に開く）=====
@@ -832,8 +918,8 @@ function renderNextQuestions(qs){
   nextQuestions=qs||[];
   $('nextwrap').classList.toggle('show',nextQuestions.length>0||!!curGoal);
   $('nextchips').innerHTML=nextQuestions.length
-    ? nextQuestions.map((x,i)=>{const raw=String(x.intent||'意図はまだ整理中です').trim(),short=guideBrief(raw,42),more=raw!==short?`<details class="gmore"><summary></summary><div>${esc(raw)}</div></details>`:'';return `<div class="nextitem" data-i="${i}"><button class="nextchip" onclick="showNextIntent(${i})">${esc(guideBrief(x.q||'',48))}</button><div class="nextinlineintent"><b>質問の意図</b><span>${esc(short)}${more}</span></div></div>`}).join('')
-    : '<span class="nextempty">録音が始まり会話が入ると、目標に近づくための質問がここに出ます。</span>';
+    ? nextQuestions.map((x,i)=>{const raw=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim(),short=guideBrief(raw,42),more=raw!==short?`<details class="gmore"><summary></summary><div>${esc(raw)}</div></details>`:'';return `<div class="nextitem" data-i="${i}"><button class="nextchip" onclick="showNextIntent(${i})">${esc(guideBrief(x.q||'',48))}</button><div class="nextinlineintent"><b>${tr('質問の意図','Intent')}</b><span>${esc(short)}${more}</span></div></div>`}).join('')
+    : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問がここに出ます。','Suggested questions will appear here once the conversation begins.')}</span>`;
 }
 function showNextIntent(i){
   const item=document.querySelector(`.nextitem[data-i="${i}"]`);if(!item)return;
@@ -844,7 +930,7 @@ async function renderGuide(g){
   const has = g && (g.progress || (g.questions||[]).length || (g.insights||[]).length);
   if(!has && !curGoal){ $('gwrap').classList.remove('show'); return; }
   $('gwrap').classList.add('show');
-  $('gprog').textContent = (g && g.progress) || (curGoal ? '目標: '+curGoal : '—');
+  $('gprog').textContent = (g && g.progress) || (curGoal ? tr('目標: ','Goal: ')+curGoal : '—');
   // 調査結果も取得（ローカルなので軽い）
   try{ researchCache = await (await fetch('/research.json?t='+Date.now(),{cache:'no-store'})).json(); }catch(e){}
   const sig = JSON.stringify([g, researchCache.length]);
@@ -856,19 +942,19 @@ async function renderGuide(g){
   renderNextQuestions(qs);
   const answered=(g&&g.answered)||[];
   if(answered.length){
-    blocks.push('<div class="gsection-title">回答から分かったこと</div>');
-    blocks.push(...answered.slice(-2).reverse().map(x=>`<article class="gpanel"><div class="gcard-title" title="${esc(x.question||'質問')}">${esc(guideBrief(x.question||'質問',42))}</div>${row('回答',x.answer,42)}${row('読み',x.analysis,42)}${row('次の一手',x.next,34)}</article>`));
+    blocks.push(`<div class="gsection-title">${tr('回答から分かったこと','What the answers reveal')}</div>`);
+    blocks.push(...answered.slice(-2).reverse().map(x=>`<article class="gpanel"><div class="gcard-title" title="${esc(x.question||tr('質問','Question'))}">${esc(guideBrief(x.question||tr('質問','Question'),42))}</div>${row(tr('回答','Answer'),x.answer,42)}${row(tr('読み','Interpretation'),x.analysis,42)}${row(tr('次の一手','Next move'),x.next,34)}</article>`));
   }
   const ins=(g&&g.insights)||[];
   if(ins.length){
-    blocks.push('<div class="gsection-title">注目した発言</div>');
+    blocks.push(`<div class="gsection-title">${tr('注目した発言','Notable statements')}</div>`);
     blocks.push(...ins.slice(0,2).map(x=>`<article class="gpanel ginsight"><div class="quote" title="${esc(x.said||'')}">「${esc(guideBrief(x.said||'',38))}」</div><div class="reading">${esc(guideBrief(x.reading||'',46))}${String(x.reading||'').trim()!==guideBrief(x.reading||'',46)?`<details class="gmore"><summary></summary><div>${esc(x.reading||'')}</div></details>`:''}</div></article>`));
   }
   if(researchCache.length){
-    blocks.push('<div class="gsection-title">資料からの調査結果</div>');
-    blocks.push(...researchCache.slice(-3).reverse().map(r=>{const digest=researchDigest(r.answer);return `<details class="gpanel research-card"><summary title="${esc(r.need||'調査結果')}">${esc(guideBrief(r.need||'調査結果',42))}</summary><ul class="research-digest">${digest.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><details class="gsource"><summary>原文・出典</summary><div class="gsourcebody">${esc(r.answer||'')}</div></details></details>`}));
+    blocks.push(`<div class="gsection-title">${tr('資料からの調査結果','Research from source files')}</div>`);
+    blocks.push(...researchCache.slice(-3).reverse().map(r=>{const digest=researchDigest(r.answer);return `<details class="gpanel research-card"><summary title="${esc(r.need||tr('調査結果','Research result'))}">${esc(guideBrief(r.need||tr('調査結果','Research result'),42))}</summary><ul class="research-digest">${digest.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><details class="gsource"><summary>${tr('原文・出典','Full text & sources')}</summary><div class="gsourcebody">${esc(r.answer||'')}</div></details></details>`}));
   }
-  $('gbody').innerHTML = blocks.length ? `<div class="ggrid">${blocks.join('')}</div>` : '<div class="gempty">会話が進むと、回答の読みや調査結果がここに整理されます。</div>';
+  $('gbody').innerHTML = blocks.length ? `<div class="ggrid">${blocks.join('')}</div>` : `<div class="gempty">${tr('会話が進むと、回答の読みや調査結果がここに整理されます。','Answer analysis and research will appear here as the meeting progresses.')}</div>`;
 }
 
 // ===== AIサポート：疑問はバブル、タップで回答パネル展開 =====
@@ -894,8 +980,8 @@ function toggleAssist(i){
   [...$('achips').children].forEach((c,j)=>c.classList.toggle('active', j===i));
   const x=assistData[i]||{};
   $('apanel').innerHTML = `<div class="aq">Q. ${esc(x.q||'')}</div><div class="aa">${esc(x.a||'')}</div>`
-    + (x.check?`<div class="acheck">⚠ 要確認：${esc(x.check)}</div>`:'')
-    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" onclick="verifyAssist(${i})">🔎 Web検索で確認</button><div class="vresult" id="vres"></div></div>` : '');
+    + (x.check?`<div class="acheck">⚠ ${tr('要確認','Verify')}：${esc(x.check)}</div>`:'')
+    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" onclick="verifyAssist(${i})">🔎 ${tr('Web検索で確認','Verify on the web')}</button><div class="vresult" id="vres"></div></div>` : '');
   $('apanel').className='apanel show';
 }
 // Markdownの[リンク](url)・**太字**・改行を最小限HTML化（出典リンク表示用）
@@ -910,12 +996,12 @@ async function verifyAssist(i){
   const x=assistData[i]||{}; const q=x.q||''; if(!q) return;
   const res=$('vres'), btn=document.querySelector('.vbtn');
   if(btn) btn.disabled=true;
-  res.innerHTML='<span class="spin"></span> Web検索で確認中…（30〜40秒ほど）';
+  res.innerHTML=`<span class="spin"></span> ${tr('Web検索で確認中…（30〜40秒ほど）','Searching the web… (about 30–40 seconds)')}`;
   try{
     const r=await api('/api/assist_verify',{q});
-    if(r.ok){ res.innerHTML = '<div class="vhead">🔎 Web検索の裏取り</div>'+mdToHtml(r.answer||''); }
-    else res.textContent='確認に失敗：'+(r.msg||'不明なエラー');
-  }catch(e){ res.textContent='確認に失敗しました'; }
+    if(r.ok){ res.innerHTML = `<div class="vhead">${tr('Web検索の裏取り','Web verification')}</div>`+mdToHtml(r.answer||''); }
+    else res.textContent=tr('確認に失敗：','Verification failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error'));
+  }catch(e){ res.textContent=tr('確認に失敗しました','Verification failed.'); }
   if(btn) btn.disabled=false;
 }
 
@@ -934,25 +1020,25 @@ function buildDeck(d){
   let branches=[];
   if(Array.isArray(d.mindmap)&&d.mindmap.length){ branches=d.mindmap.slice(0,8).map(x=>[String(x.topic||''),(x.groups||[]).slice(0,4)]); }
   else{
-    if(d.summary)branches.push(['要旨',[{label:'全体像',items:[{label:headline(d.summary),detail:String(d.summary),status:'要旨'}]}]]);
-    const add=(name,arr,render,limit=5)=>{const a=(Array.isArray(arr)?arr:[]).slice(0,limit).map(x=>{const full=render(x);return{label:headline(full),detail:full,status:name}}).filter(x=>x.detail);if(a.length)branches.push([name,[{label:'内容',items:a}]]);};
-    add('主要論点',d.points,x=>x);add('決定事項',d.decisions,x=>x);add('ToDo',d.todos,x=>(x.who||'未定')+'：'+(x.what||''));add('未解決',d.open,x=>x);
+    if(d.summary)branches.push([tr('要旨','Summary'),[{label:tr('全体像','Overview'),items:[{label:headline(d.summary),detail:String(d.summary),status:tr('要旨','Summary')}]}]]);
+    const add=(name,arr,render,limit=5)=>{const a=(Array.isArray(arr)?arr:[]).slice(0,limit).map(x=>{const full=render(x);return{label:headline(full),detail:full,status:name}}).filter(x=>x.detail);if(a.length)branches.push([name,[{label:tr('内容','Details'),items:a}]]);};
+    add(tr('主要論点','Key points'),d.points,x=>x);add(tr('決定事項','Decisions'),d.decisions,x=>x);add('ToDo',d.todos,x=>(x.who||tr('未定','Unassigned'))+': '+(x.what||''));add(tr('未解決','Open questions'),d.open,x=>x);
   }
   const prep=d.preparation&&typeof d.preparation==='object'?d.preparation:null;
-  if(prep&&!branches.some(x=>String(x[0]).includes('事前準備'))){const pg=[],one=(label,title,detail,status='事前準備')=>{if(detail)pg.push({label,items:[{label:title,detail:String(detail),status}]})};
-    one('構想・狙い','事前準備で共有した構想',prep.brief);one('着地点','会議の成功条件',prep.outcome);one('相手情報','相手の状況・関心',prep.counterpart);
-    [['検証する仮説',prep.hypotheses],['会議で聞くこと',prep.questions],['懸念・見落とし',prep.risks],['避けること',prep.avoid]].forEach(([label,a])=>{const items=(Array.isArray(a)?a:[]).map(v=>({label:headline(v),detail:String(v),status:'事前準備'}));if(items.length)pg.push({label,items})});
-    if(pg.length)branches.unshift(['事前準備',pg]);
+  if(prep&&!branches.some(x=>String(x[0]).includes(tr('事前準備','Preparation')))){const pg=[],prepStatus=tr('事前準備','Preparation'),one=(label,title,detail,status=prepStatus)=>{if(detail)pg.push({label,items:[{label:title,detail:String(detail),status}]})};
+    one(tr('構想・狙い','Concept and intent'),tr('事前準備で共有した構想','Concept shared during preparation'),prep.brief);one(tr('着地点','Desired outcome'),tr('会議の成功条件','Success criteria'),prep.outcome);one(tr('相手情報','Counterpart'),tr('相手の状況・関心','Context and interests'),prep.counterpart);
+    [[tr('検証する仮説','Hypotheses to test'),prep.hypotheses],[tr('会議で聞くこと','Questions to ask'),prep.questions],[tr('懸念・見落とし','Risks and blind spots'),prep.risks],[tr('避けること','Things to avoid'),prep.avoid]].forEach(([label,a])=>{const items=(Array.isArray(a)?a:[]).map(v=>({label:headline(v),detail:String(v),status:prepStatus}));if(items.length)pg.push({label,items})});
+    if(pg.length)branches.unshift([prepStatus,pg]);
   }
-  const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>根拠：${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
+  const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>${tr('根拠：','Source: ')}${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
-  $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||'会議')}</h2>
-    <div class="maptools"><button class="on" data-mapview="tree">階層マップ</button><button data-mapview="relation">会話の関係</button></div></div>
+  $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
+    <div class="maptools"><button class="on" data-mapview="tree">${tr('階層マップ','Hierarchy')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
     <div class="dstage"><div class="tree-map" data-tree><svg class="tree-lines"></svg>
-      <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||'会議',32))}</div></div>
+      <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
-      <div class="relation-map"><div class="mermaid">${esc(d.diagram||'flowchart LR\n  A[会話の関係を整理中]')}</div></div></div>`);
+      <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div>`);
   bindLiveTree();
   $('deck').querySelectorAll('[data-mapview]').forEach(btn=>btn.onclick=()=>{
     const rel=btn.dataset.mapview==='relation'; $('deck').querySelector('.tree-map').classList.toggle('off',rel);
@@ -1002,7 +1088,7 @@ async function renderLiveMermaid(){
   for(const el of nodes){
     const code=(el.textContent||'').trim();
     try{ const r=await mermaid.render('lmmd'+(mmdSeq++), code); el.innerHTML=r.svg; el.classList.add('done'); }
-    catch(e){ el.innerHTML='<div class="mmd-note">（図を作成中…）</div>'; el.classList.add('done'); }
+    catch(e){ el.innerHTML=`<div class="mmd-note">${tr('（図を作成中…）','Building the diagram…')}</div>`; el.classList.add('done'); }
   }
 }
 function setView(v){
@@ -1103,19 +1189,19 @@ async function doStart(withTab){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
   $('rec').disabled=true;
   try{ await startCapture(withTab); }
-  catch(e){ toast('マイクを開始できませんでした：'+(e.message||e)); $('rec').disabled=false; return; }
+  catch(e){ toast(tr('マイクを開始できませんでした：','Could not start the microphone: ')+(e.message||e)); $('rec').disabled=false; return; }
   try{ applyState(await api('/api/start',{})); }catch(e){}
   await acquireWakeLock();   // 録音中は画面を消させない
   recording=true; $('rec').disabled=false;
-  $('rec').textContent='■ 録音停止'; $('rec').classList.add('on');
-  $('dot').className='dot live'; $('st').textContent='● 録音中';
+  $('rec').textContent=tr('■ 録音停止','■ Stop recording'); $('rec').classList.add('on');
+  $('dot').className='dot live'; $('st').textContent=tr('● 録音中','● Recording');
 }
 async function doStop(){
   $('rec').disabled=true; stopCapture(); releaseWakeLock();
   try{ applyState(await api('/api/stop',{})); }catch(e){}
   recording=false; $('rec').disabled=false;
-  $('rec').textContent='▶ 録音開始'; $('rec').classList.remove('on');
-  $('dot').className='dot idle'; $('st').textContent='停止中';
+  $('rec').textContent=tr('▶ 録音開始','▶ Start recording'); $('rec').classList.remove('on');
+  $('dot').className='dot idle'; $('st').textContent=tr('停止中','Stopped');
   await pollData();
 }
 // マイク一覧をモーダルに表示（前回の選択を記憶。ラベルは一度マイク許可すると表示される）
@@ -1123,8 +1209,8 @@ async function fillMics(){
   let mics=[];
   try{ mics=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput'); }catch(e){}
   const saved=localStorage.getItem('livemtg_mic')||'';
-  $('micsel').innerHTML = '<option value="">既定のマイク（OSの設定に従う）</option>'
-    + mics.map(d=>`<option value="${esc(d.deviceId)}"${d.deviceId===saved?' selected':''}>${esc(d.label||'マイク')}</option>`).join('');
+  $('micsel').innerHTML = `<option value="">${tr('既定のマイク（OSの設定に従う）','Default microphone')}</option>`
+    + mics.map(d=>`<option value="${esc(d.deviceId)}"${d.deviceId===saved?' selected':''}>${esc(d.label||tr('マイク','Microphone'))}</option>`).join('');
 }
 $('rec').onclick = ()=>{ if(capturing) doStop(); else { $('rbg').classList.add('show'); fillMics(); } };
 $('rbg').onclick = e=>{ if(e.target===$('rbg')) $('rbg').classList.remove('show'); };
@@ -1134,29 +1220,29 @@ $('rtab').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(true); };
 $('new').onclick = ()=>{ $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mbg').classList.add('show'); setTimeout(()=>$('mtitle').focus(),50); };
 // 表示中の会議を、ローカル本体・Drive同期・案件フォルダ書き出しまで会議ID限定で削除
 $('delete').onclick=async()=>{
-  if(recording){ toast('録音を停止してから削除してください'); return; }
-  const title=meetingTitle||'この会議';
-  if(!confirm(`「${title}」をデータごと削除しますか？\n\n音声・全文・議事録・マインドマップ・調査・作戦チャット・同期コピーが削除されます。\nこの操作は取り消せません。`)) return;
-  $('delete').disabled=true; toast('会議データを削除中…',true);
+  if(recording){ toast(tr('録音を停止してから削除してください','Stop recording before deleting the meeting.')); return; }
+  const title=meetingTitle||tr('この会議','this meeting');
+  if(!confirm(tr(`「${title}」をデータごと削除しますか？\n\n音声・全文・議事録・マインドマップ・調査・作戦チャット・同期コピーが削除されます。\nこの操作は取り消せません。`,`Delete “${title}” and all of its data?\n\nAudio, transcripts, minutes, mind maps, research, prep chat, and synced copies will be deleted.\nThis cannot be undone.`))) return;
+  $('delete').disabled=true; toast(tr('会議データを削除中…','Deleting meeting data…'),true);
   try{
     const r=await api('/api/delete',{id:currentSessionId}); hideToast();
-    if(r.ok){ lastData=null; guideSig=''; renderNextQuestions([]); applyState(r.state); await pollData(); toast(`削除しました（${r.removed||0}箇所）`); }
-    else toast('削除に失敗：'+(r.msg||'不明なエラー'));
-  }catch(e){ hideToast(); toast('削除に失敗しました'); }
+    if(r.ok){ lastData=null; guideSig=''; renderNextQuestions([]); applyState(r.state); await pollData(); toast(tr(`削除しました（${r.removed||0}箇所）`,`Deleted from ${r.removed||0} location(s).`)); }
+    else toast(tr('削除に失敗：','Deletion failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
+  }catch(e){ hideToast(); toast(tr('削除に失敗しました','Deletion failed.')); }
   $('delete').disabled=recording||!currentSessionId;
 };
 // 📚 学びの抽出 → 承認 → プレイブック追記
 $('learnbtn').onclick = async ()=>{
-  if(!curType){ toast('先に「🎯 商談ガイド設定」でこの会議の用途（商談/面接等）を設定してください'); return; }
+  if(!curType){ toast(tr('先に商談ガイド設定でこの会議の用途（商談/面接等）を設定してください','Set the meeting type in Goal & guide settings first.')); return; }
   $('learnbtn').disabled=true;
-  toast('学びを抽出中…（30〜60秒。会議の記録を読み直しています）', true);
+  toast(tr('学びを抽出中…（30〜60秒。会議の記録を読み直しています）','Extracting learnings… This may take 30–60 seconds.'), true);
   try{
     const r = await api('/api/learn', {});
     hideToast(); $('learnbtn').disabled=false;
-    if(!r.ok){ toast('抽出に失敗：'+(r.msg||'不明なエラー')); return; }
+    if(!r.ok){ toast(tr('抽出に失敗：','Extraction failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error'))); return; }
     $('llearn').value = r.text||'';
     $('lbg').classList.add('show');
-  }catch(e){ hideToast(); $('learnbtn').disabled=false; toast('抽出に失敗しました'); }
+  }catch(e){ hideToast(); $('learnbtn').disabled=false; toast(tr('抽出に失敗しました','Extraction failed.')); }
 };
 $('lcancel').onclick = ()=> $('lbg').classList.remove('show');
 $('lok').onclick = async ()=>{
@@ -1164,9 +1250,9 @@ $('lok').onclick = async ()=>{
   $('lbg').classList.remove('show');
   if(!text) return;
   const r = await api('/api/learn_save', {text});
-  toast(r.ok ? '📚 プレイブックに追記しました（次回の'+curType+'から効きます）' : '追記に失敗：'+(r.msg||''));
+  toast(r.ok ? tr('プレイブックに追記しました（次回の'+curType+'から効きます）','Added to the playbook for future '+curType+' meetings.') : tr('追記に失敗：','Could not update the playbook: ')+localizeMessage(r.msg||''));
 };
-$('mcancel').onclick = async ()=>{ startupPending=false; $('mbg').classList.remove('show'); $('mcancel').textContent='キャンセル'; await pollData(); };
+$('mcancel').onclick = async ()=>{ startupPending=false; $('mbg').classList.remove('show'); $('mcancel').textContent=tr('キャンセル','Cancel'); await pollData(); };
 $('mbg').onclick = e=>{ if(e.target===$('mbg') && !startupPending) $('mbg').classList.remove('show'); };
 $('mtitle').onkeydown = e=>{
   // 日本語IMEの変換確定Enterで会議を開始しない。送信はボタンまたは⌘/Ctrl+Enterのみ。
@@ -1179,13 +1265,13 @@ $('mok').onclick = async ()=>{
   $('mbg').classList.remove('show');
   if(capturing) stopCapture();
   const pd = $('mproj').value.trim(), gl = $('mgoal').value.trim(), mt = $('mtype').value.trim(), st = $('mstance').value.trim();
-  applyState(await api('/api/new', {title:$('mtitle').value, project_dir:pd, goal:gl, mtype:mt, stance:st}));
+  applyState(await api('/api/new', {title:$('mtitle').value, project_dir:pd, goal:gl, mtype:mt, stance:st, language:uiLanguage}));
   await pollData();
-  toast((gl?'🎯ガイドON。':'') + (pd ? '新しい会議を作成。背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）' : '新しい会議を作成しました'));
+  toast((gl?tr('🎯ガイドON。','🎯 Guide ON. '):'') + (pd ? tr('新しい会議を作成。背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）','New meeting created. Reading the context folder…') : tr('新しい会議を作成しました','New meeting created.')));
 };
 // 📁 フォルダ選択（macOSネイティブダイアログをサーバ経由で開く）
 async function pickDir(input){
-  toast('フォルダ選択ダイアログを開きました（他のウィンドウの後ろに出ることがあります）', true);
+  toast(tr('フォルダ選択ダイアログを開きました（他のウィンドウの後ろに出ることがあります）','Folder picker opened. It may appear behind another window.'), true);
   try{
     const r = await api('/api/pickdir', {});
     hideToast();
@@ -1200,43 +1286,43 @@ $('gcancel').onclick = ()=> $('gbg').classList.remove('show');
 $('gok').onclick = async ()=>{
   const r = await api('/api/goal', {goal:$('ggoal').value.trim(), project_dir:$('gproj').value.trim(), mtype:$('gtype').value.trim(), stance:$('gstance').value.trim()});
   $('gbg').classList.remove('show');
-  if(r.ok){ toast(r.exploring ? 'ガイドON。背景フォルダを読み込み中…' : '商談ガイドを設定しました'); await pollState(); }
-  else toast('設定に失敗：'+(r.msg||'不明なエラー'));
+  if(r.ok){ toast(r.exploring ? tr('ガイドON。背景フォルダを読み込み中…','Guide enabled. Reading the context folder…') : tr('商談ガイドを設定しました','Goal and guide settings saved.')); await pollState(); }
+  else toast(tr('設定に失敗：','Could not save settings: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
 };
 // 💬 会議事前準備室：壁打ちと準備ボードを同時更新し、選択フォルダ＋ライブAIに反映
 let strategyExportPath='',strategyFolderMode=false;
 function drawPrepBoard(board){
   const b=board||{}, list=(title,a)=>a&&a.length?`<div class="pbcard"><div class="pbt">${title}</div><ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
-  let h='<h4>📋 準備ボード</h4>';
-  if(b.outcome) h+=`<div class="pbcard"><div class="pbt">今回の着地点</div><div class="pbv">${esc(b.outcome)}</div></div>`;
-  if(b.counterpart) h+=`<div class="pbcard"><div class="pbt">相手の状況</div><div class="pbv">${esc(b.counterpart)}</div></div>`;
-  h+=list('仮説',b.hypotheses)+list('会議で聞くこと',b.questions)+list('懸念・見落とし',b.risks)+list('避けること',b.avoid);
+  let h=`<h4>${tr('準備ボード','Preparation board')}</h4>`;
+  if(b.outcome) h+=`<div class="pbcard"><div class="pbt">${tr('今回の着地点','Desired outcome')}</div><div class="pbv">${esc(b.outcome)}</div></div>`;
+  if(b.counterpart) h+=`<div class="pbcard"><div class="pbt">${tr('相手の状況','Counterpart context')}</div><div class="pbv">${esc(b.counterpart)}</div></div>`;
+  h+=list(tr('仮説','Hypotheses'),b.hypotheses)+list(tr('会議で聞くこと','Questions to ask'),b.questions)+list(tr('懸念・見落とし','Risks and blind spots'),b.risks)+list(tr('避けること','Things to avoid'),b.avoid);
   const sources=(b.sources||[]).filter(x=>x&&x.path);
-  if(sources.length) h+=`<div class="pbcard"><div class="pbt">📂 実際に参照した資料</div><ul>${sources.map(x=>`<li><b>${esc(x.path)}</b>${x.use?' — '+esc(x.use):''}</li>`).join('')}</ul></div>`;
+  if(sources.length) h+=`<div class="pbcard"><div class="pbt">${tr('実際に参照した資料','Sources actually reviewed')}</div><ul>${sources.map(x=>`<li><b>${esc(x.path)}</b>${x.use?' — '+esc(x.use):''}</li>`).join('')}</ul></div>`;
   if(!b.outcome&&!b.counterpart&&!['hypotheses','questions','risks','avoid'].some(k=>(b[k]||[]).length))
-    h+='<div style="font-size:13px;color:var(--sub);line-height:1.7">構想を投げると、着地点・仮説・質問候補がここに育ちます。</div>';
+    h+=`<div style="font-size:13px;color:var(--sub);line-height:1.7">${tr('構想を投げると、着地点・仮説・質問候補がここに育ちます。','Share your ideas here to develop the outcome, hypotheses, and questions.')}</div>`;
   $('sboard').innerHTML=h;
 }
 function drawStrategy(msgs,board,exportPath,folderMode){
   const a=msgs||[];
   $('slog').innerHTML=a.length ? a.map(x=>`<div class="smsg ${x.role==='user'?'user':'assistant'}">${esc(x.text||'')}</div>`).join('')
-    : '<div class="smsg assistant">今回の会議について、頭にあることをそのまま話してください。整理しながら、仮説や別の切り口を返します。</div>';
+    : `<div class="smsg assistant">${tr('今回の会議について、頭にあることをそのまま話してください。整理しながら、仮説や別の切り口を返します。','Tell me what you have in mind for this meeting. I will organize it and suggest hypotheses and alternative angles.')}</div>`;
   $('slog').scrollTop=$('slog').scrollHeight;
   drawPrepBoard(board||{});
   if(exportPath!==undefined) strategyExportPath=exportPath||'';
   if(folderMode!==undefined) strategyFolderMode=!!folderMode;
   if(strategyExportPath){
-    const project=(curProj||'').split('/').filter(Boolean).pop()||'選択フォルダ';
+    const project=(curProj||'').split('/').filter(Boolean).pop()||tr('選択フォルダ','Selected folder');
     const meeting=strategyExportPath.split('/').filter(Boolean).pop().replace(/^\d{8}-\d{6}\s+/, '');
-    $('spath').innerHTML=`<div class="save-icon">${strategyFolderMode?'📖':'💾'}</div><div class="save-info"><span>${strategyFolderMode?'CLAUDE CODE資料参照 ON · 自動更新先':'自動更新先'}</span><strong>${esc(project+' › 会議準備 › '+meeting)}</strong><small>事前準備.md を毎回更新</small></div><button onclick="openStrategyFolder()">Finderで開く</button>`;
+    $('spath').innerHTML=`<div class="save-icon">${strategyFolderMode?'📖':'💾'}</div><div class="save-info"><span>${strategyFolderMode?tr('AI資料参照 ON · 自動更新先','AI source access ON · Auto-save location'):tr('自動更新先','Auto-save location')}</span><strong>${esc(project+' › '+tr('会議準備','Meeting prep')+' › '+meeting)}</strong><small>${tr('事前準備.md を毎回更新','Updates meeting-prep.md after every message')}</small></div><button onclick="openStrategyFolder()">${tr('Finderで開く','Open folder')}</button>`;
     $('spath').title=strategyExportPath+'/事前準備.md';
   }else{
-    $('spath').innerHTML='<div class="save-icon">📁</div><div class="save-info"><span>保存先</span><strong>背景フォルダが未設定です</strong><small>設定すると事前準備.mdを自動更新</small></div><button onclick="openGoalFromPrep()">設定する</button>';
+    $('spath').innerHTML=`<div class="save-icon">📁</div><div class="save-info"><span>${tr('保存先','Save location')}</span><strong>${tr('背景フォルダが未設定です','No context folder selected')}</strong><small>${tr('設定すると事前準備.mdを自動更新','Select one to auto-update meeting-prep.md')}</small></div><button onclick="openGoalFromPrep()">${tr('設定する','Set up')}</button>`;
     $('spath').title='';
   }
 }
 async function openStrategyFolder(){
-  const r=await api('/api/strategy_open',{}); toast(r.ok?'保存先をFinderで開きました':'開けません：'+(r.msg||''));
+  const r=await api('/api/strategy_open',{}); toast(r.ok?tr('保存先をFinderで開きました','Opened the save location.'):tr('開けません：','Could not open it: ')+localizeMessage(r.msg||''));
 }
 function openGoalFromPrep(){ $('sbg').classList.remove('show'); $('goalbtn').click(); }
 $('strategybtn').onclick=async()=>{
@@ -1248,19 +1334,19 @@ $('strategybtn').onclick=async()=>{
 $('ssend').onclick=async()=>{
   const message=$('sinput').value.trim(); if(!message)return;
   $('ssend').disabled=true; $('sinput').disabled=true;
-  $('slog').insertAdjacentHTML('beforeend',`<div class="smsg user">${esc(message)}</div><div class="smsg assistant" id="sthinking">${curProj?'選択フォルダの資料を調べながら考え中…':'考え中…'}</div>`);
+  $('slog').insertAdjacentHTML('beforeend',`<div class="smsg user">${esc(message)}</div><div class="smsg assistant" id="sthinking">${curProj?tr('選択フォルダの資料を調べながら考え中…','Reviewing the selected folder…'):tr('考え中…','Thinking…')}</div>`);
   $('slog').scrollTop=$('slog').scrollHeight; $('sinput').value='';
   try{
     const r=await api('/api/strategy',{message});
     if(r.ok){ drawStrategy(r.messages||[],r.board||{},r.exportPath,r.folderMode); await pollState(); }
-    else { $('sthinking').textContent='失敗：'+(r.msg||'不明なエラー'); }
-  }catch(e){ $('sthinking').textContent='送信に失敗しました'; }
+    else { $('sthinking').textContent=tr('失敗：','Failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')); }
+  }catch(e){ $('sthinking').textContent=tr('送信に失敗しました','Could not send the message.'); }
   $('ssend').disabled=false; $('sinput').disabled=false; $('sinput').focus();
 };
 $('sinput').onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') $('ssend').click(); };
-$('sclose').onclick=()=>{ $('sbg').classList.remove('show'); toast('事前準備をライブ参謀に反映しました'); };
+$('sclose').onclick=()=>{ $('sbg').classList.remove('show'); toast(tr('事前準備をライブ参謀に反映しました','Preparation applied to the live copilot.')); };
 $('sreset').onclick=async()=>{
-  if(!confirm('事前準備の壁打ち履歴・準備ボード・フォルダへの書き出しを消し、最初から始めますか？'))return;
+  if(!confirm(tr('事前準備の壁打ち履歴・準備ボード・フォルダへの書き出しを消し、最初から始めますか？','Clear the prep chat, preparation board, and exported file, then start over?')))return;
   const r=await api('/api/strategy',{reset:true}); if(r.ok){drawStrategy([],{},'',!!curProj);await pollState();}
 };
 // 👤 プロフィール（私は誰か・一問一答）
@@ -1277,7 +1363,7 @@ $('profok').onclick = async ()=>{
   PROF_KEYS.forEach(k=> fields[k] = $('prof_'+k).value.trim());
   const r = await api('/api/profile', {fields});
   $('profbg').classList.remove('show');
-  toast(r.ok ? 'プロフィールを保存しました（以後の整理・ガイド・清書に反映）' : '保存に失敗：'+(r.msg||'不明なエラー'));
+  toast(r.ok ? tr('プロフィールを保存しました（以後の整理・ガイド・清書に反映）','Profile saved and applied to future analysis.') : tr('保存に失敗：','Save failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
 };
 // 会議切替
 $('sess').onchange = async ()=>{
@@ -1293,11 +1379,11 @@ async function loadTranscript(){
   const log=(lastData&&lastData.log)||[];
   let html='';
   if(log.length){
-    html += '<div class="logh">発言（話者は文脈からの推定）</div>';
-    html += log.map(x=>`<div class="logline"><span class="lw">${esc(x.who||'不明')}</span>${esc(x.text||'')}</div>`).join('');
-    html += '<div class="rawh">— 文字起こし全文 —</div>';
+    html += `<div class="logh">${tr('発言（話者は文脈からの推定）','Statements (speakers inferred from context)')}</div>`;
+    html += log.map(x=>`<div class="logline"><span class="lw">${esc(x.who||tr('不明','Unknown'))}</span>${esc(x.text||'')}</div>`).join('');
+    html += `<div class="rawh">— ${tr('文字起こし全文','Full transcript')} —</div>`;
   }
-  html += `<div class="rawt">${esc(raw.trim()||'（まだ文字起こしがありません）')}</div>`;
+  html += `<div class="rawt">${esc(raw.trim()||tr('（まだ文字起こしがありません）','No transcript yet.'))}</div>`;
   $('drbody').innerHTML = html;
 }
 $('full').onclick = ()=>{ drawerOpen=true; $('drbg').classList.add('show'); $('drawer').classList.add('show');
@@ -1401,7 +1487,7 @@ $('pdf').onclick = ()=>{
   const ul=(arr,cls,fmt)=>'<ul class="'+cls+'">'+(arr&&arr.length?arr.map(fmt).join(''):'<li class="pempty">—</li>')+'</ul>';
   const card=(t,color,arr,inner)=>'<div class="pcard" style="--sc:'+color+'"><h3>'+t+'<span class="c">'+A(arr).length+'</span></h3>'+inner+'</div>';
   const kpi=(l,v,color)=>'<div class="pkpi" style="--kc:'+color+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
-  const sp=(d.speakers||[]).filter(x=>x&&x!=='不明');
+  const sp=(d.speakers||[]).filter(x=>x&&x!==tr('不明','Unknown'));
   // 要約は「…」でぶつ切りにせず、文の区切り（。）で収まる分だけ採用して短くまとめる
   const sumFull=String(d.summary||'').trim();
   let sum=''; for(const s of sumFull.split(/(?<=。)/)){ if((sum+s).length>150) break; sum+=s; }
@@ -1411,21 +1497,21 @@ $('pdf').onclick = ()=>{
            amber:cs.getPropertyValue('--amber').trim(),red:cs.getPropertyValue('--red').trim()};
   const brand='LiveMTG';
   $('pview').innerHTML='<div id="pwrap">'
-    +'<div class="pband"><div class="t">'+esc(cut(meetingTitle||'会議',28))+'<small>議事録</small></div>'
-      +'<div class="m">'+new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'})
-      +(sp.length?'<br>参加者：'+esc(sp.slice(0,5).join('・')):'')+'</div></div>'
+    +'<div class="pband"><div class="t">'+esc(cut(meetingTitle||tr('会議','Meeting'),28))+`<small>${tr('議事録','MINUTES')}</small></div>`
+      +'<div class="m">'+new Date().toLocaleDateString(uiLanguage==='en'?'en-US':'ja-JP',{year:'numeric',month:'long',day:'numeric'})
+      +(sp.length?`<br>${tr('参加者：','Participants: ')}`+esc(sp.slice(0,5).join(uiLanguage==='en'?', ':'・')):'')+'</div></div>'
     +'<div class="phero">'
       +'<div class="psum">'+esc(sum||'—')+'</div>'
-      +'<div class="pkpis">'+kpi('決定',A(d.decisions).length,C.green)+kpi('ToDo',A(d.todos).length,C.amber)+kpi('未解決',A(d.open).length,C.red)+'</div>'
+      +'<div class="pkpis">'+kpi(tr('決定','Decisions'),A(d.decisions).length,C.green)+kpi('ToDo',A(d.todos).length,C.amber)+kpi(tr('未解決','Open'),A(d.open).length,C.red)+'</div>'
     +'</div>'
     +'<div class="pcols">'
-    + card('議題', C.blue, d.agenda, ul(d.agenda,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card('決定事項', C.green, d.decisions, ul(d.decisions,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card('ToDo', C.amber, d.todos, ul(d.todos,'ptd',x=>'<li><span class="pwho">'+esc(x.who||'未定')+'</span>'+esc(cut(x.what,lim))+'</li>'))
-    + card('論点・意見', C.blue, d.points, ul(d.points,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card('未解決・要確認', C.red, d.open, ul(d.open,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
+    + card(tr('議題','Agenda'), C.blue, d.agenda, ul(d.agenda,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
+    + card(tr('決定事項','Decisions'), C.green, d.decisions, ul(d.decisions,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
+    + card('ToDo', C.amber, d.todos, ul(d.todos,'ptd',x=>'<li><span class="pwho">'+esc(x.who||tr('未定','Unassigned'))+'</span>'+esc(cut(x.what,lim))+'</li>'))
+    + card(tr('論点・意見','Discussion points'), C.blue, d.points, ul(d.points,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
+    + card(tr('未解決・要確認','Open questions'), C.red, d.open, ul(d.open,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
     +'</div>'
-    +'<div class="pfoot"><span>'+esc(brand)+'</span><span>議事ライブ整理システムで自動生成</span></div>'
+    +'<div class="pfoot"><span>'+esc(brand)+`</span><span>${tr('議事ライブ整理システムで自動生成','Generated by LiveMTG')}</span></div>`
     +'</div>';
   // A4横1枚（余白「既定」でも収まる安全寸: 1000×680px）に実測で収める。超えるなら全体を等倍縮小＝必ず1枚
   const pv=$('pview'), pw=document.getElementById('pwrap');
@@ -1440,9 +1526,9 @@ $('pdf').onclick = ()=>{
   }
   // 印刷時の document.title がブラウザのPDF既定ファイル名になる。
   const oldTitle=document.title;
-  const safeTitle=String(meetingTitle||'会議').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim();
+  const safeTitle=String(meetingTitle||tr('会議','Meeting')).replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim();
   const now=new Date(), ymd=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-  document.title=`${safeTitle}_${ymd}_議事録`;
+  document.title=`${safeTitle}_${ymd}_${tr('議事録','minutes')}`;
   const cleanup=()=>{ document.title=oldTitle; pv.classList.remove('measuring'); window.removeEventListener('afterprint',cleanup); };
   window.addEventListener('afterprint',cleanup);
   setTimeout(()=>window.print(),150);
@@ -1451,22 +1537,30 @@ $('pdf').onclick = ()=>{
 function setTheme(t){
   document.body.dataset.theme = (t === 'sponsaru') ? 'sponsaru' : 'mainichi';
   localStorage.setItem('livemtg_theme', document.body.dataset.theme);
-  setMenuLabel('theme',(document.body.dataset.theme === 'sponsaru') ? 'デザイン：ライト' : 'デザイン：ブルー');
+  setMenuLabel('theme',(document.body.dataset.theme === 'sponsaru') ? tr('デザイン：ライト','Design: Light') : tr('デザイン：ブルー','Design: Blue'));
 }
 $('theme').onclick = ()=> setTheme(document.body.dataset.theme === 'sponsaru' ? 'mainichi' : 'sponsaru');
+setMenuLabel('language',tr('言語：日本語','Language: English'));
+$('language').onclick=async()=>{
+  const next=uiLanguage==='en'?'ja':'en';
+  try{const r=await api('/api/settings',{language:next});if(!r.ok)throw new Error();localStorage.setItem('livemtg_language',next);location.reload();}
+  catch(e){toast(tr('言語の変更に失敗しました','Could not change the language'));}
+};
 setTheme(localStorage.getItem('livemtg_theme') || 'mainichi');
 // ドロップダウンメニュー：開閉と、項目クリックで自動で閉じる
 $('menubtn').onclick = e=>{ e.stopPropagation(); $('menu').classList.toggle('show'); };
 document.addEventListener('click', e=>{ if(!$('menu').contains(e.target) && e.target!==$('menubtn')) $('menu').classList.remove('show'); });
 [...document.querySelectorAll('.menu-item')].forEach(b=> b.addEventListener('click', ()=> $('menu').classList.remove('show')));
 
+translateStatic();
+setMenuLabel('language',tr('言語：日本語','Language: English'));
 setView(view);
 (async()=>{
   await pollState();
   if(recording){ startupPending=false; await pollData(); return; }
   // 前回会議の内容を初期画面に混ぜず、新規開始か明示的な再開かを選ぶ。
   $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mstance').value=curStance;
-  $('mcancel').textContent='前回の会議を開く';
+  $('mcancel').textContent=tr('前回の会議を開く','Open previous meeting');
   $('mbg').classList.add('show');
   setTimeout(()=>$('mtitle').focus(),50);
 })();
