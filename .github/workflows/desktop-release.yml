@@ -66,4 +66,4 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" artifacts/live-mtg-macos/dmg/*.dmg artifacts/live-mtg-windows/nsis/*-setup.exe --generate-notes --verify-tag
+        run: gh release create "${GITHUB_REF_NAME}" artifacts/live-mtg-macos/dmg/*.dmg artifacts/live-mtg-windows/nsis/*-setup.exe --repo "${GITHUB_REPOSITORY}" --generate-notes --verify-tag
