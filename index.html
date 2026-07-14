@@ -426,7 +426,7 @@
     --blue:#0071e3;--blue-d:#0058b0;--ink:#1d1d1f;--sub:#6e6e73;
     --bg:#f5f5f7;--card:#fff;--line:#dcdce1;--amber:#a05a00;--red:#d70015;--green:#248a3d;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Yu Gothic UI",sans-serif;
-    letter-spacing:-.012em;background:var(--bg);
+    letter-spacing:-.012em;background:var(--bg);font-synthesis:none;
   }
   body[data-theme] header{
     color:var(--ink);background:rgba(250,250,252,.88);border-bottom:1px solid rgba(0,0,0,.1);
@@ -453,13 +453,16 @@
   .menu-group summary{font-weight:650;color:var(--sub)}.menu-group summary:hover{background:#f5f5f7}
   .summary{background:#fff;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:20px;color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.03);padding:20px 24px}
   .nextwrap{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  .nexthead,.nextinlineintent b{color:var(--ink)}.nexthead .pulse{background:var(--blue);box-shadow:0 0 0 6px rgba(0,113,227,.1)}
-  .nextchip{border-color:#d2d2d7;border-radius:14px;box-shadow:none}.nextchip::before{background:var(--blue)}
+  .nexthead,.nextinlineintent b{color:var(--ink)}.nexthead{font-weight:650;letter-spacing:-.02em}.nexthead .nextsub{font-weight:500}.nexthead .pulse{background:var(--blue);box-shadow:0 0 0 6px rgba(0,113,227,.1)}
+  .nextchip{border-color:#d2d2d7;border-radius:14px;box-shadow:none;font-weight:600}.nextchip::before{background:var(--blue)}
   .nextchip:hover,.nextchip.active{border-color:var(--blue);background:#f7faff}
   .nextinlineintent{border-color:#d2d2d7;border-left-color:var(--blue);box-shadow:none}
-  .ghead{background:var(--ink);border-radius:18px;box-shadow:none}.gbody{background:#f0f0f2;border-color:var(--line);border-radius:0 0 18px 18px}
+  .ghead{background:var(--ink);border-radius:18px;box-shadow:none}.ghead .gtitle{font-weight:650;letter-spacing:-.01em}.ghead .gprog{font-weight:550}.gbody{background:#f0f0f2;border-color:var(--line);border-radius:0 0 18px 18px}
   .gpanel,.card,.prep-board,.strategy-log,.pbcard{border-color:var(--line);box-shadow:none;border-radius:16px}
   .gsection-title,.gpanel h4,.grow b,.research-card>summary,.prep-board h4{color:var(--ink)}
+  .gsection-title,.gpanel h4{font-weight:650;letter-spacing:-.01em}.gcard-title,.ginsight .quote{font-weight:600}
+  .research-card>summary,.gresearch summary{font-weight:600;letter-spacing:-.01em}.research-digest li{font-weight:500}
+  .gmore summary,.gsource>summary{font-weight:600}
   .grow b,.detail-status{background:#eeeef0;color:var(--ink)}
   .assist .ahead,.apanel .aq{color:var(--ink)}.achip{border-color:#d2d2d7;background:#fff;color:var(--ink);box-shadow:none}
   .achip::before{background:#e9e9ed;color:var(--ink)}.achip:hover{background:#f5f5f7}.achip.active{background:var(--ink);border-color:var(--ink)}
