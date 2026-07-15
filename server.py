@@ -1088,10 +1088,13 @@ def queue_spoken_lookup(sid, text):
 # ---------- 音声チャンク処理（decode→whisper→claude。すべてpython/クロスOS）----------
 def _run(cmd, **kw):
     key = getattr(long_job_local, "key", None)
-    if not key:
-        return subprocess.run(cmd, capture_output=True, text=True, **kw)
+    # 呼び出し側が capture_output/text を明示する箇所が多い。既定値を直接
+    # subprocess.run へ重ねると TypeError になり、文字起こしだけ進んでAI解析が
+    # 全停止するため、必ず先に取り出して1回だけ渡す。
     capture = kw.pop("capture_output", True)
     text_mode = kw.pop("text", True)
+    if not key:
+        return subprocess.run(cmd, capture_output=capture, text=text_mode, **kw)
     timeout = kw.pop("timeout", None)
     input_value = kw.pop("input", None)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE if input_value is not None else subprocess.DEVNULL,

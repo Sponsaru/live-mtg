@@ -26,6 +26,22 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
 
     import server
 
+    # _ai_textなどの呼び出し側はcapture_output/textを明示する。ラッパーの既定値と
+    # 二重指定になってリアルタイム解析が全停止しないことを実コール境界で固定する。
+    run_calls = []
+    original_run = server.subprocess.run
+    def fake_run(cmd, **kwargs):
+        run_calls.append((cmd, kwargs))
+        return server.subprocess.CompletedProcess(cmd, 0, "", "")
+    server.subprocess.run = fake_run
+    try:
+        server._run(["ai"], capture_output=False, text=False, timeout=3)
+        server._run(["ai-defaults"])
+    finally:
+        server.subprocess.run = original_run
+    assert run_calls[0][1]["capture_output"] is False and run_calls[0][1]["text"] is False
+    assert run_calls[1][1]["capture_output"] is True and run_calls[1][1]["text"] is True
+
     sid = "20260715-120000"
     meeting = Path(server.sdir(sid))
     meeting.mkdir(parents=True)
@@ -94,5 +110,6 @@ assert "threading.Thread(target=detail_worker" in source
 assert "with background_ai_lock:" in source
 assert "len(transcript) - off > 2700" in source and "off + 900" in source
 assert "end - 3000" in source
+assert 'capture = kw.pop("capture_output", True)' in source
 
 print("Parallel fast/detail analysis preserves both results")
