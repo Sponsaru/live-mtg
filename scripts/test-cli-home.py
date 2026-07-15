@@ -20,7 +20,8 @@ def doctor_home(fake_home: Path, language="en") -> str:
     env.pop("LIVE_MTG_HOME", None)
     result = subprocess.run(
         ["node", str(ROOT / "cli" / "live-mtg.mjs"), "doctor"],
-        env=env, capture_output=True, text=True, timeout=20,
+        env=env, capture_output=True, text=True, encoding="utf-8",
+        errors="replace", timeout=20,
     )
     return result.stdout + result.stderr
 
