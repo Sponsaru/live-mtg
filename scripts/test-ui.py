@@ -45,6 +45,7 @@ assert "grid-template-columns:58px 74px" in html, "header status must not leave 
 assert "el.title=tr(`最終解析" in html, "relative analysis age should remain available without changing layout"
 assert "（${ago}）`" not in html.split("el.textContent=tr(", 1)[1].split(";", 1)[0], "relative age must not be visible in the live header"
 assert 'id="copilotbubble"' in html and 'class="copilot-body"' in html
+assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns:minmax(0,1.45fr)' in html
 assert "correctionRequest=api('/api/live-notes'" in html and "/api/live-notes" in server
 assert "依頼者のライブ補足・訂正（文字起こしより優先）" in server
 assert 'p == "/api/cancel"' in server and "toast-cancel" in html and "cancelCurrentOperation" in html

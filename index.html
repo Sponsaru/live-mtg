@@ -194,9 +194,9 @@
   .nextinlineintent{display:none;width:calc(100% - 12px);max-width:none;margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent.show{display:block}.nextinlineintent b{display:block;color:#294d82;font-size:12px;letter-spacing:.04em;margin-bottom:3px}
   /* 会議前の任意作戦チャット */
-  #sbg{align-items:stretch;justify-content:flex-end;padding:0;background:rgba(0,0,0,.22)}
-  #sbg .strategy-modal{width:min(560px,100vw)!important;height:100dvh;max-height:none;margin:0;border-radius:22px 0 0 22px;padding:0;overflow:hidden;display:flex;flex-direction:column;transform:translateX(28px);transition:transform .22s ease}
-  #sbg.show .strategy-modal{transform:translateX(0)}
+  #sbg{align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.28)}
+  #sbg .strategy-modal{width:min(1120px,calc(100vw - 48px))!important;height:min(760px,calc(100dvh - 48px));max-height:none;margin:0;border-radius:22px;padding:0;overflow:hidden;display:flex;flex-direction:column;transform:translateY(12px) scale(.985);opacity:0;transition:transform .2s ease,opacity .2s ease}
+  #sbg.show .strategy-modal{transform:translateY(0) scale(1);opacity:1}
   .copilot-head{display:flex;align-items:center;gap:11px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
   .copilot-head h3{margin:0;flex:1}.copilot-head .x{border:0;background:#f0f0f2;border-radius:50%;width:34px;height:34px;font-size:22px;cursor:pointer}
   .copilot-intro{margin:0;padding:10px 20px 0;color:var(--sub);font-size:13px;line-height:1.55}
@@ -206,7 +206,7 @@
   .prep-quick{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
   .prep-quick button{font-family:inherit;border:1px solid #cddcf0;background:#f7faff;color:#315580;border-radius:18px;
     padding:7px 11px;font-size:13px;font-weight:800;cursor:pointer}.prep-quick button:hover{background:#eaf2ff}
-  .strategy-workspace{display:flex;flex-direction:column;min-height:0;gap:12px;flex:1}
+  .strategy-workspace{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr);min-height:0;gap:14px;flex:1}
   .strategy-chatcol{min-width:0;display:flex;flex-direction:column;min-height:330px;flex:1}.strategy-log{min-height:230px;flex:1;overflow:auto;background:#f5f7fb;border:1px solid var(--line);border-radius:12px;
     padding:13px;display:flex;flex-direction:column;gap:10px}
   .smsg{max-width:86%;padding:10px 13px;border-radius:14px;font-size:15px;line-height:1.65;white-space:pre-wrap}
@@ -217,8 +217,8 @@
     color:#fff;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(21,87,127,.24);transition:.15s}
   .strategy-send .send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(21,87,127,.3)}
   .strategy-send .send-btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
-  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff}.prep-details>summary{padding:11px 13px;cursor:pointer;font-size:13px;font-weight:700}.prep-details[open]>summary{border-bottom:1px solid var(--line)}
-  .prep-board{max-height:280px;overflow:auto;background:#fbfcfe;padding:12px}
+  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff;min-height:0;overflow:hidden;display:flex;flex-direction:column}.prep-details>summary{padding:11px 13px;cursor:pointer;font-size:13px;font-weight:700}.prep-details[open]>summary{border-bottom:1px solid var(--line)}
+  .prep-board{min-height:0;flex:1;overflow:auto;background:#fbfcfe;padding:12px}
   .prep-board h4{margin:0 0 9px;color:#294d82;font-size:15px}.pbcard{background:#fff;border:1px solid #e0e7ee;
     border-radius:9px;padding:9px 10px;margin-bottom:8px}.pbcard .pbt{font-size:11px;font-weight:900;color:#58708f;letter-spacing:.05em;margin-bottom:4px}
   .pbcard .pbv{font-size:13.5px;line-height:1.55;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
@@ -227,7 +227,7 @@
   .prep-save .save-icon{font-size:18px;flex:none}.prep-save .save-info{min-width:0;flex:1}.prep-save .save-info span{display:block;font-size:10px;font-weight:900;color:#71869b;letter-spacing:.05em}
   .prep-save .save-info strong{display:block;font-size:12px;color:#314c68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prep-save .save-info small{display:block;font-size:10px;color:#8595a5}
   .prep-save button{flex:none;border:1px solid #b9cbda;background:#fff;color:#315b7a;border-radius:8px;padding:6px 8px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
-  @media(max-width:620px){#sbg .strategy-modal{border-radius:0}.copilot-bubble{right:14px;bottom:14px;padding:13px}.copilot-bubble span{display:none}}
+  @media(max-width:820px){#sbg{padding:0}#sbg .strategy-modal{width:100vw!important;height:100dvh;border-radius:0}.strategy-workspace{grid-template-columns:1fr}.prep-details{max-height:220px}.copilot-bubble{right:14px;bottom:14px;padding:13px}.copilot-bubble span{display:none}}
   /* AIサポート（会話から疑問・要調査を検出して補足。議事＝青と区別するため黄系） */
   .assist{margin:0 22px 8px; display:none; flex-direction:column; gap:9px}
   .assist.show{display:flex}
@@ -743,7 +743,7 @@
             <button class="send-btn" id="ssend">送信 →</button>
           </div>
         </div>
-        <details class="prep-details"><summary>準備ボード・反映先</summary><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></details>
+        <details class="prep-details" open><summary>準備ボード・反映先</summary><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></details>
       </div>
       <div class="row" style="justify-content:space-between">
         <button class="cancel" id="sreset">最初から</button>
