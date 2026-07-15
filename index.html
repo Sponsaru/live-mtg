@@ -193,6 +193,20 @@
   .nextq,.nextintenttext{display:block;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent{display:none;width:calc(100% - 12px);max-width:none;margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent.show{display:block}.nextinlineintent b{display:block;color:#294d82;font-size:12px;letter-spacing:.04em;margin-bottom:3px}
+  .live-note{margin:0 22px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .live-note-label{font-size:13px;font-weight:700;color:var(--sub);white-space:nowrap}
+  .live-note-form{display:flex;align-items:center;gap:7px;flex:1;min-width:min(420px,100%)}
+  .live-note-form input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 14px;font:500 14px/1.3 inherit;color:var(--ink)}
+  .live-note-form input:focus{outline:2px solid rgba(0,113,227,.22);border-color:var(--blue)}
+  .live-note-form button{flex:none;border:0;border-radius:999px;background:var(--ink);color:#fff;padding:9px 14px;font:650 13px/1 inherit;cursor:pointer}
+  .live-note-form button.live-note-chat{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .live-note-history{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-left:88px}
+  .live-note-chip{max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--sub);padding:4px 9px;font-size:11px}
+  body.slidemode .live-note{position:fixed;right:18px;bottom:18px;z-index:36;width:min(650px,calc(100vw - 36px));margin:0;padding:8px;
+    border:1px solid rgba(0,0,0,.11);border-radius:16px;background:rgba(255,255,255,.92);box-shadow:0 12px 36px rgba(0,0,0,.14);backdrop-filter:blur(18px)}
+  body.slidemode .live-note-label,body.slidemode .live-note-history{display:none}
+  body.slidemode .live-note-form{min-width:0}
+  @media(max-width:720px){.live-note{align-items:flex-start}.live-note-label{width:100%}.live-note-form{min-width:100%}.live-note-history{padding-left:0}}
   /* 会議前の任意作戦チャット */
   .strategy-modal{width:min(1040px,96vw)!important}
   .prep-quick{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
@@ -342,6 +356,8 @@
     background:var(--ink);color:#fff;padding:13px 22px;border-radius:12px;font-size:15px;font-weight:700;
     box-shadow:0 8px 24px rgba(10,40,60,.3);display:none;align-items:center;gap:10px}
   .toast.show{display:flex}
+  .toast-cancel{margin-left:4px;border:1px solid rgba(255,255,255,.42);border-radius:999px;background:transparent;color:#fff;padding:6px 10px;font:700 12px/1 inherit;cursor:pointer}
+  .toast-cancel:hover{background:rgba(255,255,255,.14)}
   .spin{width:16px;height:16px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;
     border-radius:50%;animation:sp .8s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
@@ -432,6 +448,16 @@
   #deck .maptools button.on{background:var(--blue);border-color:var(--blue);color:#fff}
   #deck .relation-map{display:none;width:100%;height:100%;align-items:center;justify-content:center}
   #deck .relation-map.on{display:flex} #deck .tree-map.off{display:none}
+  #deck .timeline-map{width:min(920px,calc(100% - 48px));min-width:620px;margin:0 auto;padding:42px 36px 80px;display:flex;flex-direction:column;gap:0}
+  #deck .timeline-map.off{display:none}
+  #deck .timeline-item{position:relative;margin-left:84px;padding:0 0 28px 34px;border-left:2px solid #d2d2d7}
+  #deck .timeline-item:last-child{padding-bottom:0;border-left-color:transparent}
+  #deck .timeline-dot{position:absolute;left:-8px;top:15px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--blue)}
+  #deck .timeline-at{position:absolute;right:calc(100% + 22px);top:7px;width:70px;text-align:right;color:var(--sub);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+  #deck .timeline-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 17px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  #deck .timeline-who{font-size:11px;font-weight:750;color:var(--blue);margin-bottom:4px}
+  #deck .timeline-text{font-size:16px;line-height:1.55;color:var(--ink);white-space:normal;overflow-wrap:anywhere}
+  #deck .timeline-empty{margin:auto;padding:28px;color:var(--sub);font-size:16px}
 
   /* LiveMTG unified design: neutral, product-first, and independent of company branding. */
   :root{
@@ -586,6 +612,12 @@
 <div class="nextwrap" id="nextwrap">
   <div class="nexthead"><span class="pulse"></span>今、次にするべき質問 <span class="nextsub">タップで意図を表示</span></div>
   <div class="nextchips" id="nextchips"></div>
+</div>
+
+<div class="live-note" id="livenote">
+  <span class="live-note-label">補足・訂正</span>
+  <div class="live-note-form"><input id="livenoteinput" placeholder="例：相手はA社ではなくB社 / 参考URL"><button id="livenoteadd">反映</button><button class="live-note-chat" id="livenotechat">AIと確認</button></div>
+  <div class="live-note-history" id="livenotehistory"></div>
 </div>
 
 <!-- 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
@@ -822,6 +854,7 @@ const EN_TEXT=new Map([
   ['キャンセル','Cancel'],['開始','Start'],['保存','Save'],['清書の前に確認','Review before polishing'],
   ['この内容で清書','Create polished minutes'],['この会議の目標','Meeting goal'],['背景フォルダ','Context folder'],
   ['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
+  ['補足・訂正','Context / correction'],['反映','Apply'],['AIと確認','Ask AI'],
   ['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
   ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],
   ['破棄','Discard'],['プレイブックに追記','Add to playbook'],['録音を開始','Start recording'],['使用するマイク','Microphone'],
@@ -845,6 +878,7 @@ const EN_ATTR=new Map([
   ['例：見積もりAI導入の合意を取る。予算感と決裁者を聞き出す。','Example: Agree on an AI pilot and identify budget and decision maker.'],
   ['例：山田 太郎（山田さん）','Example: Alex Smith'],['例：〇〇株式会社 AX支援担当','Example: Acme Inc., Product Lead'],
   ['例：佐藤部長＝顧客側の決裁者。社内では「山田さん」と呼ばれる','Example: Taylor is the customer decision maker.']
+  ,['例：相手はA社ではなくB社 / 参考URL','Example: The company is B, not A / reference URL']
 ]);
 const EN_MESSAGES=new Map([
   ['タブ音声が共有されませんでした（マイクのみで継続）','Tab audio was not shared; continuing with microphone only.'],
@@ -881,6 +915,7 @@ function translateStatic(){
   document.title='LiveMTG | Live meeting copilot';
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
 // AIはまれに文字列配列の代わりに {label, detail} 等を返す。
 // [object Object] にせず、情報を落とさず人が読める1行へ正規化する。
 function itemText(value){
@@ -910,16 +945,25 @@ async function api(path, body){
   return data;
 }
 let toastTimer=null;
-function toast(msg, spinning){
+let activeCancelKind='';
+function toast(msg, spinning, cancelKind=''){
   msg=localizeMessage(msg);
-  $('toast').innerHTML = (spinning?'<span class="spin"></span>':'') + esc(msg);
+  activeCancelKind=cancelKind||'';
+  $('toast').innerHTML = (spinning?'<span class="spin"></span>':'') + esc(msg) + (cancelKind?`<button class="toast-cancel" id="toastcancel">${tr('キャンセル','Cancel')}</button>`:'');
+  if(cancelKind)$('toastcancel').onclick=cancelCurrentOperation;
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
   if(!spinning) toastTimer=setTimeout(()=>$('toast').classList.remove('show'), 3200);
 }
-function hideToast(){ $('toast').classList.remove('show'); }
+function hideToast(){ activeCancelKind='';$('toast').classList.remove('show'); }
+async function cancelCurrentOperation(){
+  const kind=activeCancelKind;if(!kind)return;
+  $('toastcancel').disabled=true;
+  try{const r=await api('/api/cancel',{kind});if(r.cancelled)toast(tr('キャンセルしました','Cancelled'));else toast(tr('処理は既に終了しています','The operation has already finished.'));}
+  catch(e){toast(tr('キャンセルできませんでした','Could not cancel.'));}
+}
 
-let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
+let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', liveNotesSession='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
 let startupPending=true; // 初回表示で前回の別会議を勝手に表示しない
 function setMenuLabel(id,text){const b=$(id),label=b&&b.querySelector('.menu-label');if(label)label.textContent=text;}
 function renderLastUpdate(){
@@ -968,6 +1012,7 @@ function applyState(s){
   // 会議セレクタ
   const sel=$('sess'); const cur=s.current&&s.current.id;
   currentSessionId=cur||'';
+  if(currentSessionId&&currentSessionId!==liveNotesSession) loadLiveNotes();
   const sig = s.sessions.map(x=>x.id+'|'+x.title+'|'+(x.hasSlides?'1':'0')).join(',')+'::'+cur;
   if(sel.dataset.sig!==sig){
     sel.dataset.sig=sig;
@@ -1184,17 +1229,20 @@ function buildDeck(d){
   const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>${tr('根拠：','Source: ')}${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
+  const timeline=(Array.isArray(d.log)?d.log:[]).slice(-30).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
-    <div class="maptools"><button class="on" data-mapview="tree">${tr('階層マップ','Hierarchy')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
-    <div class="dstage"><div class="tree-map" data-tree><svg class="tree-lines"></svg>
+    <div class="maptools"><button class="on" data-mapview="timeline">${tr('時系列','Timeline')}</button><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
+    <div class="dstage"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div>`);
   bindLiveTree();
   $('deck').querySelectorAll('[data-mapview]').forEach(btn=>btn.onclick=()=>{
-    const rel=btn.dataset.mapview==='relation'; $('deck').querySelector('.tree-map').classList.toggle('off',rel);
+    const mode=btn.dataset.mapview,rel=mode==='relation',tree=mode==='tree';
+    $('deck').querySelector('.timeline-map').classList.toggle('off',mode!=='timeline');
+    $('deck').querySelector('.tree-map').classList.toggle('off',!tree);
     $('deck').querySelector('.relation-map').classList.toggle('on',rel); $('deck').querySelectorAll('[data-mapview]').forEach(x=>x.classList.toggle('on',x===btn));
-    if(rel)renderLiveMermaid(); else requestAnimationFrame(drawLiveTree);
+    if(rel)renderLiveMermaid(); else if(tree)requestAnimationFrame(drawLiveTree);
   });
 }
 function drawLiveTree(){
@@ -1570,15 +1618,38 @@ $('full').onclick = ()=>{ drawerOpen=true; $('drbg').classList.add('show'); $('d
   loadTranscript(); drawerTimer=setInterval(loadTranscript, 4000); };
 function closeDrawer(){ drawerOpen=false; $('drbg').classList.remove('show'); $('drawer').classList.remove('show'); clearInterval(drawerTimer); }
 $('drx').onclick=closeDrawer; $('drbg').onclick=closeDrawer;
+
+function drawLiveNotes(notes){
+  const a=Array.isArray(notes)?notes:[];
+  $('livenotehistory').innerHTML=a.slice(-3).reverse().map(x=>`<span class="live-note-chip" title="${escAttr(x.text||'')}">${esc((x.ts?x.ts+' ':'')+(x.text||''))}</span>`).join('');
+}
+async function loadLiveNotes(){
+  const sid=currentSessionId; if(!sid)return;
+  liveNotesSession=sid;
+  try{const r=await fetch('/api/live-notes?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(currentSessionId===sid)drawLiveNotes(j.notes||[]);}catch(e){}
+}
+$('livenoteadd').onclick=async()=>{
+  const text=$('livenoteinput').value.trim();if(!text)return;
+  $('livenoteadd').disabled=true;
+  try{
+    const r=await api('/api/live-notes',{text});
+    if(r.ok){$('livenoteinput').value='';drawLiveNotes(r.notes||[]);toast(tr('補足・訂正を次の解析へ反映しました','Context correction applied to the next analysis.'));await pollState();}
+    else toast(tr('反映に失敗：','Could not apply: ')+localizeMessage(r.msg||''));
+  }catch(e){toast(tr('反映に失敗しました','Could not apply the correction.'));}
+  $('livenoteadd').disabled=false;$('livenoteinput').focus();
+};
+$('livenoteinput').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();$('livenoteadd').click();}};
+$('livenotechat').onclick=()=>$('strategybtn').click();
 // マインドマップ：生成済みなら即開く／未生成なら生成。↻ボタンで作り直し
 function openSlides(){ window.open('/slides.html?ts='+Date.now(), '_blank'); }
 async function genSlides(){
   $('slides').disabled=true; $('regen').disabled=true;
-  toast('1画面のマインドマップを生成中…', true);
+  toast('1画面のマインドマップを生成中…', true, 'slides');
   try{
     const r = await api('/api/slides', {theme:'neutral'});
     hideToast(); $('slides').disabled=false; $('regen').disabled=false;
     if(r.ok){ toast('マインドマップが完成しました'); window.open(r.url, '_blank'); await pollState(); }
+    else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
   }catch(e){ hideToast(); $('slides').disabled=false; $('regen').disabled=false; toast('生成に失敗しました'); }
 }
@@ -1588,11 +1659,12 @@ $('regen').onclick = genSlides;
 function openDeck(){ window.open('/deck.html?ts='+Date.now(), '_blank'); }
 async function genDeck(){
   $('deckbtn').disabled=true; $('deckregen').disabled=true;
-  toast('経営者向けスライドを生成中…（数十秒〜数分）', true);
+  toast('経営者向けスライドを生成中…（数十秒〜数分）', true, 'deck');
   try{
     const r = await api('/api/deck', {theme:'neutral'});
     hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false;
     if(r.ok){ toast('スライドが完成しました'); window.open(r.url, '_blank'); await pollState(); }
+    else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
   }catch(e){ hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false; toast('生成に失敗しました'); }
 }
@@ -1602,11 +1674,11 @@ $('deckregen').onclick = genDeck;
 // 清書：いきなり実行せず、まず文字起こしから確認質問を生成→依頼者が固有名詞を確定→その表記で清書（認識違い防止）
 async function loadPrep(regen){
   $('final').disabled=true;
-  toast(regen ? '確認事項を作り直しています（10〜20秒）' : '確認事項を準備中… 文字起こしを読んでいます（初回は10〜20秒／2回目以降は即時）', true);
+  toast(regen ? '確認事項を作り直しています（10〜20秒）' : '確認事項を準備中… 文字起こしを読んでいます（初回は10〜20秒／2回目以降は即時）', true, 'finalize_prep');
   try{
     const r = await api('/api/finalize_prep', regen?{regen:true}:{});
     hideToast(); $('final').disabled=false;
-    if(!r.ok){ toast('準備に失敗：'+(r.msg||'不明なエラー')); return null; }
+    if(!r.ok){ toast(r.cancelled?tr('キャンセルしました','Cancelled'):'準備に失敗：'+(r.msg||'不明なエラー')); return null; }
     return r;   // {questions, answers, cached}
   }catch(e){ hideToast(); $('final').disabled=false; toast('準備に失敗しました'); return null; }
 }
@@ -1648,11 +1720,12 @@ $('fok').onclick = async ()=>{
   const hints = Object.entries(answers).map(([q,a])=>q+' → '+a).join('\n');
   $('fbg').classList.remove('show');
   $('final').disabled=true;
-  toast('清書中… 全音声をまとめ、確認いただいた固有名詞で補正しながら高精度に議事録を作り直しています（数分）', true);
+  toast('清書中… 全音声をまとめ、確認いただいた固有名詞で補正しながら高精度に議事録を作り直しています（数分）', true, 'finalize');
   try{
     const r = await api('/api/finalize', {hints, answers});   // answersは次回のために保存される
     hideToast();
     if(r.ok){ toast('清書が完成しました（画面を高精度版に更新）'); await pollState(); await pollData(); }
+    else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));
     else toast('清書に失敗：'+(r.msg||'不明なエラー'));
   }catch(e){ hideToast(); toast('清書に失敗しました'); }
   $('final').disabled=false;

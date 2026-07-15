@@ -105,6 +105,7 @@ function windowsWhisperExe() {
 }
 
 function effectivePath() {
+  if (isMac) return [join(homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin", process.env.PATH || ""].join(":");
   if (!isWindows) return process.env.PATH || "";
   const paths = [];
   const whisper = windowsWhisperExe();
@@ -298,21 +299,23 @@ async function desktopHealth() {
 }
 
 function doctor(provider = selectedProvider()) {
-  const asr = isMac ? "mlx_whisper" : "whisper-cli";
+  const hasMlx = commandExists("mlx_whisper");
+  const hasCpp = commandExists("whisper-cli") || (isWindows && Boolean(windowsWhisperExe()));
+  const asrInstalled = hasMlx || hasCpp;
+  const asr = hasMlx ? "mlx_whisper" : hasCpp ? "whisper-cli" : "mlx_whisper / whisper-cli";
   const aiCommand = provider === "codex" ? "codex" : "claude";
   const aiLabel = provider === "codex" ? "Codex" : "Claude Code";
   const aiInstalled = commandExists(aiCommand);
   const aiLoggedIn = aiInstalled && spawnSync(aiCommand,
     provider === "codex" ? ["login", "status"] : ["auth", "status"],
     { stdio: "ignore", env: commandEnv() }).status === 0;
-  const asrInstalled = commandExists(asr) || (isWindows && Boolean(windowsWhisperExe()));
   const checks = [
     ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
     ["Python 3", Boolean(pythonCommand()), "python3"],
     [aiLabel, aiInstalled, provider === "codex" ? "npm install -g @openai/codex" : "npm install -g @anthropic-ai/claude-code"],
     [t(`${aiLabel} ログイン`, `${aiLabel} sign-in`), aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
     ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
-    [asr, asrInstalled, isMac ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
+    [t(`文字起こし（${asr}）`, `Transcription (${asr})`), asrInstalled, isMac ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
     ...(isWindows ? [[t("文字起こしモデル", "Transcription model"), existsSync(windowsModel), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
   ];
   console.log("LiveMTG doctor\n");
@@ -365,7 +368,7 @@ async function createReport() {
     providerLoggedIn: isAiLoggedIn(provider),
     python: pythonCommand() || "not installed",
     ffmpeg: commandVersion("ffmpeg", ["-version"]),
-    asr: isMac ? (commandExists("mlx_whisper") ? "mlx_whisper installed" : "not installed")
+    asr: isMac ? (commandExists("mlx_whisper") ? "mlx_whisper installed" : commandExists("whisper-cli") ? "whisper-cli fallback installed" : "not installed")
       : (windowsWhisperExe() ? "whisper-cli installed by LiveMTG" : commandVersion("whisper-cli", ["--help"])),
     modelReady: !isWindows || existsSync(windowsModel),
     service: await serviceHealth(),

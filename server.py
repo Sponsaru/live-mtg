@@ -119,7 +119,9 @@ _init_runtime()
 
 def desktop_health():
     """初回セットアップ画面用。サーバ起動と外部CLIの準備状況を分けて返す。"""
-    asr_name = "mlx_whisper" if ASR_BACKEND == "mlx" else "whisper-cli"
+    has_mlx, has_cpp = bool(shutil.which("mlx_whisper")), bool(shutil.which("whisper-cli"))
+    asr_ok = has_mlx or has_cpp
+    asr_name = "mlx_whisper" if has_mlx else ("whisper-cli" if has_cpp else "mlx_whisper / whisper-cli")
     ai_cmd, ai_label = ("codex", "Codex") if AI_PROVIDER == "codex" else ("claude", "Claude Code")
     ai_installed = bool(shutil.which(ai_cmd))
     ai_login_cmd = ["codex", "login", "status"] if AI_PROVIDER == "codex" else ["claude", "auth", "status"]
@@ -140,11 +142,11 @@ def desktop_health():
          "required": True, "help": ai_login_help},
         {"id": "ffmpeg", "label": _t("音声変換（ffmpeg）", "Audio conversion (ffmpeg)"), "ok": bool(shutil.which("ffmpeg")),
          "required": True, "help": _t("Macは brew install ffmpeg、Windowsは winget install Gyan.FFmpeg", "Mac: brew install ffmpeg; Windows: winget install Gyan.FFmpeg")},
-        {"id": "asr", "label": (_t("文字起こし（%s）", "Transcription (%s)") % asr_name), "ok": bool(shutil.which(asr_name)),
+        {"id": "asr", "label": (_t("文字起こし（%s）", "Transcription (%s)") % asr_name), "ok": asr_ok,
          "required": True,
          "help": _t("Macは pipx install mlx-whisper、Windowsはwhisper.cppのwhisper-cliとモデルを設定してください", "Mac: pipx install mlx-whisper; Windows: configure whisper-cli and its model")},
     ]
-    if ASR_BACKEND == "cpp":
+    if ASR_BACKEND == "cpp" or (not has_mlx and has_cpp):
         checks.append({"id": "model", "label": _t("文字起こしモデル", "Transcription model"), "ok": os.path.isfile(MODEL),
                        "required": True, "help": _t("ggml-large-v3-turbo.binを取得し、MODELに保存先を設定してください", "Download ggml-large-v3-turbo.bin and set MODEL to its path")})
     ai_ok = all(x["ok"] for x in checks if x["id"] in ("ai", "ai-login"))
@@ -209,8 +211,8 @@ def _ai_text(prompt, timeout=120, cwd=None, model=None, web=False, schema=None):
         cmd = ["claude", "-p", "--model", model or ASSIST_MODEL]
         if web:
             cmd += ["--permission-mode", "bypassPermissions", "--allowedTools", ASSIST_TOOLS]
-        r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout,
-                           env=_ai_env(), cwd=cwd)
+        r = _run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout,
+                 env=_ai_env(), cwd=cwd)
         if r.returncode != 0 and not (r.stdout or "").strip():
             raise RuntimeError((r.stderr or "Claude Codeの実行に失敗しました")[:500])
         return (r.stdout or "").strip()
@@ -235,11 +237,13 @@ def _ai_text(prompt, timeout=120, cwd=None, model=None, web=False, schema=None):
         p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.PIPE, text=True, cwd=cwd, env=_ai_env(),
                              start_new_session=True)
+        _register_long_process(p)
         try:
             _, err = p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             _kill_process_tree(p)
             raise TimeoutError("Codexの応答が時間内に完了しませんでした")
+        _check_long_cancelled()
         out = _read_text(output.name).strip()
         if p.returncode != 0 and not out:
             raise RuntimeError((err or "Codexの実行に失敗しました")[-800:])
@@ -522,6 +526,49 @@ detail_lock = threading.Lock()
 detail_failures = {}
 data_write_lock = threading.Lock()       # AIは並列、data.jsonの統合だけ直列
 background_ai_lock = threading.Lock()    # 即時AI＋背景AIの最大2呼び出しに制限
+long_job_lock = threading.Lock()
+long_jobs = {}                           # (sid, kind) -> {process, cancelled}
+long_job_local = threading.local()
+
+class JobCancelled(Exception): pass
+class JobBusy(Exception): pass
+
+class long_job_scope:
+    def __init__(self, sid, kind): self.key = (sid, kind)
+    def __enter__(self):
+        with long_job_lock:
+            if self.key in long_jobs: raise JobBusy(self.key[1])
+            long_jobs[self.key] = {"process": None, "cancelled": False}
+        long_job_local.key = self.key
+        return self
+    def __exit__(self, *_):
+        with long_job_lock: long_jobs.pop(self.key, None)
+        if getattr(long_job_local, "key", None) == self.key: long_job_local.key = None
+
+def _register_long_process(p):
+    key = getattr(long_job_local, "key", None)
+    if not key: return
+    with long_job_lock:
+        job = long_jobs.get(key)
+        if not job or job.get("cancelled"):
+            _kill_process_tree(p); raise JobCancelled(key[1])
+        job["process"] = p
+
+def _check_long_cancelled():
+    key = getattr(long_job_local, "key", None)
+    if not key: return
+    with long_job_lock:
+        if long_jobs.get(key, {}).get("cancelled"): raise JobCancelled(key[1])
+
+def cancel_long_job(sid, kind):
+    key = (sid, str(kind or ""))
+    with long_job_lock:
+        job = long_jobs.get(key)
+        if not job: return False
+        job["cancelled"] = True
+        p = job.get("process")
+    if p: _kill_process_tree(p)
+    return True
 
 # ---------- セッション管理 ----------
 def sdir(sid):            return os.path.join(SESS, sid)
@@ -870,6 +917,36 @@ def _research_path(sid):
 def _strategy_path(sid):
     return os.path.join(sdir(sid), "strategy.json")
 
+def _live_notes_path(sid):
+    return os.path.join(sdir(sid), "live-notes.json")
+
+def _load_live_notes(sid):
+    try:
+        with open(_live_notes_path(sid), encoding="utf-8") as f:
+            value = json.load(f)
+            return value if isinstance(value, list) else []
+    except Exception:
+        return []
+
+def add_live_note(sid, text):
+    """会議中の補足・訂正を最優先の明示情報として保存し、次の解析へ即時投入。"""
+    text = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not text:
+        return False, _t("内容が空です", "The note is empty")
+    notes = _load_live_notes(sid)
+    note = {"text": text[:2000], "ts": time.strftime("%H:%M")}
+    notes.append(note)
+    with open(_live_notes_path(sid), "w", encoding="utf-8") as f:
+        json.dump(notes[-30:], f, ensure_ascii=False, indent=2)
+    # 発話と混同しないラベルを付ける。差分解析はこれを新情報として読み、既存の誤認を訂正する。
+    with open(os.path.join(sdir(sid), "transcript.txt"), "a", encoding="utf-8") as f:
+        f.write("【依頼者のライブ補足・訂正（文字起こしより優先）】" + text[:2000] + "\n")
+    if re.search(r"https?://", text):
+        queue_lookups(sid, [{"need": text[:500], "why": "依頼者が会議中に追加したURL・背景情報の確認"}])
+    request_analysis(sid)
+    request_detail(sid)
+    return True, notes[-30:]
+
 def _load_strategy(sid):
     try:
         with open(_strategy_path(sid), encoding="utf-8") as f:
@@ -940,7 +1017,9 @@ def lookup_worker():
             prof = _profile_text() or "（未設定）"
             if (m.get("stance") or "").strip():
                 prof += "\nこの会議での立場：" + m["stance"].strip()
-            has_project = bool(pd and os.path.isdir(pd))
+            # 依頼者がURLを直接貼った場合は、フォルダ探索を挟まずそのURLをWeb調査へ渡す。
+            explicit_web = bool(re.search(r"https?://", need or ""))
+            has_project = bool(pd and os.path.isdir(pd) and not explicit_web)
             # 調査は即時議事AIと並列に動かすが、詳細整理とは1スロットを共有する。
             with background_ai_lock:
                 ans = (_claude_explore(pd, LOOKUP_PROMPT.format(title=m.get("title", "会議"), need=need, why=why,
@@ -1000,7 +1079,25 @@ def queue_spoken_lookup(sid, text):
 
 # ---------- 音声チャンク処理（decode→whisper→claude。すべてpython/クロスOS）----------
 def _run(cmd, **kw):
-    return subprocess.run(cmd, capture_output=True, text=True, **kw)
+    key = getattr(long_job_local, "key", None)
+    if not key:
+        return subprocess.run(cmd, capture_output=True, text=True, **kw)
+    capture = kw.pop("capture_output", True)
+    text_mode = kw.pop("text", True)
+    timeout = kw.pop("timeout", None)
+    input_value = kw.pop("input", None)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE if input_value is not None else subprocess.DEVNULL,
+                         stdout=subprocess.PIPE if capture else None,
+                         stderr=subprocess.PIPE if capture else None,
+                         text=text_mode, start_new_session=(os.name != "nt"), **kw)
+    _register_long_process(p)
+    try:
+        stdout, stderr = p.communicate(input=input_value, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_process_tree(p)
+        raise
+    _check_long_cancelled()
+    return subprocess.CompletedProcess(cmd, p.returncode, stdout, stderr)
 
 def _mean_db(wav):
     """ffmpeg volumedetect で平均音量(dB)を返す。取れなければ -99。"""
@@ -1312,7 +1409,12 @@ def _merge_live_patch(old, patch, now):
     obj["todos"] = _append_unique(obj.get("todos"), patch.get("todos_add"), 8,
                                    lambda x: (str(x.get("who", "")) + "|" + str(x.get("what", ""))).strip() if isinstance(x, dict) else str(x))
     obj["speakers"] = _append_unique(obj.get("speakers"), patch.get("speakers_add"), 12)
-    obj["log"] = _append_unique(obj.get("log"), patch.get("log_add"), 15)
+    log_add = []
+    for entry in (patch.get("log_add") or []):
+        if isinstance(entry, dict):
+            entry = dict(entry); entry.setdefault("at", now[:5])
+        log_add.append(entry)
+    obj["log"] = _append_unique(obj.get("log"), log_add, 30)
     topics = list(obj.get("mindmap") or [])
     for nt in (patch.get("mindmap_add") or []):
         topic = str(nt.get("topic", "")).strip()
@@ -1391,6 +1493,10 @@ def _fast_bg_block(sid, meta):
     outcome = str(board.get("outcome", "")).strip()
     if outcome:
         parts.append("【事前準備の着地点】\n" + outcome[:400])
+    notes = _load_live_notes(sid)
+    if notes:
+        parts.append("【依頼者のライブ補足・訂正（文字起こし・資料より優先）】\n" +
+                     "\n".join("- %s" % x.get("text", "") for x in notes[-6:])[:1800])
     return "\n\n".join(parts)
 
 def _claude_update(sid):
@@ -1463,6 +1569,10 @@ def _bg_block(sid, meta):
     brief = (strategy.get("brief") or "").strip()
     if brief:
         parts.append("【会議前の作戦会議ブリーフ（依頼主の構想・狙い・仮説）】\n" + brief[:3000])
+    notes = _load_live_notes(sid)
+    if notes:
+        parts.append("【依頼者のライブ補足・訂正（最優先）】\n" +
+                     "\n".join("- %s" % x.get("text", "") for x in notes[-10:])[:3000])
     mtype = (meta.get("mtype") or "").strip()
     if mtype:
         pb = _playbook_text(mtype)
@@ -1775,32 +1885,33 @@ def recover_pending_chunks():
     return current_recovered
 
 # ---------- 1画面マインドマップ生成 ----------
-def make_slides(theme="neutral"):
-    m = read_meta(current_id)
-    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
+def make_slides(theme="neutral", sid=None):
+    sid = sid or current_id
+    m = read_meta(sid)
+    env = dict(_claude_env(), SDIR=sdir(sid), TITLE=m.get("title", _t("会議", "Meeting")),
                SLIDE_MODEL=SLIDE_MODEL, THEME=theme, LIVE_MTG_LANGUAGE=LANGUAGE)   # 画面で選択中のデザインをデッキにも反映
     cmd = ([sys.executable, "--live-mtg-helper", "make-mindmap.py"] if getattr(sys, "frozen", False)
            else [sys.executable, os.path.join(SCRIPT_DIR, "make-mindmap.py")])
-    r = subprocess.run(cmd,
-                       env=env, capture_output=True, text=True, timeout=300)
-    ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(current_id), "mindmap.html"))
+    r = _run(cmd, env=env, capture_output=True, text=True, timeout=300)
+    ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(sid), "mindmap.html"))
     if ok:
-        sync_to_drive(current_id)     # スライドを共有ドライブへ非同期コピー
-        sync_to_project(current_id)   # 清書済みなら背景フォルダの一式もスライド込みに更新（清書前は内部でスキップ）
+        sync_to_drive(sid)     # スライドを共有ドライブへ非同期コピー
+        sync_to_project(sid)   # 清書済みなら背景フォルダの一式もスライド込みに更新（清書前は内部でスキップ）
     return ok, (r.stderr or r.stdout or "").strip()
 
-def make_deck(theme="neutral"):
+def make_deck(theme="neutral", sid=None):
     """Slide Work正典のhybrid型で完成スライドデッキを生成する。"""
-    m = read_meta(current_id)
-    env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
+    sid = sid or current_id
+    m = read_meta(sid)
+    env = dict(_claude_env(), SDIR=sdir(sid), TITLE=m.get("title", _t("会議", "Meeting")),
                SLIDE_MODEL=SLIDE_MODEL, THEME=theme, AI_PROVIDER=AI_PROVIDER,
                CODEX_MODEL=CODEX_MODEL, LIVE_MTG_LANGUAGE=LANGUAGE)
-    r = subprocess.run(["bash", os.path.join(SCRIPT_DIR, "make-slides.sh")],
-                       env=env, capture_output=True, text=True, timeout=420)
-    ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(current_id), "slides.html"))
+    r = _run(["bash", os.path.join(SCRIPT_DIR, "make-slides.sh")],
+             env=env, capture_output=True, text=True, timeout=420)
+    ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(sid), "slides.html"))
     if ok:
-        sync_to_drive(current_id)     # デッキを共有ドライブへ非同期コピー
-        sync_to_project(current_id)   # 清書済みなら背景フォルダの一式もデッキ込みに更新
+        sync_to_drive(sid)     # デッキを共有ドライブへ非同期コピー
+        sync_to_project(sid)   # 清書済みなら背景フォルダの一式もデッキ込みに更新
     return ok, (r.stderr or r.stdout or "").strip()
 
 mindmap_refreshing = set()
@@ -1873,8 +1984,14 @@ def finalize_meeting(sid, hints=""):
         for w in webms:
             f.write("file '%s'\n" % w.replace("'", "'\\''"))
     full_wav = os.path.join(d, "_full.wav")
-    _run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
-          "-i", listf, "-ar", "16000", "-ac", "1", full_wav])
+    try:
+        _run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
+              "-i", listf, "-ar", "16000", "-ac", "1", full_wav])
+    except JobCancelled:
+        for p in (listf, full_wav):
+            try: os.remove(p)
+            except Exception: pass
+        raise
     if not os.path.isfile(full_wav):
         try: os.remove(listf)
         except Exception: pass
@@ -1890,6 +2007,12 @@ def finalize_meeting(sid, hints=""):
         fmeta = read_meta(sid)
         title = fmeta.get("title", "会議")
         hints_block = hints.strip() if (hints or "").strip() else "（特に指定なし。文字起こしから慎重に判断し、不確かな固有名詞は断定しない）"
+        live_notes = _load_live_notes(sid)
+        corrections = "\n".join("- " + (n.get("text") or "").strip()
+                                for n in live_notes if (n.get("text") or "").strip())
+        if corrections:
+            hints_block = ("【会議中に依頼者が追加した補足・訂正（最優先）】\n"
+                           + corrections + "\n\n" + hints_block)
         prof = _profile_text()
         stance = (fmeta.get("stance") or "").strip()
         if prof or stance:
@@ -1905,6 +2028,8 @@ def finalize_meeting(sid, hints=""):
         obj = json.loads(out)          # 妥当性チェック（例外なら失敗）
         obj["updated"] = "清書"        # updatedは短く固定（要旨はsummaryに入る。ヘッダーに長文が出るのを防ぐ）
         out = json.dumps(obj, ensure_ascii=False, indent=2)
+    except JobCancelled:
+        return False, "__cancelled__"
     except json.JSONDecodeError:
         return False, "整理結果がJSONになりませんでした（もう一度お試しください）"
     except Exception as e:
@@ -2278,6 +2403,8 @@ def finalize_prep(sid, regen=False):
         out = _ai_text(prompt, timeout=120, cwd=tempfile.gettempdir(), model=ASSIST_MODEL)
         sys.stderr.write("[PREP] %s終了 %.1f秒 outlen=%d\n"
                          % (AI_PROVIDER, time.time()-t0, len(out))); sys.stderr.flush()
+    except JobCancelled:
+        raise
     except Exception as e:
         sys.stderr.write("[PREP] claude例外 %r\n" % e); sys.stderr.flush()
         return False, "確認質問の生成に失敗：%r" % e
@@ -2551,6 +2678,8 @@ class H(BaseHTTPRequestHandler):
                                                 "brief": st.get("brief", ""), "board": st.get("board", {}),
                                                 "exportPath": _strategy_export_dir(current_id),
                                                 "folderMode": bool(pd and os.path.isdir(pd))}, ensure_ascii=False))
+        if p == "/api/live-notes":
+            return self._send(200, json.dumps({"ok": True, "notes": _load_live_notes(current_id) if current_id else []}, ensure_ascii=False))
         return self._send(404, "not found", "text/plain; charset=utf-8")
 
     def do_POST(self):
@@ -2615,6 +2744,11 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, json.dumps({"ok": True, "queue": chunk_q.qsize()}))
 
         b = self._body_json()
+
+        if p == "/api/cancel":
+            kind = str((b or {}).get("kind", "")).strip()
+            ok = bool(current_id and cancel_long_job(current_id, kind))
+            return self._send(200, json.dumps({"ok": ok, "cancelled": ok}, ensure_ascii=False))
 
         if p == "/api/start":
             with lock:
@@ -2687,9 +2821,13 @@ class H(BaseHTTPRequestHandler):
             if not current_id:
                 return self._send(400, json.dumps({"ok": False, "err": "会議がありません"}))
             theme = "neutral"
-            ok, msg = make_slides(theme)
+            sid = current_id
+            try:
+                with long_job_scope(sid, "slides"): ok, msg = make_slides(theme, sid)
+            except JobCancelled: ok, msg = False, "__cancelled__"
+            except JobBusy: return self._send(200, json.dumps({"ok": False, "busy": True, "msg": "既に生成中です"}, ensure_ascii=False))
             return self._send(200, json.dumps(
-                {"ok": ok, "url": "/slides.html?ts=%d" % int(time.time()), "msg": msg},
+                {"ok": ok, "cancelled": msg == "__cancelled__", "url": "/slides.html?ts=%d" % int(time.time()), "msg": msg},
                 ensure_ascii=False))
 
         if p == "/api/deck":
@@ -2697,9 +2835,13 @@ class H(BaseHTTPRequestHandler):
             if not current_id:
                 return self._send(400, json.dumps({"ok": False, "err": "会議がありません"}))
             theme = "neutral"
-            ok, msg = make_deck(theme)
+            sid = current_id
+            try:
+                with long_job_scope(sid, "deck"): ok, msg = make_deck(theme, sid)
+            except JobCancelled: ok, msg = False, "__cancelled__"
+            except JobBusy: return self._send(200, json.dumps({"ok": False, "busy": True, "msg": "既に生成中です"}, ensure_ascii=False))
             return self._send(200, json.dumps(
-                {"ok": ok, "url": "/deck.html?ts=%d" % int(time.time()), "msg": msg},
+                {"ok": ok, "cancelled": msg == "__cancelled__", "url": "/deck.html?ts=%d" % int(time.time()), "msg": msg},
                 ensure_ascii=False))
 
         if p == "/api/finalize":
@@ -2710,21 +2852,29 @@ class H(BaseHTTPRequestHandler):
             hints = body.get("hints", "")
             if body.get("answers") is not None:
                 save_prep_answers(current_id, body.get("answers"))   # 次回の確認初期値に
-            ok, msg = finalize_meeting(current_id, hints)
+            sid = current_id
+            try:
+                with long_job_scope(sid, "finalize"): ok, msg = finalize_meeting(sid, hints)
+            except JobCancelled: ok, msg = False, "__cancelled__"
+            except JobBusy: return self._send(200, json.dumps({"ok": False, "busy": True, "msg": "既に清書中です"}, ensure_ascii=False))
             if ok:
-                sync_to_drive(current_id)     # 清書版を共有ドライブへ非同期コピー
-                sync_to_project(current_id)   # 清書一式を背景フォルダ（案件フォルダ）へも届ける
-            return self._send(200, json.dumps({"ok": ok, "msg": msg}, ensure_ascii=False))
+                sync_to_drive(sid)     # 清書版を共有ドライブへ非同期コピー
+                sync_to_project(sid)   # 清書一式を背景フォルダ（案件フォルダ）へも届ける
+            return self._send(200, json.dumps({"ok": ok, "cancelled": msg == "__cancelled__", "msg": msg}, ensure_ascii=False))
 
         if p == "/api/finalize_prep":
             # 清書前：文字起こしから確認したい固有名詞のQ&Aを生成して返す（prep.jsonにキャッシュ）
             if not current_id:
                 return self._send(400, json.dumps({"ok": False, "msg": "会議がありません"}, ensure_ascii=False))
             regen = bool((b or {}).get("regen"))   # ボディは読み済み。再読み禁止
-            ok, res = finalize_prep(current_id, regen)
+            sid = current_id
+            try:
+                with long_job_scope(sid, "finalize_prep"): ok, res = finalize_prep(sid, regen)
+            except JobCancelled: ok, res = False, "__cancelled__"
+            except JobBusy: return self._send(200, json.dumps({"ok": False, "busy": True, "msg": "既に準備中です"}, ensure_ascii=False))
             if ok:
                 return self._send(200, json.dumps({"ok": True, **res}, ensure_ascii=False))
-            return self._send(200, json.dumps({"ok": False, "msg": res}, ensure_ascii=False))
+            return self._send(200, json.dumps({"ok": False, "cancelled": res == "__cancelled__", "msg": res}, ensure_ascii=False))
 
         if p == "/api/profile":
             # 依頼主プロフィール（私は誰か）を保存。全会議共通・以後の整理/ガイド/清書/下調べに即反映。
@@ -2752,6 +2902,12 @@ class H(BaseHTTPRequestHandler):
                 return self._send(200, json.dumps({"ok": True}))
             except Exception as e:
                 return self._send(200, json.dumps({"ok": False, "msg": repr(e)}, ensure_ascii=False))
+
+        if p == "/api/live-notes":
+            if not current_id:
+                return self._send(400, json.dumps({"ok": False, "msg": _t("会議がありません", "No meeting")}, ensure_ascii=False))
+            ok, result = add_live_note(current_id, (b or {}).get("text", ""))
+            return self._send(200, json.dumps({"ok": ok, **({"notes": result} if ok else {"msg": result})}, ensure_ascii=False))
 
         if p == "/api/strategy":
             if not current_id:
