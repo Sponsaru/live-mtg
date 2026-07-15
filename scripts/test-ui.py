@@ -21,5 +21,6 @@ assert "hardMs:15000" in html and "reachedHardLimit" in html, "audio must upload
 assert "/api/desktop-health" in html and "/api/ai-check" in html
 assert 'id="livemtg-back"' in slides and 'href="/"' in slides
 assert "if (!setupComplete()) await onboard" in cli, "first launch must run onboarding"
+assert "running.version === pkg.version" in cli, "dashboard must replace an outdated server"
 
 print("Meeting-critical UI state and navigation OK")

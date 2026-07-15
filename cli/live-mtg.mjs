@@ -389,7 +389,13 @@ function installDaemon() {
 }
 
 async function start() {
-  if (await health()) return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
+  const running = await health();
+  if (running && running.version === pkg.version) return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
+  if (running) {
+    console.log(t(`旧サーバー（${running.version || "不明"}）を ${pkg.version} へ切り替えます…`, `Restarting the old server (${running.version || "unknown"}) with ${pkg.version}…`));
+    stop();
+    for (let i = 0; i < 20 && await health(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+  }
   const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
   child.unref();
   for (let i = 0; i < 20; i++) {
@@ -476,11 +482,17 @@ async function configure(provider, language) {
 
 async function update() {
   const channel = pkg.version.includes("-") ? "beta" : "latest";
+  const wasRunning = Boolean(await health());
   console.log(t(`LiveMTGを${channel}チャンネルの最新版へ更新します…`, `Updating LiveMTG from the ${channel} channel…`));
   const result = spawnSync("npm", ["install", "-g", `live-mtg@${channel}`],
     { stdio: "inherit", shell: isWindows });
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (isMac && existsSync(macPlistPath())) installDaemon();
+  else if (wasRunning) {
+    stop();
+    for (let i = 0; i < 20 && await health(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+    await start();
+  }
   console.log(t("更新が完了しました", "Update complete"));
 }
 
