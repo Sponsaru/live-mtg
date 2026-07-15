@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def doctor_home(fake_home: Path, language="en") -> str:
-    env = dict(os.environ, HOME=str(fake_home))
+    # Node's os.homedir() reads HOME on Unix and USERPROFILE on Windows.
+    env = dict(os.environ, HOME=str(fake_home), USERPROFILE=str(fake_home))
     if language:
         env["LIVE_MTG_LANGUAGE"] = language
     else:
