@@ -108,14 +108,37 @@ for i, (heading, groups) in enumerate(branches):
       <div class="tree-leaves">%s</div>
     </section>''' % ("" if i == 0 else " collapsed", node(heading, "branch tone-%d" % (i % 5), bid, "root"), "".join(leaves)))
 
+timeline_rows = []
+for i, entry in enumerate((data.get("log") or [])[-30:]):
+    if not isinstance(entry, dict):
+        continue
+    who, text, at = full(entry.get("who")) or tr("不明", "Unknown"), full(entry.get("text")), full(entry.get("at"))
+    if text:
+        timeline_rows.append('''<div class="generated-timeline-item">
+          <div class="generated-timeline-at">%s</div><div class="generated-timeline-card"><b>%s</b><p>%s</p></div>
+        </div>''' % (html.escape(at or str(i + 1)), html.escape(who), html.escape(text)))
+
+diagram = str(data.get("diagram") or "").strip()
+if not diagram:
+    diagram = tr("flowchart LR\n  A[会話の関係を整理中]", "flowchart LR\n  A[Analyzing relationships]")
+
 body = '''<div class="slide mindmap-page">
-  <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div></div>
-  <div class="stage"><div class="tree-map" data-tree>
+  <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div>
+    <div class="generated-maptools"><button data-generated-map="relation">%s</button><button data-generated-map="topics">%s</button><button data-generated-map="timeline">%s</button></div>
+  </div>
+  <div class="stage">
+    <div class="generated-map-view generated-relation" data-generated-view="relation"><div class="mermaid">%s</div></div>
+    <div class="generated-map-view generated-topics" data-generated-view="topics"><div class="tree-map" data-tree>
     <svg class="tree-lines" aria-hidden="true"></svg>
     <div class="tree-root-wrap">%s</div>
     <div class="tree-branches">%s</div>
-  </div></div>
-</div>''' % (html.escape(title), tr("議論の全体像・決定・次の行動", "Discussion overview, decisions, and next actions"), node(label(title, 32), "root", "root"), "".join(rows))
+    </div></div>
+    <div class="generated-map-view generated-timeline" data-generated-view="timeline">%s</div>
+  </div>
+</div>''' % (html.escape(title), tr("会話のつながり・論点・時系列", "Relationships, topics, and timeline"),
+             tr("会話の関係", "Relationships"), tr("論点マップ", "Topics"), tr("時系列", "Timeline"),
+             html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
+             "".join(timeline_rows) or '<div class="generated-empty">%s</div>' % tr("発言を整理中です", "Organizing the conversation"))
 
 with open(os.path.join(script_dir, "slides-template.html"), encoding="utf-8") as f:
     template = f.read()

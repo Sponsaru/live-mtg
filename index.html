@@ -1200,8 +1200,16 @@ async function verifyAssist(i){
 
 // ===== 表示モード（リスト / マインドマップ）=====
 let view = localStorage.getItem('livemtg_view') || 'list';
-let mindmapMode = localStorage.getItem('livemtg_mindmap_mode') || 'timeline';
-if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='timeline';
+// 関係性を掴むことを主目的にし、初回だけ「会話の関係」を既定にする。
+// 以後は利用者が最後に選んだ表示を守り、リアルタイム更新でも切り替えない。
+const mindmapDefaultVersion='relation-v1';
+let mindmapMode=localStorage.getItem('livemtg_mindmap_mode');
+if(localStorage.getItem('livemtg_mindmap_default')!==mindmapDefaultVersion){
+  mindmapMode='relation';
+  localStorage.setItem('livemtg_mindmap_mode',mindmapMode);
+  localStorage.setItem('livemtg_mindmap_default',mindmapDefaultVersion);
+}
+if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='relation';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }

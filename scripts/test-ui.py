@@ -9,6 +9,7 @@ html = (ROOT / "index.html").read_text(encoding="utf-8")
 server = (ROOT / "server.py").read_text(encoding="utf-8")
 cli = (ROOT / "cli" / "live-mtg.mjs").read_text(encoding="utf-8")
 slides = (ROOT / "slides-template.html").read_text(encoding="utf-8")
+mindmap = (ROOT / "make-mindmap.py").read_text(encoding="utf-8")
 
 assert "guideBrief(x.q||" not in html, "suggested questions must be rendered in full"
 assert "guideBrief(raw,42)" not in html, "question intent must be rendered in full"
@@ -49,6 +50,12 @@ assert 'id="copilotbubble"' in html and 'class="copilot-body"' in html
 assert "livemtg_mindmap_mode" in html and "captureMindmapUi" in html and "restoreMindmapUi" in html, \
     "live mind-map refreshes must preserve the active tab, expanded nodes, and scroll position"
 assert "applyMindmapMode(btn.dataset.mapview)" in html, "mind-map tabs must persist across live updates"
+assert "mindmapMode='relation'" in html and "mindmapDefaultVersion='relation-v1'" in html, \
+    "live mind map must default to conversation relationships"
+assert all(token in slides for token in (
+    "data-generated-map", "data-generated-view", "livemtg_generated_map_mode", "||'relation'"
+)), "generated mind map must default to relationships and preserve the selected tab"
+assert 'str(data.get("diagram") or "").strip()' in mindmap, "generated Mermaid must preserve line breaks"
 assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns:minmax(0,1.45fr)' in html
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html
