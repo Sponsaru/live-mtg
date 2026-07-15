@@ -69,7 +69,7 @@ iwr -useb https://<配布ドメイン>/install.ps1 | iex
 - **リアルタイム作図**：話に出た流れ・相関・体制を Mermaid 図でライブ描画（スライド表示）
 - **話者認識（名前推定）**：呼びかけ・文脈から発言者を推定し「参加者」表示・全文に「誰の発言か」を付与
 - **オンライン会議対応**：会議タブの音声を共有すれば相手の声も文字起こし（マイクと合成）
-- **ワンクリックのスライド化**：経営者向けデッキ（trends型・Mermaid図込み）を生成
+- **ワンクリックのスライド化**：`slide-work/slide-patterns.html` を正典にしたニュートラル・hybridデッキを生成。結論はMESSAGE型、根拠・比較・ToDoはINFORMATIVE型から選ぶ
 - **高精度な文字起こし**：Mac は mlx_whisper（Apple Silicon最適化）＋large-v3(非turbo)。固有名詞の辞書ヒントで誤変換を抑え、聞き取れない音は無理に埋めず素直に落とす（＝"それっぽい嘘"を作りにくい）
 - **クロスOS設計**：録音はブラウザ、サーバ処理は python。文字起こしは Mac=mlx_whisper／Windows=whisper-cli(whisper.cpp)。Windows用公式x64バイナリはSHA-256検証後に `~/.live-mtg/tools/`、モデルは `~/.live-mtg/models/` へonboardが自動配置する（Windows実機での最終検証は必要）
 
@@ -80,7 +80,7 @@ iwr -useb https://<配布ドメイン>/install.ps1 | iex
 → **ブラウザで http://localhost:8777/ を開くだけ**で使える。
 ```bash
 # 手動で開きたい時（サーバ未起動でも起動してくれる従来ランチャー）
-bash ~/kenshin/mainichi/notes/live-mtg/live-mtg.sh
+bash /path/to/live-mtg/live-mtg.sh
 # 常駐を止める/再開する
 launchctl unload ~/Library/LaunchAgents/com.rakuhub.live-mtg.plist
 launchctl load   ~/Library/LaunchAgents/com.rakuhub.live-mtg.plist
@@ -100,7 +100,7 @@ launchctl load   ~/Library/LaunchAgents/com.rakuhub.live-mtg.plist
 | ＋ 新規会議 | 会議名を入れて別の会議を開始（録音中なら停止してから）。会議ごとに独立保存 |
 | 会議▼（セレクタ） | 過去の会議に切替。議事・全文・スライドを見返せる |
 | 📄 全文 | 文字起こし全文をドロワー表示（録音中はライブ更新） |
-| 🖥 スライド化 ／ 🖥 スライドを開く | 未生成なら**生成**、生成済みなら**再生成せず即開く**（横の **↻** で作り直し）。経営者向けスライド（trends/ の型・配色、Mermaid図も自動作図）を新タブで開く |
+| 🖥 スライド化 ／ 🖥 スライドを開く | 未生成なら**生成**、生成済みなら**再生成せず即開く**（横の **↻** で作り直し）。Slide WorkのP01〜P47から会議内容に合う型を選んだhybridデッキを新タブで開く |
 | 📋 清書 | 会議後：保存した**全音声を1本に結合→分断なしで whisper→claude 整理**した高精度版を生成。画面が清書版に切り替わる（ライブ版は退避＝可逆）。録音停止後に押す |
 
 - ヘッダーは主要操作（会議切替・録音・リスト/スライド表示）だけを表に出し、**副次操作（全文/スライド/清書/新規会議）は「≡ メニュー」に集約**。ヘッダー下の更新テキストは廃止（画面をスッキリ）
@@ -112,8 +112,9 @@ launchctl load   ~/Library/LaunchAgents/com.rakuhub.live-mtg.plist
 live-mtg.sh        ランチャー（server.pyを起動しブラウザを開くだけ）
 server.py          本体。UI/ファイル配信 + API + 音声チャンク処理(decode→whisper→claude整理)を python で実施（文字起こしはmlx/cpp切替）
 index.html         画面（録音=ブラウザ録音、リスト/スライド、話者バー、全文ドロワー、Mermaid描画）
-slides-template.html  スライドの外枠（trends 経営者向けデッキのCSS・ロゴ埋め込み・ページ番号・Mermaid描画）
-make-slides.sh     data.json+transcript → claudeで経営者向けスライド生成（図形=Mermaid込み）→ slides.html ※現状bash（Windows用にpython化が残タスク）
+slides-template.html  マインドマップ成果物の外枠
+slide-work-template.html / slide-work-pattern-examples.html  Slide Work正典から同期した完成デッキの外枠・会議向けパターン
+make-slides.sh     data.json+transcript → 選択中AIがSlide Workパターンを選択・編集 → slides.html ※現状bash（Windows用にpython化が残タスク）
 mermaid.min.js     図形描画ライブラリ（v10 UMD・ローカル同梱。/mermaid.min.js と ../../mermaid.min.js で参照）
 lib.sh / worker.sh 旧・サーバ側マイク録音方式の名残（現行フローでは未使用）
 demo-run.sh        マイク無しの動作確認デモ（say音声で台本を流す）
@@ -140,7 +141,7 @@ audio/ の全webmを時系列結合 → 1本の16k wav（分断なし）
 **会議データはローカル `~/mtg-live/meetings/` に保存し、録音停止・清書・スライド生成の完了時に共有ドライブ `notes/live-mtg/meetings/` へ自動コピー**（2026-07-10変更）。
 録音中の高頻度I/OをGoogle Driveに直接当てると FileProvider が詰まって全機能ハングするため、ライブはローカルで動かし、完成品だけDriveへ静かに同期する（同期は別スレッド＝Drive不調でも本体は巻き込まれない）。
 ```
-共有ドライブ/kenshin/mainichi/notes/live-mtg/meetings/<会議ID>/
+<LiveMTGの保存先>/meetings/<会議ID>/
     meta.json          会議名・作成日時
     transcript.txt     文字起こし全文（ライブ・逐次）
     data.json          構造化された議事（画面表示の元。清書後は清書版に差し替わる）
@@ -198,7 +199,7 @@ audio/ の全webmを時系列結合 → 1本の16k wav（分断なし）
 例（会議に合わせて辞書ヒントを差し替え・整理をsonnetで高速化）:
 ```bash
 ASR_HINT="車両管理MTG。佐藤部長、山田、鈴木。リース満了、車検、走行距離、給油。" \
-CLAUDE_MODEL=sonnet bash ~/kenshin/mainichi/notes/live-mtg/live-mtg.sh
+CLAUDE_MODEL=sonnet bash /path/to/live-mtg/live-mtg.sh
 ```
 
 ## 速度（差分更新）

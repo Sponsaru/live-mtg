@@ -876,7 +876,13 @@ function fill(id, arr, render){
 }
 async function api(path, body){
   const opt = body!==undefined ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {};
-  const r = await fetch(path, opt); return r.json();
+  const r = await fetch(path, opt), raw=await r.text();
+  let data=null;
+  try{data=raw?JSON.parse(raw):{};}catch(e){
+    const err=new Error(`HTTP ${r.status}: ${raw.slice(0,120)||'invalid response'}`);err.status=r.status;throw err;
+  }
+  if(!r.ok){const err=new Error((data&&data.msg)||`HTTP ${r.status}`);err.status=r.status;err.data=data;throw err;}
+  return data;
 }
 let toastTimer=null;
 function toast(msg, spinning){
@@ -970,6 +976,8 @@ async function pollState(){
 let runtimeHealth=null;
 async function refreshDiagnostics(openPanel=false){
   try{
+    // 先に外部CLIを呼ばない軽量APIで、サーバーの生存と新旧を切り分ける。
+    await api('/api/health');
     const h=await api('/api/desktop-health'); runtimeHealth=h;
     const provider=h.aiProvider==='codex'?'Codex':'Claude Code';
     setMenuLabel('runtimebtn',h.ok?tr(`AI・音声 接続OK（${provider}）`,`AI & audio ready (${provider})`):tr(`要設定：AI・音声（${provider}）`,`Setup required (${provider})`));
@@ -977,8 +985,12 @@ async function refreshDiagnostics(openPanel=false){
     if(openPanel)$('diagbg').classList.add('show');
     return h;
   }catch(e){
+    runtimeHealth=null;
     setMenuLabel('runtimebtn',tr('接続診断に失敗','Connection check failed'));
-    $('diaglist').innerHTML=`<div class="diag-item bad"><span class="diag-mark">×</span><div><strong>${tr('サーバーに接続できません','Cannot reach the server')}</strong></div></div>`;
+    const legacy=e&&e.status===404;
+    const message=legacy?tr('古いサーバーが動いています。live-mtg update の後に再起動してください','An old server is running. Run live-mtg update, then restart it')
+                        :tr('サーバーに接続できません','Cannot reach the server');
+    $('diaglist').innerHTML=`<div class="diag-item bad"><span class="diag-mark">×</span><div><strong>${message}</strong></div></div>`;
     if(openPanel)$('diagbg').classList.add('show');
     return null;
   }
@@ -1307,10 +1319,12 @@ setInterval(()=>{ if(capturing && capCtx && capCtx.state==='suspended'){ try{ ca
 
 async function doStart(withTab){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
-  const health=runtimeHealth||await refreshDiagnostics(false);
-  if(!health||!health.ok){
+  // AIログインとWhisper診断は録音データの取得と分離。
+  // サーバーが生きていれば録音し、未設定項目は別途診断で案内する。
+  try{await api('/api/health');}catch(e){
     $('diagbg').classList.add('show');
-    toast(tr('録音前にAI・文字起こしの設定を完了してください','Complete AI and transcription setup before recording'));
+    refreshDiagnostics(true);
+    toast(tr('録音サーバーに接続できません。live-mtg start を実行してください','Cannot reach the recording server. Run live-mtg start'));
     return;
   }
   $('rec').disabled=true;

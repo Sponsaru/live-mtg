@@ -9,7 +9,20 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-const home = process.env.LIVE_MTG_HOME || join(homedir(), ".live-mtg");
+const defaultHome = join(homedir(), ".live-mtg");
+const legacyHome = join(homedir(), "mtg-live");
+
+function hasMeetings(dir) {
+  const meetings = join(dir, "meetings");
+  try { return existsSync(meetings) && readdirSync(meetings).some(name => !name.startsWith(".")); }
+  catch { return false; }
+}
+
+// 初期配布版は ~/mtg-live を使っていた。新保存先に会議がまだ無く、
+// 旧保存先に会議がある場合だけ旧側を採用し、「更新したら消えた」を防ぐ。
+const autoLegacyHome = !process.env.LIVE_MTG_HOME
+  && !hasMeetings(defaultHome) && hasMeetings(legacyHome);
+const home = process.env.LIVE_MTG_HOME || (autoLegacyHome ? legacyHome : defaultHome);
 const port = process.env.PORT || "8777";
 const server = join(root, "server.py");
 const pidFile = join(home, "server.pid");
@@ -42,7 +55,10 @@ function detectedLanguage() {
 }
 
 function selectedLanguage() {
-  return normalizeLanguage(process.env.LIVE_MTG_LANGUAGE || readConfig().language || detectedLanguage());
+  // ~/mtg-live 時代のUIは日本語固定。移行時にOSロケール判定で
+  // 英語へ変わらないよう、未設定の自動互換利用者だけ日本語を維持する。
+  return normalizeLanguage(process.env.LIVE_MTG_LANGUAGE || readConfig().language
+    || (autoLegacyHome ? "ja" : detectedLanguage()));
 }
 
 function t(ja, en) { return selectedLanguage() === "en" ? en : ja; }
@@ -260,11 +276,25 @@ function openUrl(url) {
   else spawn("xdg-open", [url], { detached: true, stdio: "ignore" }).unref();
 }
 
-async function health() {
+async function fetchJson(path, timeout = 1800) {
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/api/desktop-health`, { signal: AbortSignal.timeout(1800) });
+    const response = await fetch(`http://127.0.0.1:${port}${path}`, { signal: AbortSignal.timeout(timeout) });
     return response.ok ? await response.json() : null;
   } catch { return null; }
+}
+
+async function serviceHealth() {
+  const current = await fetchJson("/api/health", 1200);
+  if (current?.service === "live-mtg") return { ...current, legacy: false };
+  // beta.9以前は軽量health APIがない。stateが返れば「不通」ではなく旧版。
+  const legacy = await fetchJson("/api/state", 1200);
+  const isLiveMtg = legacy && typeof legacy === "object" && "recording" in legacy
+    && "current" in legacy && Array.isArray(legacy.sessions);
+  return isLiveMtg ? { ok: true, version: null, service: "live-mtg", legacy: true } : null;
+}
+
+async function desktopHealth() {
+  return fetchJson("/api/desktop-health", 12000);
 }
 
 function doctor(provider = selectedProvider()) {
@@ -338,7 +368,8 @@ async function createReport() {
     asr: isMac ? (commandExists("mlx_whisper") ? "mlx_whisper installed" : "not installed")
       : (windowsWhisperExe() ? "whisper-cli installed by LiveMTG" : commandVersion("whisper-cli", ["--help"])),
     modelReady: !isWindows || existsSync(windowsModel),
-    service: await health(),
+    service: await serviceHealth(),
+    runtime: await desktopHealth(),
     recentErrorCount
   };
   const path = join(home, `diagnostics-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
@@ -370,6 +401,7 @@ function installDaemon() {
 <plist version="1.0"><dict>
 <key>Label</key><string>com.rakuhub.live-mtg</string>
 <key>ProgramArguments</key><array><string>${process.execPath}</string><string>${fileURLToPath(import.meta.url)}</string><string>serve</string></array>
+<key>EnvironmentVariables</key><dict><key>LIVE_MTG_HOME</key><string>${home}</string></dict>
 <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
 <key>StandardOutPath</key><string>${join(home, "server.log")}</string>
 <key>StandardErrorPath</key><string>${join(home, "server.log")}</string>
@@ -389,18 +421,39 @@ function installDaemon() {
 }
 
 async function start() {
-  const running = await health();
-  if (running && running.version === pkg.version) return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
-  if (running) {
-    console.log(t(`旧サーバー（${running.version || "不明"}）を ${pkg.version} へ切り替えます…`, `Restarting the old server (${running.version || "unknown"}) with ${pkg.version}…`));
-    stop();
-    for (let i = 0; i < 20 && await health(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+  let running = await serviceHealth();
+  const hadMacDaemon = isMac && existsSync(macPlistPath());
+  let currentMacDaemon = false;
+  if (hadMacDaemon) {
+    try {
+      const plist = readFileSync(macPlistPath(), "utf8");
+      currentMacDaemon = plist.includes(fileURLToPath(import.meta.url))
+        && plist.includes("<key>LIVE_MTG_HOME</key>");
+    } catch {}
   }
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
-  child.unref();
+  const currentServer = running && !running.legacy && running.version === pkg.version;
+  if (currentServer && (!hadMacDaemon || currentMacDaemon)) {
+    return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
+  }
+  if (running) {
+    console.log(currentServer
+      ? t("旧自動起動設定を現行CLIへ切り替えます…", "Updating the legacy auto-start configuration…")
+      : t(`旧サーバー（${running.version || "不明"}）を ${pkg.version} へ切り替えます…`, `Restarting the old server (${running.version || "unknown"}) with ${pkg.version}…`));
+    stop();
+    for (let i = 0; i < 20 && await serviceHealth(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  if (hadMacDaemon) {
+    // 旧手動版も同じplist名を使う。内容を現行CLIへ書き換え、
+    // 次回ログインで旧server.pyがKeepAlive復活するのも防ぐ。
+    installDaemon();
+  } else {
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
+    child.unref();
+  }
   for (let i = 0; i < 20; i++) {
     await new Promise(resolve => setTimeout(resolve, 500));
-    if (await health()) return console.log(t(`LiveMTGを起動しました: http://127.0.0.1:${port}`, `LiveMTG started: http://127.0.0.1:${port}`));
+    running = await serviceHealth();
+    if (running && !running.legacy && running.version === pkg.version) return console.log(t(`LiveMTGを起動しました: http://127.0.0.1:${port}`, `LiveMTG started: http://127.0.0.1:${port}`));
   }
   throw new Error(t("LiveMTGを起動できませんでした。live-mtg doctorを実行してください。", "Could not start LiveMTG. Run live-mtg doctor."));
 }
@@ -459,7 +512,7 @@ async function onboard(install, requestedProvider, requestedLanguage, assumeYes 
   const ok = doctor(provider);
   if (!ok) return process.exitCode = 1;
   if (install) installDaemon(); else await start();
-  for (let i = 0; i < 20 && !(await health()); i++) await new Promise(resolve => setTimeout(resolve, 500));
+  for (let i = 0; i < 20 && !(await serviceHealth()); i++) await new Promise(resolve => setTimeout(resolve, 500));
   openUrl(`http://127.0.0.1:${port}`);
   console.log(t("\n初期設定が完了しました。会議データは " + home + " に保存されます。", `\nSetup complete. Meeting data is stored in ${home}.`));
 }
@@ -474,7 +527,7 @@ async function configure(provider, language) {
     console.log(t(`AIを${provider === "codex" ? "Codex" : "Claude Code"}に変更しました。`, `AI changed to ${provider === "codex" ? "Codex" : "Claude Code"}.`));
   }
   if (!provider && !language) throw new Error(t("--provider または --language を指定してください", "Specify --provider or --language"));
-  if (await health()) {
+  if (await serviceHealth()) {
     stop();
     await start();
   }
@@ -482,7 +535,7 @@ async function configure(provider, language) {
 
 async function update() {
   const channel = pkg.version.includes("-") ? "beta" : "latest";
-  const wasRunning = Boolean(await health());
+  const wasRunning = Boolean(await serviceHealth());
   console.log(t(`LiveMTGを${channel}チャンネルの最新版へ更新します…`, `Updating LiveMTG from the ${channel} channel…`));
   const result = spawnSync("npm", ["install", "-g", `live-mtg@${channel}`],
     { stdio: "inherit", shell: isWindows });
@@ -490,7 +543,7 @@ async function update() {
   if (isMac && existsSync(macPlistPath())) installDaemon();
   else if (wasRunning) {
     stop();
-    for (let i = 0; i < 20 && await health(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+    for (let i = 0; i < 20 && await serviceHealth(); i++) await new Promise(resolve => setTimeout(resolve, 250));
     await start();
   }
   console.log(t("更新が完了しました", "Update complete"));
@@ -571,7 +624,7 @@ try {
   else if (command === "serve") serve();
   else if (command === "start") await start();
   else if (command === "stop") stop();
-  else if (command === "status") console.log(await health() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
+  else if (command === "status") console.log(await serviceHealth() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
   else if (command === "dashboard") {
     // `npm install -g live-mtg && live-mtg` must not open a dashboard that only
     // looks usable. On first launch, choose the AI and verify every required

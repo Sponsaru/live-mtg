@@ -147,9 +147,15 @@ def desktop_health():
     if ASR_BACKEND == "cpp":
         checks.append({"id": "model", "label": _t("文字起こしモデル", "Transcription model"), "ok": os.path.isfile(MODEL),
                        "required": True, "help": _t("ggml-large-v3-turbo.binを取得し、MODELに保存先を設定してください", "Download ggml-large-v3-turbo.bin and set MODEL to its path")})
-    return {"ok": all(x["ok"] for x in checks if x["required"]), "checks": checks,
+    ai_ok = all(x["ok"] for x in checks if x["id"] in ("ai", "ai-login"))
+    audio_ok = all(x["ok"] for x in checks if x["id"] in ("ffmpeg", "asr", "model"))
+    return {"ok": ai_ok and audio_ok, "aiOk": ai_ok, "audioOk": audio_ok, "checks": checks,
             "platform": platform.system(), "dataDir": RUN, "version": APP_VERSION,
             "aiProvider": AI_PROVIDER, "language": LANGUAGE}
+
+def service_health():
+    """CLIと録音UI用の軽量生存確認。外部CLIは呼ばず即応する。"""
+    return {"ok": True, "version": APP_VERSION, "service": "live-mtg"}
 
 def set_ai_provider(provider):
     global AI_PROVIDER
@@ -1621,8 +1627,7 @@ def make_slides(theme="neutral"):
     return ok, (r.stderr or r.stdout or "").strip()
 
 def make_deck(theme="neutral"):
-    """従来の経営者向けスライドデッキ生成（make-slides.sh→$SDIR/slides.html）。
-    v52でマインドマップに置き換えられたが、依頼者要望（2026-07-14）でマインドマップと併存の形で復活。"""
+    """Slide Work正典のhybrid型で完成スライドデッキを生成する。"""
     m = read_meta(current_id)
     env = dict(_claude_env(), SDIR=sdir(current_id), TITLE=m.get("title", _t("会議", "Meeting")),
                SLIDE_MODEL=SLIDE_MODEL, THEME=theme, AI_PROVIDER=AI_PROVIDER,
@@ -2320,6 +2325,8 @@ class H(BaseHTTPRequestHandler):
 
     def do_GET(self):
         p = self.path.split("?", 1)[0]
+        if p == "/api/health":
+            return self._send(200, json.dumps(service_health(), ensure_ascii=False))
         if p == "/api/desktop-health":
             return self._send(200, json.dumps(desktop_health(), ensure_ascii=False))
         if p == "/api/settings":

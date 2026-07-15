@@ -2,6 +2,8 @@
 
 LiveMTG is a local-first meeting copilot that transcribes conversations in real time and turns them into structured notes, suggested questions, meeting guidance, mind maps, polished minutes, and slides.
 
+Completed slide decks use the vendored neutral **Slide Work** pattern system in hybrid mode: message layouts for conclusions and informative layouts for evidence, comparisons, decisions, and actions.
+
 English and Japanese are supported for the interface, transcription, and AI-generated output.
 
 ```bash
@@ -25,6 +27,8 @@ Report bugs through [GitHub Issues](https://github.com/Sponsaru/live-mtg/issues)
 ## 日本語
 
 LiveMTGは、会話をリアルタイムに文字起こし・整理し、次に聞く質問、会議ガイド、マインドマップ、清書議事録、スライドを表示するローカル実行型ツールです。
+
+完成スライドは **Slide Work** のニュートラル型を正典にし、結論はMESSAGE型、根拠・比較・決定・行動はINFORMATIVE型を使うhybrid構成で生成します。
 
 ```bash
 npm install -g live-mtg@beta

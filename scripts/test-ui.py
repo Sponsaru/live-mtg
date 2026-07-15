@@ -19,8 +19,20 @@ assert "/api/recording-heartbeat" in html and "/api/recording-heartbeat" in serv
 assert "serverRecording && capturing" in html, "stop button must reflect this tab's recorder"
 assert "hardMs:15000" in html and "reachedHardLimit" in html, "audio must upload within 15 seconds"
 assert "/api/desktop-health" in html and "/api/ai-check" in html
+assert 'await api(\'/api/health\')' in html, "recording must use the lightweight server check"
+assert "if(!health||!health.ok)" not in html, "AI/ASR diagnostics must not block raw recording"
+assert 'p == "/api/health"' in server and "def service_health():" in server
 assert 'id="livemtg-back"' in slides and 'href="/"' in slides
 assert "if (!setupComplete()) await onboard" in cli, "first launch must run onboarding"
 assert "running.version === pkg.version" in cli, "dashboard must replace an outdated server"
+assert 'await fetchJson("/api/state"' in cli, "CLI must detect a legacy server occupying the port"
+assert "hasMeetings(defaultHome)" in cli and "hasMeetings(legacyHome)" in cli
+assert '(autoLegacyHome ? "ja" : detectedLanguage())' in cli
+assert "<key>LIVE_MTG_HOME</key>" in cli, "daemon must preserve the selected data home"
+assert "if (hadMacDaemon)" in cli and "installDaemon();" in cli, "legacy daemon must be replaced permanently"
+daemon_check = cli.index("const hadMacDaemon")
+server_return = cli.index("if (currentServer && (!hadMacDaemon || currentMacDaemon))")
+assert daemon_check < server_return, "plist migration must be checked before the same-version early return"
+assert 'plist.includes(fileURLToPath(import.meta.url))' in cli
 
 print("Meeting-critical UI state and navigation OK")
