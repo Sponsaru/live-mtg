@@ -44,7 +44,8 @@ assert "body:not(.slidemode){overflow-x:hidden}" in html, "header controls must 
 assert "grid-template-columns:58px 74px" in html, "header status must not leave empty space between labels"
 assert "el.title=tr(`最終解析" in html, "relative analysis age should remain available without changing layout"
 assert "（${ago}）`" not in html.split("el.textContent=tr(", 1)[1].split(";", 1)[0], "relative age must not be visible in the live header"
-assert 'id="livenoteinput"' in html and "/api/live-notes" in html and "/api/live-notes" in server
+assert 'id="copilotbubble"' in html and 'class="copilot-body"' in html
+assert "correctionRequest=api('/api/live-notes'" in html and "/api/live-notes" in server
 assert "依頼者のライブ補足・訂正（文字起こしより優先）" in server
 assert 'p == "/api/cancel"' in server and "toast-cancel" in html and "cancelCurrentOperation" in html
 assert 'data-mapview="timeline"' in html and "timeline-map" in html and 'entry.setdefault("at", now[:5])' in server

@@ -193,27 +193,21 @@
   .nextq,.nextintenttext{display:block;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent{display:none;width:calc(100% - 12px);max-width:none;margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   .nextinlineintent.show{display:block}.nextinlineintent b{display:block;color:#294d82;font-size:12px;letter-spacing:.04em;margin-bottom:3px}
-  .live-note{margin:0 22px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .live-note-label{font-size:13px;font-weight:700;color:var(--sub);white-space:nowrap}
-  .live-note-form{display:flex;align-items:center;gap:7px;flex:1;min-width:min(420px,100%)}
-  .live-note-form input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 14px;font:500 14px/1.3 inherit;color:var(--ink)}
-  .live-note-form input:focus{outline:2px solid rgba(0,113,227,.22);border-color:var(--blue)}
-  .live-note-form button{flex:none;border:0;border-radius:999px;background:var(--ink);color:#fff;padding:9px 14px;font:650 13px/1 inherit;cursor:pointer}
-  .live-note-form button.live-note-chat{background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .live-note-history{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-left:88px}
-  .live-note-chip{max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--sub);padding:4px 9px;font-size:11px}
-  body.slidemode .live-note{position:fixed;right:18px;bottom:18px;z-index:36;width:min(650px,calc(100vw - 36px));margin:0;padding:8px;
-    border:1px solid rgba(0,0,0,.11);border-radius:16px;background:rgba(255,255,255,.92);box-shadow:0 12px 36px rgba(0,0,0,.14);backdrop-filter:blur(18px)}
-  body.slidemode .live-note-label,body.slidemode .live-note-history{display:none}
-  body.slidemode .live-note-form{min-width:0}
-  @media(max-width:720px){.live-note{align-items:flex-start}.live-note-label{width:100%}.live-note-form{min-width:100%}.live-note-history{padding-left:0}}
   /* 会議前の任意作戦チャット */
-  .strategy-modal{width:min(1040px,96vw)!important}
+  #sbg{align-items:stretch;justify-content:flex-end;padding:0;background:rgba(0,0,0,.22)}
+  #sbg .strategy-modal{width:min(560px,100vw)!important;height:100dvh;max-height:none;margin:0;border-radius:22px 0 0 22px;padding:0;overflow:hidden;display:flex;flex-direction:column;transform:translateX(28px);transition:transform .22s ease}
+  #sbg.show .strategy-modal{transform:translateX(0)}
+  .copilot-head{display:flex;align-items:center;gap:11px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  .copilot-head h3{margin:0;flex:1}.copilot-head .x{border:0;background:#f0f0f2;border-radius:50%;width:34px;height:34px;font-size:22px;cursor:pointer}
+  .copilot-intro{margin:0;padding:10px 20px 0;color:var(--sub);font-size:13px;line-height:1.55}
+  .copilot-body{min-height:0;overflow:auto;padding:12px 20px 18px;display:flex;flex-direction:column;flex:1}
+  .copilot-bubble{position:fixed;right:22px;bottom:22px;z-index:34;display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:#111;color:#fff;padding:13px 18px;box-shadow:0 12px 32px rgba(0,0,0,.22);font:650 14px/1 inherit;cursor:pointer;transition:.18s}
+  .copilot-bubble:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(0,0,0,.27)}.copilot-bubble .menu-icon{width:18px;height:18px}
   .prep-quick{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
   .prep-quick button{font-family:inherit;border:1px solid #cddcf0;background:#f7faff;color:#315580;border-radius:18px;
     padding:7px 11px;font-size:13px;font-weight:800;cursor:pointer}.prep-quick button:hover{background:#eaf2ff}
-  .strategy-workspace{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:12px}
-  .strategy-chatcol{min-width:0}.strategy-log{height:min(50vh,440px);overflow:auto;background:#f5f7fb;border:1px solid var(--line);border-radius:12px;
+  .strategy-workspace{display:flex;flex-direction:column;min-height:0;gap:12px;flex:1}
+  .strategy-chatcol{min-width:0;display:flex;flex-direction:column;min-height:330px;flex:1}.strategy-log{min-height:230px;flex:1;overflow:auto;background:#f5f7fb;border:1px solid var(--line);border-radius:12px;
     padding:13px;display:flex;flex-direction:column;gap:10px}
   .smsg{max-width:86%;padding:10px 13px;border-radius:14px;font-size:15px;line-height:1.65;white-space:pre-wrap}
   .smsg.user{align-self:flex-end;background:#237bb0;color:#fff;border-bottom-right-radius:4px}
@@ -223,7 +217,8 @@
     color:#fff;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(21,87,127,.24);transition:.15s}
   .strategy-send .send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(21,87,127,.3)}
   .strategy-send .send-btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
-  .prep-board{height:min(50vh,440px);overflow:auto;background:#fbfcfe;border:1px solid #d8e2ec;border-radius:12px;padding:12px}
+  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff}.prep-details>summary{padding:11px 13px;cursor:pointer;font-size:13px;font-weight:700}.prep-details[open]>summary{border-bottom:1px solid var(--line)}
+  .prep-board{max-height:280px;overflow:auto;background:#fbfcfe;padding:12px}
   .prep-board h4{margin:0 0 9px;color:#294d82;font-size:15px}.pbcard{background:#fff;border:1px solid #e0e7ee;
     border-radius:9px;padding:9px 10px;margin-bottom:8px}.pbcard .pbt{font-size:11px;font-weight:900;color:#58708f;letter-spacing:.05em;margin-bottom:4px}
   .pbcard .pbv{font-size:13.5px;line-height:1.55;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
@@ -232,7 +227,7 @@
   .prep-save .save-icon{font-size:18px;flex:none}.prep-save .save-info{min-width:0;flex:1}.prep-save .save-info span{display:block;font-size:10px;font-weight:900;color:#71869b;letter-spacing:.05em}
   .prep-save .save-info strong{display:block;font-size:12px;color:#314c68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prep-save .save-info small{display:block;font-size:10px;color:#8595a5}
   .prep-save button{flex:none;border:1px solid #b9cbda;background:#fff;color:#315b7a;border-radius:8px;padding:6px 8px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
-  @media(max-width:820px){.strategy-workspace{grid-template-columns:1fr}.prep-board{height:auto;max-height:34vh}}
+  @media(max-width:620px){#sbg .strategy-modal{border-radius:0}.copilot-bubble{right:14px;bottom:14px;padding:13px}.copilot-bubble span{display:none}}
   /* AIサポート（会話から疑問・要調査を検出して補足。議事＝青と区別するため黄系） */
   .assist{margin:0 22px 8px; display:none; flex-direction:column; gap:9px}
   .assist.show{display:flex}
@@ -568,7 +563,6 @@
     <div class="menuwrap">
       <button class="btn ghost" id="menubtn" title="操作メニュー">メニュー</button>
       <div class="menu" id="menu">
-        <button class="menu-item" id="strategybtn" title="構想の壁打ち・仮説・質問候補を整理し、選択フォルダとライブ参謀へ反映する"><svg class="menu-icon"><use href="#i-chat"/></svg><span class="menu-label">この会議の事前準備室</span></button>
         <button class="menu-item" id="full"><svg class="menu-icon"><use href="#i-file"/></svg><span class="menu-label">会話全文を見る</span></button>
         <button class="menu-item" id="goalbtn" title="目標と背景フォルダを設定すると、次の質問提案・相手の発言解析が常時更新される"><svg class="menu-icon"><use href="#i-target"/></svg><span class="menu-label">目標・ガイド設定</span></button>
         <details class="menu-group">
@@ -612,12 +606,6 @@
 <div class="nextwrap" id="nextwrap">
   <div class="nexthead"><span class="pulse"></span>今、次にするべき質問 <span class="nextsub">タップで意図を表示</span></div>
   <div class="nextchips" id="nextchips"></div>
-</div>
-
-<div class="live-note" id="livenote">
-  <span class="live-note-label">補足・訂正</span>
-  <div class="live-note-form"><input id="livenoteinput" placeholder="例：相手はA社ではなくB社 / 参考URL"><button id="livenoteadd">反映</button><button class="live-note-chat" id="livenotechat">AIと確認</button></div>
-  <div class="live-note-history" id="livenotehistory"></div>
 </div>
 
 <!-- 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
@@ -732,34 +720,35 @@
   </div>
 </div>
 
-<!-- 会議前の作戦会議（任意） -->
+<button class="copilot-bubble" id="copilotbubble" title="事前準備・補足・訂正をAIと話す"><svg class="menu-icon"><use href="#i-chat"/></svg><span>会議コパイロット</span></button>
+
+<!-- 会議前からライブ中まで続く会議コパイロット -->
 <div class="modal-bg" id="sbg">
   <div class="modal strategy-modal">
-    <h3><svg class="inline-icon"><use href="#i-chat"/></svg>この会議の事前準備室</h3>
-    <p>ラフな構想をそのまま投げてください。AI参謀が整理しつつ仮説・反論・質問候補を広げ、右の準備ボードを更新します。内容は<b>選択中の背景フォルダへ逐次保存</b>され、会議中のライブ参謀にも反映されます。</p>
-    <div class="prep-quick">
-      <button data-prep="今回の会議の着地点を整理したい。">着地点</button>
-      <button data-prep="相手について分かっていることを共有する。">相手情報</button>
-      <button data-prep="今の構想に対する仮説や別の切り口を広げてほしい。">仮説を広げる</button>
-      <button data-prep="相手から出そうな反論・懸念・見落としを洗い出してほしい。">懸念を洗う</button>
-      <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">質問を作る</button>
-    </div>
-    <div class="strategy-workspace">
-      <div class="strategy-chatcol">
-        <div class="strategy-log" id="slog"></div>
-        <div class="strategy-send">
-          <textarea id="sinput" rows="2" placeholder="例：相手は興味はあるけど、過去の導入失敗で警戒している。今回はトライアルの合意まで行きたい"></textarea>
-          <button class="send-btn" id="ssend">送信 →</button>
+    <div class="copilot-head"><svg class="inline-icon"><use href="#i-chat"/></svg><h3>会議コパイロット</h3><button class="x" id="sclose" aria-label="閉じる">×</button></div>
+    <p class="copilot-intro">事前準備も、会議中の訂正もここへ。URLを送れば調べ、選択中の背景フォルダとライブ解析へ反映します。</p>
+    <div class="copilot-body">
+      <div class="prep-quick">
+        <button data-prep="今回の会議の着地点を整理したい。">着地点</button>
+        <button data-prep="相手について分かっていることを共有する。">相手情報</button>
+        <button data-prep="この前提は間違い。正しい情報に訂正したい。">勘違いを訂正</button>
+        <button data-prep="このURLを調べて、会議に必要な要点を反映してほしい：">URLを調べる</button>
+        <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">質問を作る</button>
+      </div>
+      <div class="strategy-workspace">
+        <div class="strategy-chatcol">
+          <div class="strategy-log" id="slog"></div>
+          <div class="strategy-send">
+            <textarea id="sinput" rows="2" placeholder="例：相手はA社ではなくB社。このURLも調べて"></textarea>
+            <button class="send-btn" id="ssend">送信 →</button>
+          </div>
         </div>
+        <details class="prep-details"><summary>準備ボード・反映先</summary><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></details>
       </div>
-      <div>
-        <div class="prep-board" id="sboard"></div>
-        <div class="prep-save" id="spath"></div>
+      <div class="row" style="justify-content:space-between">
+        <button class="cancel" id="sreset">最初から</button>
+        <span class="nextsub">送信するたび自動反映</span>
       </div>
-    </div>
-    <div class="row" style="justify-content:space-between">
-      <button class="cancel" id="sreset">最初から</button>
-      <button class="ok" id="sclose">会議に反映して閉じる</button>
     </div>
   </div>
 </div>
@@ -910,7 +899,7 @@ function translateStatic(){
   document.querySelectorAll('[title],[placeholder]').forEach(el=>['title','placeholder'].forEach(a=>{const v=el.getAttribute(a),x=EN_ATTR.get(v)||EN_TEXT.get(v);if(x)el.setAttribute(a,x);}));
   $('mtypedl').innerHTML='<option value="Sales"><option value="Interview"><option value="Research"><option value="Internal sync"><option value="1-on-1"><option value="Leadership meeting">';
   $('stancedl').innerHTML='<option value="Presenter"><option value="Researcher"><option value="Interviewer"><option value="Facilitator"><option value="Reporter"><option value="Participant">';
-  const prep=['Clarify the desired outcome for this meeting.','Share what is known about the other party.','Expand the current hypotheses and alternative angles.','Identify likely objections, risks, and blind spots.','Draft the questions needed to achieve the meeting goal.'];
+  const prep=['Clarify the desired outcome for this meeting.','Share what is known about the other party.','This assumption is wrong. I want to provide the correct information.','Research this URL and apply the relevant findings to the meeting:','Draft the questions needed to achieve the meeting goal.'];
   document.querySelectorAll('[data-prep]').forEach((el,i)=>{if(prep[i])el.dataset.prep=prep[i];});
   document.title='LiveMTG | Live meeting copilot';
 }
@@ -963,7 +952,7 @@ async function cancelCurrentOperation(){
   catch(e){toast(tr('キャンセルできませんでした','Could not cancel.'));}
 }
 
-let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', liveNotesSession='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
+let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
 let startupPending=true; // 初回表示で前回の別会議を勝手に表示しない
 function setMenuLabel(id,text){const b=$(id),label=b&&b.querySelector('.menu-label');if(label)label.textContent=text;}
 function renderLastUpdate(){
@@ -1012,7 +1001,6 @@ function applyState(s){
   // 会議セレクタ
   const sel=$('sess'); const cur=s.current&&s.current.id;
   currentSessionId=cur||'';
-  if(currentSessionId&&currentSessionId!==liveNotesSession) loadLiveNotes();
   const sig = s.sessions.map(x=>x.id+'|'+x.title+'|'+(x.hasSlides?'1':'0')).join(',')+'::'+cur;
   if(sel.dataset.sig!==sig){
     sel.dataset.sig=sig;
@@ -1553,11 +1541,13 @@ async function openStrategyFolder(){
   const r=await api('/api/strategy_open',{}); toast(r.ok?tr('保存先をFinderで開きました','Opened the save location.'):tr('開けません：','Could not open it: ')+localizeMessage(r.msg||''));
 }
 function openGoalFromPrep(){ $('sbg').classList.remove('show'); $('goalbtn').click(); }
-$('strategybtn').onclick=async()=>{
+async function openCopilot(){
   $('sbg').classList.add('show'); $('sinput').value=''; drawStrategy([],{},'',false);
   try{ const r=await api('/api/strategy'); if(r.ok) drawStrategy(r.messages||[],r.board||{},r.exportPath||'',r.folderMode); }catch(e){}
   setTimeout(()=>$('sinput').focus(),50);
-};
+}
+if($('strategybtn'))$('strategybtn').onclick=openCopilot;
+$('copilotbubble').onclick=openCopilot;
 [...document.querySelectorAll('[data-prep]')].forEach(b=>b.onclick=()=>{ $('sinput').value=b.dataset.prep; $('sinput').focus(); });
 $('ssend').onclick=async()=>{
   const message=$('sinput').value.trim(); if(!message)return;
@@ -1565,14 +1555,20 @@ $('ssend').onclick=async()=>{
   $('slog').insertAdjacentHTML('beforeend',`<div class="smsg user">${esc(message)}</div><div class="smsg assistant" id="sthinking">${curProj?tr('選択フォルダの資料を調べながら考え中…','Reviewing the selected folder…'):tr('考え中…','Thinking…')}</div>`);
   $('slog').scrollTop=$('slog').scrollHeight; $('sinput').value='';
   try{
+    const correctionRequest=api('/api/live-notes',{text:message}).catch(()=>null);
     const r=await api('/api/strategy',{message});
-    if(r.ok){ drawStrategy(r.messages||[],r.board||{},r.exportPath,r.folderMode); await pollState(); }
+    if(r.ok){
+      drawStrategy(r.messages||[],r.board||{},r.exportPath,r.folderMode);
+      await correctionRequest;
+      await pollState();
+    }
     else { $('sthinking').textContent=tr('失敗：','Failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')); }
   }catch(e){ $('sthinking').textContent=tr('送信に失敗しました','Could not send the message.'); }
   $('ssend').disabled=false; $('sinput').disabled=false; $('sinput').focus();
 };
 $('sinput').onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') $('ssend').click(); };
-$('sclose').onclick=()=>{ $('sbg').classList.remove('show'); toast(tr('事前準備をライブ参謀に反映しました','Preparation applied to the live copilot.')); };
+$('sclose').onclick=()=> $('sbg').classList.remove('show');
+$('sbg').onclick=e=>{if(e.target===$('sbg'))$('sbg').classList.remove('show');};
 $('sreset').onclick=async()=>{
   if(!confirm(tr('事前準備の壁打ち履歴・準備ボード・フォルダへの書き出しを消し、最初から始めますか？','Clear the prep chat, preparation board, and exported file, then start over?')))return;
   const r=await api('/api/strategy',{reset:true}); if(r.ok){drawStrategy([],{},'',!!curProj);await pollState();}
@@ -1619,27 +1615,6 @@ $('full').onclick = ()=>{ drawerOpen=true; $('drbg').classList.add('show'); $('d
 function closeDrawer(){ drawerOpen=false; $('drbg').classList.remove('show'); $('drawer').classList.remove('show'); clearInterval(drawerTimer); }
 $('drx').onclick=closeDrawer; $('drbg').onclick=closeDrawer;
 
-function drawLiveNotes(notes){
-  const a=Array.isArray(notes)?notes:[];
-  $('livenotehistory').innerHTML=a.slice(-3).reverse().map(x=>`<span class="live-note-chip" title="${escAttr(x.text||'')}">${esc((x.ts?x.ts+' ':'')+(x.text||''))}</span>`).join('');
-}
-async function loadLiveNotes(){
-  const sid=currentSessionId; if(!sid)return;
-  liveNotesSession=sid;
-  try{const r=await fetch('/api/live-notes?t='+Date.now(),{cache:'no-store'});const j=await r.json();if(currentSessionId===sid)drawLiveNotes(j.notes||[]);}catch(e){}
-}
-$('livenoteadd').onclick=async()=>{
-  const text=$('livenoteinput').value.trim();if(!text)return;
-  $('livenoteadd').disabled=true;
-  try{
-    const r=await api('/api/live-notes',{text});
-    if(r.ok){$('livenoteinput').value='';drawLiveNotes(r.notes||[]);toast(tr('補足・訂正を次の解析へ反映しました','Context correction applied to the next analysis.'));await pollState();}
-    else toast(tr('反映に失敗：','Could not apply: ')+localizeMessage(r.msg||''));
-  }catch(e){toast(tr('反映に失敗しました','Could not apply the correction.'));}
-  $('livenoteadd').disabled=false;$('livenoteinput').focus();
-};
-$('livenoteinput').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();$('livenoteadd').click();}};
-$('livenotechat').onclick=()=>$('strategybtn').click();
 // マインドマップ：生成済みなら即開く／未生成なら生成。↻ボタンで作り直し
 function openSlides(){ window.open('/slides.html?ts='+Date.now(), '_blank'); }
 async function genSlides(){
