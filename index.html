@@ -790,7 +790,7 @@
     <p>オンライン会議の<b>相手の声も</b>文字起こしするには「会議音声も取り込む」を選び、次の共有画面で<b>会議のタブ</b>を選んで<b>「タブの音声を共有」にチェック</b>してください（自分の声はマイクから拾います）。</p>
     <label style="display:block;font-size:13px;font-weight:700;color:var(--sub);margin-bottom:5px">使用するマイク</label>
     <div class="pickrow"><select id="micsel" style="width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink)"></select><button type="button" class="pickbtn" id="micrefresh"><svg class="inline-icon"><use href="#i-refresh"/></svg>再読込</button></div>
-    <p style="margin:7px 0 0;font-size:12px">※iPhoneが出ない場合は、MacとiPhoneのWi-Fi・BluetoothをONにし、iPhoneを近くに置いて「再読込」を押してください。</p>
+    <p style="margin:7px 0 0;font-size:12px">※一覧表示だけでは接続しません。選択後、下の録音方法を押した時だけそのマイクへ接続します。</p>
     <div class="row">
       <button class="cancel" id="rmic"><svg class="inline-icon"><use href="#i-mic"/></svg>マイクのみ</button>
       <button class="ok" id="rtab"><svg class="inline-icon"><use href="#i-screen"/></svg>会議音声も取り込む</button>
@@ -1429,14 +1429,9 @@ async function doStop(){
   await pollData();
 }
 // マイク一覧をモーダルに表示（前回の選択を記憶。ラベルは一度マイク許可すると表示される）
-async function fillMics(requestPermission=true){
+async function fillMics(){
   $('micsel').disabled=true;
   $('micsel').innerHTML=`<option>${tr('マイクを検出中…','Detecting microphones…')}</option>`;
-  if(requestPermission&&!capturing){
-    let probe=null;
-    try{probe=await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){}
-    if(probe)probe.getTracks().forEach(t=>t.stop());
-  }
   let mics=[];
   try{mics=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}catch(e){}
   mics=mics.filter((d,i,a)=>d.deviceId&&a.findIndex(x=>x.deviceId===d.deviceId)===i);
@@ -1446,8 +1441,8 @@ async function fillMics(requestPermission=true){
   $('micsel').disabled=false;
 }
 function openRecordingSetup(kind='meeting'){requestedCaptureKind=kind==='prep'?'prep':'meeting';$('rbg').classList.add('show');fillMics();}
-$('micrefresh').onclick=()=>fillMics(true);
-if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{if($('rbg').classList.contains('show'))fillMics(false);});
+$('micrefresh').onclick=fillMics;
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{if($('rbg').classList.contains('show'))fillMics();});
 $('rec').onclick = ()=>{ if(capturing) doStop(); else openRecordingSetup('meeting'); };
 $('rbg').onclick = e=>{ if(e.target===$('rbg')) $('rbg').classList.remove('show'); };
 $('rmic').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(false,requestedCaptureKind); };

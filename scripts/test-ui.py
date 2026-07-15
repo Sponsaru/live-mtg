@@ -51,7 +51,8 @@ assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html
 assert '"prep-audio" if is_prep else "audio"' in server and 'prep-transcript.txt' in server
 assert 'class="prep-summary"' in html and 'overflow-y:auto;overscroll-behavior:contain' in html
-assert 'id="micrefresh"' in html and "getUserMedia({audio:true})" in html and "addEventListener('devicechange'" in html
+assert 'id="micrefresh"' in html and "getUserMedia({audio:true})" not in html and "addEventListener('devicechange'" in html
+assert "$('micrefresh').onclick=fillMics" in html and "getUserMedia({audio:audioC})" in html
 assert 'join(homedir(), ".local", "bin")' in cli and "mlx-whisper installation failed" in cli
 assert "correctionRequest=api('/api/live-notes'" in html and "/api/live-notes" in server
 assert "依頼者のライブ補足・訂正（文字起こしより優先）" in server
