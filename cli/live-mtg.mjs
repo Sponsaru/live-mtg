@@ -195,7 +195,9 @@ async function prepareRuntime(assumeYes) {
       await installWithSystemManager("pipx", ["install", "pipx"], [], assumeYes);
     }
     if (commandExists("pipx") && await confirmStep(t("mlx-whisperをインストールしますか？", "Install mlx-whisper?"), assumeYes)) {
-      runInteractive("pipx", ["install", "mlx-whisper"]);
+      const installed = runInteractive("pipx", ["install", "mlx-whisper"]);
+      if (!installed) console.log(t("mlx-whisperのインストールに失敗しました。上のpipxエラーを確認し、live-mtg onboardを再実行してください。", "mlx-whisper installation failed. Review the pipx error above, then run live-mtg onboard again."));
+      else if (!commandExists("mlx_whisper")) console.log(t("mlx-whisperは導入されましたが実行ファイルを検出できません。~/.local/bin を確認してください。", "mlx-whisper was installed but its executable was not detected. Check ~/.local/bin."));
     }
   }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {

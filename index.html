@@ -218,12 +218,13 @@
     color:#fff;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(21,87,127,.24);transition:.15s}
   .strategy-send .send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(21,87,127,.3)}
   .strategy-send .send-btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
-  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff;min-height:0;overflow:hidden;display:flex;flex-direction:column}.prep-details>summary{padding:11px 13px;cursor:pointer;font-size:13px;font-weight:700}.prep-details[open]>summary{border-bottom:1px solid var(--line)}
-  .prep-board{min-height:0;flex:1;overflow:auto;background:#fbfcfe;padding:12px}
-  .prep-board h4{margin:0 0 9px;color:#294d82;font-size:15px}.pbcard{background:#fff;border:1px solid #e0e7ee;
-    border-radius:9px;padding:9px 10px;margin-bottom:8px}.pbcard .pbt{font-size:11px;font-weight:900;color:#58708f;letter-spacing:.05em;margin-bottom:4px}
-  .pbcard .pbv{font-size:13.5px;line-height:1.55;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
-  .pbcard li{font-size:13px;padding:4px 0 4px 14px;border:none;line-height:1.45}.pbcard li::before{width:5px;height:5px;left:1px;top:11px;background:#6988b3}
+  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  .prep-summary{flex:none;padding:14px 16px;border-bottom:1px solid var(--line);font-size:16px;font-weight:700}
+  .prep-board{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;background:#fbfcfe;padding:16px;scrollbar-gutter:stable}
+  .prep-board h4{margin:0 0 12px;color:#294d82;font-size:19px}.pbcard{background:#fff;border:1px solid #e0e7ee;
+    border-radius:14px;padding:14px 16px;margin-bottom:12px}.pbcard .pbt{font-size:14px;font-weight:750;color:#58708f;letter-spacing:.02em;margin-bottom:7px}
+  .pbcard .pbv{font-size:17px;line-height:1.7;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
+  .pbcard li{font-size:16px;padding:6px 0 6px 16px;border:none;line-height:1.65}.pbcard li::before{width:6px;height:6px;left:1px;top:16px;background:#6988b3}
   .prep-save{display:flex;align-items:center;gap:9px;margin-top:8px;padding:9px 10px;background:#f3f7fb;border:1px solid #dbe5ed;border-radius:10px;min-width:0}
   .prep-save .save-icon{font-size:18px;flex:none}.prep-save .save-info{min-width:0;flex:1}.prep-save .save-info span{display:block;font-size:10px;font-weight:900;color:#71869b;letter-spacing:.05em}
   .prep-save .save-info strong{display:block;font-size:12px;color:#314c68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prep-save .save-info small{display:block;font-size:10px;color:#8595a5}
@@ -744,7 +745,7 @@
             <button class="send-btn" id="ssend">送信 →</button>
           </div>
         </div>
-        <details class="prep-details" open><summary>準備ボード・反映先</summary><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></details>
+        <section class="prep-details"><div class="prep-summary">準備ボード・反映先</div><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></section>
       </div>
     </div>
   </div>
@@ -788,7 +789,8 @@
     <h3>録音を開始</h3>
     <p>オンライン会議の<b>相手の声も</b>文字起こしするには「会議音声も取り込む」を選び、次の共有画面で<b>会議のタブ</b>を選んで<b>「タブの音声を共有」にチェック</b>してください（自分の声はマイクから拾います）。</p>
     <label style="display:block;font-size:13px;font-weight:700;color:var(--sub);margin-bottom:5px">使用するマイク</label>
-    <select id="micsel" style="width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink)"></select>
+    <div class="pickrow"><select id="micsel" style="width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink)"></select><button type="button" class="pickbtn" id="micrefresh"><svg class="inline-icon"><use href="#i-refresh"/></svg>再読込</button></div>
+    <p style="margin:7px 0 0;font-size:12px">※iPhoneが出ない場合は、MacとiPhoneのWi-Fi・BluetoothをONにし、iPhoneを近くに置いて「再読込」を押してください。</p>
     <div class="row">
       <button class="cancel" id="rmic"><svg class="inline-icon"><use href="#i-mic"/></svg>マイクのみ</button>
       <button class="ok" id="rtab"><svg class="inline-icon"><use href="#i-screen"/></svg>会議音声も取り込む</button>
@@ -906,7 +908,10 @@ function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
 // [object Object] にせず、情報を落とさず人が読める1行へ正規化する。
 function itemText(value){
   if(value===null||value===undefined)return '';
-  if(typeof value!=='object')return String(value);
+  if(typeof value!=='object'){
+    const text=String(value).trim();
+    return /^\[object Object\]$/i.test(text)?'':text;
+  }
   if(Array.isArray(value))return value.map(itemText).filter(Boolean).join(' ・ ');
   const first=['label','issue','title','question','q','what','text','name'].map(k=>value[k]).find(v=>v!==undefined&&v!==null&&String(v).trim());
   const detail=['detail','description','answer','analysis','reading','status'].map(k=>value[k]).find(v=>v!==undefined&&v!==null&&String(v).trim()&&String(v)!==String(first));
@@ -916,7 +921,7 @@ function itemText(value){
   return parts.join(' — ');
 }
 function fill(id, arr, render){
-  const ul=$(id), items=arr||[];
+  const ul=$(id), items=(Array.isArray(arr)?arr:[]).filter(x=>!(typeof x==='string'&&/^\[object Object\]$/i.test(x.trim())));
   $('c-'+id).textContent=items.length;
   ul.innerHTML = items.length ? items.map(render).join('') : '<div class="empty">—</div>';
 }
@@ -1067,14 +1072,14 @@ async function pollData(){
     const r=await fetch('/data.json?t='+Date.now(),{cache:'no-store'});
     const d=await r.json();
     lastData=d;
-    $('summary').textContent=d.summary||'—';
+    $('summary').textContent=itemText(d.summary)||'—';
     fill('agenda', d.agenda, x=>`<li>${esc(itemText(x))}</li>`);
     fill('points', d.points, x=>`<li>${esc(itemText(x))}</li>`);
     fill('decisions', d.decisions, x=>`<li>${esc(itemText(x))}</li>`);
-    fill('todos', d.todos, x=>`<li><span class="who">${esc(x.who||tr('未定','Unassigned'))}</span>${esc(x.what||'')}</li>`);
+    fill('todos', d.todos, x=>`<li><span class="who">${esc(itemText(x&&x.who)||tr('未定','Unassigned'))}</span>${esc(itemText(x&&x.what))}</li>`);
     fill('open', d.open, x=>`<li>${esc(itemText(x))}</li>`);
     const sp=d.speakers||[];
-    $('who').innerHTML = sp.length ? `<b>${tr('参加者','Participants')}</b>`+sp.map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
+    $('who').innerHTML = sp.length ? `<b>${tr('参加者','Participants')}</b>`+sp.map(itemText).filter(Boolean).map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
     $('who').classList.toggle('show', sp.length>0);
     renderAssist(d.assist||[]);
     renderGuide(d.guide);
@@ -1200,10 +1205,10 @@ function deckHeight(){ const h=document.querySelector('header').offsetHeight;
 function ds(cls, inner){ return `<section class="ds ${cls||''}">${inner}</section>`; }
 function buildDeck(d){
   d=d||{};
-  const ml=(v,n=54)=>{let s=String(v||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n)+'…':s;};
-  const headline=v=>{const s=String(v||'').replace(/\s+/g,' ').trim(),p=s.split(/[\u3001。:：]/)[0];return (p||s).slice(0,30);};
+  const ml=(v,n=54)=>{let s=itemText(v).replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n)+'…':s;};
+  const headline=v=>{const s=itemText(v).replace(/\s+/g,' ').trim(),p=s.split(/[\u3001。:：]/)[0];return (p||s).slice(0,30);};
   let branches=[];
-  if(Array.isArray(d.mindmap)&&d.mindmap.length){ branches=d.mindmap.slice(0,8).map(x=>[String(x.topic||''),(x.groups||[]).slice(0,4)]); }
+  if(Array.isArray(d.mindmap)&&d.mindmap.length){ branches=d.mindmap.slice(0,8).map(x=>[itemText(x.topic),(x.groups||[]).slice(0,4)]); }
   else{
     if(d.summary)branches.push([tr('要旨','Summary'),[{label:tr('全体像','Overview'),items:[{label:headline(d.summary),detail:String(d.summary),status:tr('要旨','Summary')}]}]]);
     const add=(name,arr,render,limit=5)=>{const a=(Array.isArray(arr)?arr:[]).slice(0,limit).map(x=>{const full=render(x);return{label:headline(full),detail:full,status:name}}).filter(x=>x.detail);if(a.length)branches.push([name,[{label:tr('内容','Details'),items:a}]]);};
@@ -1424,14 +1429,25 @@ async function doStop(){
   await pollData();
 }
 // マイク一覧をモーダルに表示（前回の選択を記憶。ラベルは一度マイク許可すると表示される）
-async function fillMics(){
+async function fillMics(requestPermission=true){
+  $('micsel').disabled=true;
+  $('micsel').innerHTML=`<option>${tr('マイクを検出中…','Detecting microphones…')}</option>`;
+  if(requestPermission&&!capturing){
+    let probe=null;
+    try{probe=await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){}
+    if(probe)probe.getTracks().forEach(t=>t.stop());
+  }
   let mics=[];
-  try{ mics=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput'); }catch(e){}
+  try{mics=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}catch(e){}
+  mics=mics.filter((d,i,a)=>d.deviceId&&a.findIndex(x=>x.deviceId===d.deviceId)===i);
   const saved=localStorage.getItem('livemtg_mic')||'';
   $('micsel').innerHTML = `<option value="">${tr('既定のマイク（OSの設定に従う）','Default microphone')}</option>`
     + mics.map(d=>`<option value="${esc(d.deviceId)}"${d.deviceId===saved?' selected':''}>${esc(d.label||tr('マイク','Microphone'))}</option>`).join('');
+  $('micsel').disabled=false;
 }
 function openRecordingSetup(kind='meeting'){requestedCaptureKind=kind==='prep'?'prep':'meeting';$('rbg').classList.add('show');fillMics();}
+$('micrefresh').onclick=()=>fillMics(true);
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{if($('rbg').classList.contains('show'))fillMics(false);});
 $('rec').onclick = ()=>{ if(capturing) doStop(); else openRecordingSetup('meeting'); };
 $('rbg').onclick = e=>{ if(e.target===$('rbg')) $('rbg').classList.remove('show'); };
 $('rmic').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(false,requestedCaptureKind); };

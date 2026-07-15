@@ -19,7 +19,8 @@ assert "/api/recording-heartbeat" in html and "/api/recording-heartbeat" in serv
 assert "serverRecording && capturing" in html, "stop button must reflect this tab's recorder"
 assert "hardMs:15000" in html and "reachedHardLimit" in html, "audio must upload within 15 seconds"
 assert "function itemText(value)" in html and "esc(itemText(x))" in html, "structured AI items must never render as [object Object]"
-assert "def _live_list_text(value):" in server and "old_items = [_live_list_text" in server, "structured list values must be normalized before persistence"
+assert "^\\[object Object\\]$" in html and 're.fullmatch(r"\\[object Object\\]"' in server
+assert "def _live_list_text(value):" in server and "old_items = list(filter(None" in server, "structured list values must be normalized before persistence"
 assert "capture_heartbeat > 45" in server, "heartbeat expiry must exceed the 15-second audio chunk interval"
 assert '"detailing": bool(current_id)' in server and "s.detailing?" in html
 assert "/api/desktop-health" in html and "/api/ai-check" in html
@@ -49,6 +50,9 @@ assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html
 assert '"prep-audio" if is_prep else "audio"' in server and 'prep-transcript.txt' in server
+assert 'class="prep-summary"' in html and 'overflow-y:auto;overscroll-behavior:contain' in html
+assert 'id="micrefresh"' in html and "getUserMedia({audio:true})" in html and "addEventListener('devicechange'" in html
+assert 'join(homedir(), ".local", "bin")' in cli and "mlx-whisper installation failed" in cli
 assert "correctionRequest=api('/api/live-notes'" in html and "/api/live-notes" in server
 assert "依頼者のライブ補足・訂正（文字起こしより優先）" in server
 assert 'p == "/api/cancel"' in server and "toast-cancel" in html and "cancelCurrentOperation" in html

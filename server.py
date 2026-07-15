@@ -1390,7 +1390,8 @@ def _live_list_text(value):
     if value is None:
         return ""
     if not isinstance(value, (dict, list)):
-        return str(value).strip()
+        text = str(value).strip()
+        return "" if re.fullmatch(r"\[object Object\]", text, re.I) else text
     if isinstance(value, list):
         return " ・ ".join(filter(None, (_live_list_text(x) for x in value)))
     first = next((_live_list_text(value.get(k)) for k in
@@ -1413,8 +1414,8 @@ def _merge_live_patch(old, patch, now):
         obj["summary"] = patch["summary"].strip()
     for dst, src in (("agenda", "agenda_add"), ("points", "points_add"),
                      ("decisions", "decisions_add"), ("open", "open_add")):
-        old_items = [_live_list_text(x) for x in (obj.get(dst) or [])]
-        new_items = [_live_list_text(x) for x in (patch.get(src) or [])]
+        old_items = list(filter(None, (_live_list_text(x) for x in (obj.get(dst) or []))))
+        new_items = list(filter(None, (_live_list_text(x) for x in (patch.get(src) or []))))
         obj[dst] = _append_unique(old_items, new_items, 8)
     obj["todos"] = _append_unique(obj.get("todos"), patch.get("todos_add"), 8,
                                    lambda x: (str(x.get("who", "")) + "|" + str(x.get("what", ""))).strip() if isinstance(x, dict) else str(x))
