@@ -50,11 +50,11 @@ assert 'id="copilotbubble"' in html and 'class="copilot-body"' in html
 assert "livemtg_mindmap_mode" in html and "captureMindmapUi" in html and "restoreMindmapUi" in html, \
     "live mind-map refreshes must preserve the active tab, expanded nodes, and scroll position"
 assert "applyMindmapMode(btn.dataset.mapview)" in html, "mind-map tabs must persist across live updates"
-assert "mindmapMode='relation'" in html and "mindmapDefaultVersion='relation-v1'" in html, \
-    "live mind map must default to conversation relationships"
+assert "mindmapMode='tree'" in html and "mindmapDefaultVersion='tree-v1'" in html, \
+    "live mind map must default to the hierarchical topic map"
 assert all(token in slides for token in (
-    "data-generated-map", "data-generated-view", "livemtg_generated_map_mode", "||'relation'"
-)), "generated mind map must default to relationships and preserve the selected tab"
+    "data-generated-map", "data-generated-view", "livemtg_generated_map_mode", "defaultVersion='topics-v1'", "mode='topics'"
+)), "generated mind map must default to topics and preserve the selected tab"
 assert 'str(data.get("diagram") or "").strip()' in mindmap, "generated Mermaid must preserve line breaks"
 assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns:minmax(0,1.45fr)' in html
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html

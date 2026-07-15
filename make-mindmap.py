@@ -124,7 +124,7 @@ if not diagram:
 
 body = '''<div class="slide mindmap-page">
   <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div>
-    <div class="generated-maptools"><button data-generated-map="relation">%s</button><button data-generated-map="topics">%s</button><button data-generated-map="timeline">%s</button></div>
+    <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="relation">%s</button><button data-generated-map="timeline">%s</button></div>
   </div>
   <div class="stage">
     <div class="generated-map-view generated-relation" data-generated-view="relation"><div class="mermaid">%s</div></div>
@@ -136,7 +136,7 @@ body = '''<div class="slide mindmap-page">
     <div class="generated-map-view generated-timeline" data-generated-view="timeline">%s</div>
   </div>
 </div>''' % (html.escape(title), tr("会話のつながり・論点・時系列", "Relationships, topics, and timeline"),
-             tr("会話の関係", "Relationships"), tr("論点マップ", "Topics"), tr("時系列", "Timeline"),
+             tr("論点マップ", "Topics"), tr("会話の関係", "Relationships"), tr("時系列", "Timeline"),
              html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
              "".join(timeline_rows) or '<div class="generated-empty">%s</div>' % tr("発言を整理中です", "Organizing the conversation"))
 

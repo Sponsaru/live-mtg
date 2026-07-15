@@ -1200,16 +1200,17 @@ async function verifyAssist(i){
 
 // ===== 表示モード（リスト / マインドマップ）=====
 let view = localStorage.getItem('livemtg_view') || 'list';
-// 関係性を掴むことを主目的にし、初回だけ「会話の関係」を既定にする。
+// 内容の全体像を掴む「論点マップ」を初期表示にする。
+// 「会話の関係」は発言・判断の因果を見る別表示として混同しない。
 // 以後は利用者が最後に選んだ表示を守り、リアルタイム更新でも切り替えない。
-const mindmapDefaultVersion='relation-v1';
+const mindmapDefaultVersion='tree-v1';
 let mindmapMode=localStorage.getItem('livemtg_mindmap_mode');
 if(localStorage.getItem('livemtg_mindmap_default')!==mindmapDefaultVersion){
-  mindmapMode='relation';
+  mindmapMode='tree';
   localStorage.setItem('livemtg_mindmap_mode',mindmapMode);
   localStorage.setItem('livemtg_mindmap_default',mindmapDefaultVersion);
 }
-if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='relation';
+if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='tree';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
@@ -1268,7 +1269,7 @@ function buildDeck(d){
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
   const timeline=(Array.isArray(d.log)?d.log:[]).slice(-30).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
-    <div class="maptools"><button data-mapview="timeline">${tr('時系列','Timeline')}</button><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
+    <div class="maptools"><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button><button data-mapview="timeline">${tr('時系列','Timeline')}</button></div></div>
     <div class="dstage"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>

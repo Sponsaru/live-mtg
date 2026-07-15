@@ -238,13 +238,20 @@
     p.textContent=(i+1)+' / '+slides.length; s.appendChild(p);
   });
 
-  // 清書後も「会話の関係」を既定にし、利用者が選んだ表示は自動更新後も維持する。
+  // 清書後は階層型の「論点マップ」を既定にする。
+  // 「会話の関係」は因果を見る別表示として残し、選択は自動更新後も維持する。
   (function(){
     var allowed=['relation','topics','timeline'];
-    var mode=localStorage.getItem('livemtg_generated_map_mode')||'relation';
-    if(allowed.indexOf(mode)<0)mode='relation';
+    var defaultVersion='topics-v1';
+    var mode=localStorage.getItem('livemtg_generated_map_mode');
+    if(localStorage.getItem('livemtg_generated_map_default')!==defaultVersion){
+      mode='topics';
+      localStorage.setItem('livemtg_generated_map_mode',mode);
+      localStorage.setItem('livemtg_generated_map_default',defaultVersion);
+    }
+    if(allowed.indexOf(mode)<0)mode='topics';
     function apply(next){
-      mode=allowed.indexOf(next)>=0?next:'relation';
+      mode=allowed.indexOf(next)>=0?next:'topics';
       localStorage.setItem('livemtg_generated_map_mode',mode);
       document.querySelectorAll('[data-generated-view]').forEach(function(el){el.classList.toggle('on',el.dataset.generatedView===mode);});
       document.querySelectorAll('[data-generated-map]').forEach(function(el){el.classList.toggle('on',el.dataset.generatedMap===mode);});
