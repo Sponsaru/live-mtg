@@ -119,19 +119,14 @@
   select.sess{font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:10px;
     padding:9px 12px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;max-width:230px}
   select.sess option{color:#12232e}
-  .status{font-size:12px;line-height:1.25;width:174px;flex:0 0 174px;display:grid;gap:3px;font-variant-numeric:tabular-nums;overflow:hidden}
-  .status-main,.status-meta{display:flex;align-items:center;gap:7px;white-space:nowrap;min-width:0;overflow:hidden}
-  .status-recording,.status-job{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .status-provider,.status-job,.lastupdate{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .status-provider,.lastupdate{flex:none;text-align:left}
-  .status-provider{font-size:11px;opacity:.82}
-  .status-job{font-size:11px;font-weight:700;opacity:.82}
-  .status-job.active{color:var(--blue);opacity:1}
-  .lastupdate{font-size:11px;font-weight:700;opacity:.82}
+  .status{font-size:11px;line-height:1.2;width:132px;flex:0 0 132px;display:grid;grid-template-columns:58px 74px;align-items:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+  .status-recording,.lastupdate{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .status-recording{font-weight:700}
+  .status-recording.active{color:var(--blue)}
+  .lastupdate{font-size:11px;font-weight:700;opacity:.82;border-left:1px solid var(--line);padding-left:9px;text-align:left}
   .lastupdate.stale{color:#ffe08a;opacity:1}
   @media(max-width:1180px){
     header h1{display:none}select.sess{max-width:180px}
-    .status{width:92px;flex-basis:92px}.status-provider,.status-job{display:none}.status-main,.status-meta{display:block}
   }
   @media(max-width:900px){
     header{flex-wrap:wrap}.controls{width:100%;margin-left:0;overflow-x:auto;padding-bottom:2px}.status{display:none}
@@ -574,9 +569,8 @@
         </details>
       </div>
     </div>
-    <div class="status">
-      <div class="status-main"><span class="status-recording" id="st">接続中…</span><span class="status-provider" id="stprovider">AI: —</span></div>
-      <div class="status-meta"><span class="status-job" id="stjob">待機</span><span class="lastupdate" id="lastupdate">更新 --:--</span></div>
+    <div class="status" id="statuscluster">
+      <span class="status-recording" id="st">接続中</span><span class="lastupdate" id="lastupdate">更新 --:--</span>
     </div>
   </div>
 </header>
@@ -950,16 +944,17 @@ function applyState(s){
   $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
   const provider=s.aiProvider==='codex'?'Codex':'Claude Code';
-  $('st').textContent = recording ? tr('録音中','Recording') : serverRecording ? tr('別タブで録音中','Other tab recording') : tr('停止中','Stopped');
-  $('stprovider').textContent=`AI: ${provider}`;
-  const job=s.queue>0?tr(`文字起こし ${s.queue}件`,`Transcribing ${s.queue}`)
+  const job=s.queue>0?tr(`起こし中 ${s.queue}` ,`Transcribing ${s.queue}`)
     :s.analyzing?tr('即時解析中','Analyzing')
     :s.detailing?tr('詳細整理中','Structuring')
     :s.researching>0?tr('資料調査中','Researching')
     :s.exploring?tr('背景読込中','Reading context')
+    :recording?tr('録音中','Recording')
+    :serverRecording?tr('別タブ録音','Other tab')
     :tr('待機','Ready');
-  $('stjob').textContent=job;
-  $('stjob').classList.toggle('active',!!(s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
+  $('st').textContent=job;
+  $('st').classList.toggle('active',!!(recording||serverRecording||s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
+  $('statuscluster').title=tr(`AI: ${provider}。処理状況と最終解析時刻`,`AI: ${provider}. Processing state and last analysis time`);
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
   setMenuLabel('goalbtn',curGoal ? tr('目標・ガイド設定（ON）','Goal & guide settings (ON)') : tr('目標・ガイド設定','Goal & guide settings'));
@@ -1007,7 +1002,7 @@ async function pollState(){
     if(serverDown){ serverDown=false; $('down').classList.remove('show'); }
   }catch(e){
     serverDown=true; $('down').classList.add('show');
-    $('st').textContent=tr('サーバ停止','Server stopped'); $('stjob').textContent=tr('再接続待ち','Reconnecting'); $('stjob').classList.add('active'); $('dot').className='dot idle';
+    $('st').textContent=tr('接続待ち','Reconnecting'); $('st').classList.add('active'); $('dot').className='dot idle';
   }
 }
 let runtimeHealth=null;

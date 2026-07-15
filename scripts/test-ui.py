@@ -38,10 +38,10 @@ daemon_check = cli.index("const hadMacDaemon")
 server_return = cli.index("if (currentServer && (!hadMacDaemon || currentMacDaemon))")
 assert daemon_check < server_return, "plist migration must be checked before the same-version early return"
 assert 'plist.includes(fileURLToPath(import.meta.url))' in cli
-assert 'id="stprovider"' in html and 'id="stjob"' in html, "header states must have stable, separate slots"
-assert "flex-wrap:nowrap" in html and "flex:0 0 174px" in html, "header polling must not move the controls"
+assert 'id="statuscluster"' in html and 'id="stprovider"' not in html and 'id="stjob"' not in html, "header must only show meeting-critical status"
+assert "flex-wrap:nowrap" in html and "flex:0 0 132px" in html, "header polling must not move the controls"
 assert "body:not(.slidemode){overflow-x:hidden}" in html, "header controls must not horizontally shift the meeting page"
-assert ".status-main,.status-meta{display:flex" in html, "header status must stay compact without empty grid columns"
+assert "grid-template-columns:58px 74px" in html, "header status must not leave empty space between labels"
 assert "el.title=tr(`最終解析" in html, "relative analysis age should remain available without changing layout"
 assert "（${ago}）`" not in html.split("el.textContent=tr(", 1)[1].split(";", 1)[0], "relative age must not be visible in the live header"
 
