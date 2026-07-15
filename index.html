@@ -869,6 +869,19 @@ function translateStatic(){
   document.title='LiveMTG | Live meeting copilot';
 }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+// AIはまれに文字列配列の代わりに {label, detail} 等を返す。
+// [object Object] にせず、情報を落とさず人が読める1行へ正規化する。
+function itemText(value){
+  if(value===null||value===undefined)return '';
+  if(typeof value!=='object')return String(value);
+  if(Array.isArray(value))return value.map(itemText).filter(Boolean).join(' ・ ');
+  const first=['label','issue','title','question','q','what','text','name'].map(k=>value[k]).find(v=>v!==undefined&&v!==null&&String(v).trim());
+  const detail=['detail','description','answer','analysis','reading','status'].map(k=>value[k]).find(v=>v!==undefined&&v!==null&&String(v).trim()&&String(v)!==String(first));
+  if(first&&detail)return `${itemText(first)} — ${itemText(detail)}`;
+  if(first)return itemText(first);
+  const parts=Object.values(value).map(itemText).filter(Boolean);
+  return parts.join(' — ');
+}
 function fill(id, arr, render){
   const ul=$(id), items=arr||[];
   $('c-'+id).textContent=items.length;
@@ -1002,11 +1015,11 @@ async function pollData(){
     const d=await r.json();
     lastData=d;
     $('summary').textContent=d.summary||'—';
-    fill('agenda', d.agenda, x=>`<li>${esc(x)}</li>`);
-    fill('points', d.points, x=>`<li>${esc(x)}</li>`);
-    fill('decisions', d.decisions, x=>`<li>${esc(x)}</li>`);
+    fill('agenda', d.agenda, x=>`<li>${esc(itemText(x))}</li>`);
+    fill('points', d.points, x=>`<li>${esc(itemText(x))}</li>`);
+    fill('decisions', d.decisions, x=>`<li>${esc(itemText(x))}</li>`);
     fill('todos', d.todos, x=>`<li><span class="who">${esc(x.who||tr('未定','Unassigned'))}</span>${esc(x.what||'')}</li>`);
-    fill('open', d.open, x=>`<li>${esc(x)}</li>`);
+    fill('open', d.open, x=>`<li>${esc(itemText(x))}</li>`);
     const sp=d.speakers||[];
     $('who').innerHTML = sp.length ? `<b>${tr('参加者','Participants')}</b>`+sp.map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
     $('who').classList.toggle('show', sp.length>0);
@@ -1141,7 +1154,7 @@ function buildDeck(d){
   else{
     if(d.summary)branches.push([tr('要旨','Summary'),[{label:tr('全体像','Overview'),items:[{label:headline(d.summary),detail:String(d.summary),status:tr('要旨','Summary')}]}]]);
     const add=(name,arr,render,limit=5)=>{const a=(Array.isArray(arr)?arr:[]).slice(0,limit).map(x=>{const full=render(x);return{label:headline(full),detail:full,status:name}}).filter(x=>x.detail);if(a.length)branches.push([name,[{label:tr('内容','Details'),items:a}]]);};
-    add(tr('主要論点','Key points'),d.points,x=>x);add(tr('決定事項','Decisions'),d.decisions,x=>x);add('ToDo',d.todos,x=>(x.who||tr('未定','Unassigned'))+': '+(x.what||''));add(tr('未解決','Open questions'),d.open,x=>x);
+    add(tr('主要論点','Key points'),d.points,itemText);add(tr('決定事項','Decisions'),d.decisions,itemText);add('ToDo',d.todos,x=>(x.who||tr('未定','Unassigned'))+': '+(x.what||''));add(tr('未解決','Open questions'),d.open,itemText);
   }
   const prep=d.preparation&&typeof d.preparation==='object'?d.preparation:null;
   if(prep&&!branches.some(x=>String(x[0]).includes(tr('事前準備','Preparation')))){const pg=[],prepStatus=tr('事前準備','Preparation'),one=(label,title,detail,status=prepStatus)=>{if(detail)pg.push({label,items:[{label:title,detail:String(detail),status}]})};
@@ -1628,7 +1641,7 @@ $('fok').onclick = async ()=>{
 // リストをPDF保存：PDF専用の1枚デザイン(#pview)を組み立て→実測で自動縮小→必ずA4横1枚に収める
 $('pdf').onclick = ()=>{
   const d=lastData||{};
-  const cut=(s,n)=>{s=String(s||'').trim();return s.length>n?s.slice(0,n-1)+'…':s};   // コンテンツ圧縮
+  const cut=(s,n)=>{s=itemText(s).trim();return s.length>n?s.slice(0,n-1)+'…':s};   // コンテンツ圧縮
   const A=a=>a||[];
   const total=A(d.agenda).length+A(d.points).length+A(d.decisions).length+A(d.todos).length+A(d.open).length;
   const lim = total>26 ? 46 : 72;   // 項目が多い会議ほど1項目を短く圧縮
