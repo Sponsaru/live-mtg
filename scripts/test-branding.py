@@ -4,6 +4,7 @@
 from pathlib import Path
 import tempfile
 import sys
+import struct
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +36,14 @@ assert 'url("/brand-logo.png")' in index, "product wordmark must be used in the 
 assert "/app-logo.svg" not in index, "legacy placeholder logo must not return"
 for asset in ("brand-logo.png", "app-icon.png"):
     assert (ROOT / asset).is_file(), f"missing product brand asset: {asset}"
+    png = (ROOT / asset).read_bytes()
+    assert png[:8] == b"\x89PNG\r\n\x1a\n", f"{asset}: invalid PNG"
+    width, height, _, color_type, _, _, _ = struct.unpack(">IIBBBBB", png[16:29])
+    assert color_type in (4, 6), f"{asset}: product asset must have an alpha channel"
+    if asset == "brand-logo.png":
+        assert width / height > 3.5, "wordmark must be tightly cropped"
+    else:
+        assert width == height, "application icon source must remain square"
 
 server = (ROOT / "server.py").read_text(encoding="utf-8")
 assert "neutral_generated_html" in server, "legacy generated decks must be neutralized when served"
