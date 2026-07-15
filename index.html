@@ -119,8 +119,8 @@
   select.sess{font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:10px;
     padding:9px 12px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;max-width:230px}
   select.sess option{color:#12232e}
-  .status{font-size:12px;line-height:1.25;width:270px;flex:0 0 270px;display:grid;gap:3px;font-variant-numeric:tabular-nums}
-  .status-main,.status-meta{display:grid;grid-template-columns:minmax(0,1fr) 104px;align-items:center;gap:8px;white-space:nowrap}
+  .status{font-size:12px;line-height:1.25;width:200px;flex:0 0 200px;display:grid;gap:3px;font-variant-numeric:tabular-nums}
+  .status-main,.status-meta{display:grid;grid-template-columns:88px 104px;align-items:center;gap:8px;white-space:nowrap}
   .status-recording{font-weight:700;overflow:hidden;text-overflow:ellipsis}
   .status-provider,.status-job,.lastupdate{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .status-provider,.lastupdate{text-align:right}
@@ -129,7 +129,7 @@
   .status-job.active{color:var(--blue);opacity:1}
   .lastupdate{font-size:11px;font-weight:700;opacity:.82}
   .lastupdate.stale{color:#ffe08a;opacity:1}
-  @media(max-width:1180px){header h1{display:none}.status{width:236px;flex-basis:236px}.status-main,.status-meta{grid-template-columns:minmax(0,1fr) 92px}}
+  @media(max-width:1180px){header h1{display:none}}
   @media(max-width:900px){header{overflow-x:auto}.status{display:none}}
   .summary{
     background:linear-gradient(135deg,#e8f6fe,#d3edfb);
