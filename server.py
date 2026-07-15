@@ -1412,8 +1412,11 @@ def _claude_update(sid):
     off = applied.get(sid, 0)
     if off > len(transcript):     # transcriptが作り直された等 → 全体を対象に
         off = 0
-    # 実行中に増えた発話をまとめ、古い1,200文字ジョブの積み上がりを防ぐ。
-    end = min(len(transcript), off + 3600)
+    # 即時レーンは応答時間を優先。大量の古い未処理は生音声・全文に保持し、
+    # 詳細レーンへ任せて直近900文字へジャンプする。
+    if len(transcript) - off > 2700:
+        off = max(off, len(transcript) - 900)
+    end = min(len(transcript), off + 900)
     delta = transcript[off:end].strip()
     if not delta:
         applied[sid] = end
@@ -1424,7 +1427,7 @@ def _claude_update(sid):
     now = time.strftime("%H:%M:%S")
     prompt = LIVE_PATCH_PROMPT.format(title=title, delta=delta, bg=_fast_bg_block(sid, meta), index=_live_index(old_obj))
     try:
-        out = _ai_text(prompt, timeout=25, model=CLAUDE_MODEL)
+        out = _ai_text(prompt, timeout=40, model=CLAUDE_MODEL)
     except Exception as e:
         sys.stderr.write("[FAST-ANALYSIS] %s 実行失敗 %r\n" % (sid, e)); sys.stderr.flush()
         return False
@@ -1505,11 +1508,11 @@ def _detail_update(sid):
             with open(os.path.join(d, ".detail-applied"), encoding="utf-8") as f:
                 detail_applied[sid] = int(f.read().strip())
         except Exception:
-            # 新規会議は最初から、旧版の長尺会議は直近6,000文字だけ再整理。
-            detail_applied[sid] = max(0, len(transcript) - 6000)
+            # 新規会議は最初から、旧版の長尺会議は直近3,000文字だけ再整理。
+            detail_applied[sid] = max(0, len(transcript) - 3000)
     off = min(detail_applied.get(sid, 0), len(transcript))
     end = len(transcript)
-    start = max(off, end - 6000)
+    start = max(off, end - 3000)
     delta = transcript[start:end].strip()
     if not delta:
         detail_applied[sid] = end
@@ -2901,8 +2904,6 @@ def main():
         tp, dp = os.path.join(sdir(current_id), "transcript.txt"), os.path.join(sdir(current_id), "data.json")
         if os.path.isfile(tp) and (not os.path.isfile(dp) or os.path.getmtime(tp) > os.path.getmtime(dp)):
             request_analysis(current_id)
-        if os.path.isfile(tp) and os.path.getsize(tp) > 0:
-            request_detail(current_id)
     except Exception:
         pass
     threading.Thread(target=lookup_worker, daemon=True).start()   # 背景フォルダの自動下調べ係

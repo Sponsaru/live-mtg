@@ -92,5 +92,7 @@ assert "mindmap_add" not in server.LIVE_PATCH_PROMPT
 assert "mindmap_add" in server.DETAIL_PATCH_PROMPT
 assert "threading.Thread(target=detail_worker" in source
 assert "with background_ai_lock:" in source
+assert "len(transcript) - off > 2700" in source and "off + 900" in source
+assert "end - 3000" in source
 
 print("Parallel fast/detail analysis preserves both results")
