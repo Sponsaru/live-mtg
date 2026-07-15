@@ -446,8 +446,8 @@
   #deck .tree-map.root-collapsed .tree-branches{display:none}
   #deck .maptools{display:flex;gap:7px;margin-top:10px} #deck .maptools button{border:1px solid var(--line);background:#fff;color:var(--sub);font:800 13px/1 inherit;border-radius:18px;padding:8px 13px;cursor:pointer}
   #deck .maptools button.on{background:var(--blue);border-color:var(--blue);color:#fff}
-  #deck .relation-map{display:none;width:100%;height:100%;align-items:center;justify-content:center}
-  #deck .relation-map.on{display:flex} #deck .tree-map.off{display:none}
+  #deck .relation-map,#deck .radial-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
+  #deck .relation-map.on,#deck .radial-map.on{display:flex} #deck .tree-map.off{display:none}
   #deck .timeline-map{width:min(920px,calc(100% - 48px));min-width:620px;margin:0 auto;padding:42px 36px 80px;display:flex;flex-direction:column;gap:0}
   #deck .timeline-map.off{display:none}
   #deck .timeline-item{position:relative;margin-left:84px;padding:0 0 28px 34px;border-left:2px solid #d2d2d7}
@@ -1210,7 +1210,7 @@ if(localStorage.getItem('livemtg_mindmap_default')!==mindmapDefaultVersion){
   localStorage.setItem('livemtg_mindmap_mode',mindmapMode);
   localStorage.setItem('livemtg_mindmap_default',mindmapDefaultVersion);
 }
-if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='tree';
+if(!['timeline','tree','radial','relation'].includes(mindmapMode))mindmapMode='tree';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
@@ -1227,13 +1227,13 @@ function captureMindmapUi(){
   return{left:stage.scrollLeft,top:stage.scrollTop,root:tree.classList.contains('root-collapsed'),branch,group,detail};
 }
 function applyMindmapMode(mode,remember=true){
-  if(!['timeline','tree','relation'].includes(mode))mode='timeline';
+  if(!['timeline','tree','radial','relation'].includes(mode))mode='tree';
   mindmapMode=mode;if(remember)localStorage.setItem('livemtg_mindmap_mode',mode);
-  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),relation=deck.querySelector('.relation-map');
-  if(!timeline||!tree||!relation)return;
-  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');relation.classList.toggle('on',mode==='relation');
+  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map');
+  if(!timeline||!tree||!radial||!relation)return;
+  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');
   deck.querySelectorAll('[data-mapview]').forEach(x=>x.classList.toggle('on',x.dataset.mapview===mode));
-  if(mode==='relation')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
+  if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
 }
 function restoreMindmapUi(state){
   const stage=$('deck').querySelector('.dstage'),tree=$('deck').querySelector('[data-tree]');if(!stage||!tree)return;
@@ -1268,11 +1268,15 @@ function buildDeck(d){
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
   const timeline=(Array.isArray(d.log)?d.log:[]).slice(-30).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
+  const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
+  const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
+  branches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,4).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,5).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
-    <div class="maptools"><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button><button data-mapview="timeline">${tr('時系列','Timeline')}</button></div></div>
+    <div class="maptools"><button data-mapview="tree">${tr('マインドマップ','Mind map')}</button><button data-mapview="radial">${tr('放射マップ','Radial map')}</button><button data-mapview="relation" title="${tr('会話の関係','Conversation relationships')}">Mermaid</button><button data-mapview="timeline">${tr('時系列','Timeline')}</button></div></div>
     <div class="dstage"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
+      <div class="radial-map"><div class="mermaid">${esc(radial.join('\n'))}</div></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div>`);
   bindLiveTree();
   $('deck').querySelectorAll('[data-mapview]').forEach(btn=>btn.onclick=()=>{

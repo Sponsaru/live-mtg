@@ -52,10 +52,16 @@ assert "livemtg_mindmap_mode" in html and "captureMindmapUi" in html and "restor
 assert "applyMindmapMode(btn.dataset.mapview)" in html, "mind-map tabs must persist across live updates"
 assert "mindmapMode='tree'" in html and "mindmapDefaultVersion='tree-v1'" in html, \
     "live mind map must default to the hierarchical topic map"
+assert all(token in html for token in (
+    'data-mapview="tree"', 'data-mapview="radial"', 'data-mapview="relation"', 'data-mapview="timeline"',
+    "radial=['mindmap'", 'class="radial-map"'
+)), "live view must keep the hierarchical map and add a separate radial map"
 assert all(token in slides for token in (
     "data-generated-map", "data-generated-view", "livemtg_generated_map_mode", "defaultVersion='topics-v1'", "mode='topics'"
 )), "generated mind map must default to topics and preserve the selected tab"
 assert 'str(data.get("diagram") or "").strip()' in mindmap, "generated Mermaid must preserve line breaks"
+assert 'radial_lines = ["mindmap"' in mindmap and 'data-generated-map="radial"' in mindmap, \
+    "generated output must contain the separate radial mind map"
 assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns:minmax(0,1.45fr)' in html
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html

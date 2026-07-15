@@ -59,8 +59,8 @@
   .generated-maptools button.on { color:var(--ink); background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.12); }
   .generated-map-view { display:none; width:100%; min-height:100%; }
   .generated-map-view.on { display:flex; }
-  .generated-relation { align-items:center; justify-content:center; padding:44px 64px 72px; }
-  .generated-relation .mermaid { min-width:min(1100px,100%); }
+  .generated-relation,.generated-radial { align-items:center; justify-content:center; padding:44px 64px 72px; }
+  .generated-relation .mermaid,.generated-radial .mermaid { min-width:min(1100px,100%); }
   .generated-topics { width:max-content; min-width:100%; }
   .generated-timeline { flex-direction:column; gap:14px; padding:42px max(80px,8vw) 100px; }
   .generated-timeline-item { display:grid; grid-template-columns:82px minmax(0,900px); gap:18px; align-items:start; }
@@ -241,7 +241,7 @@
   // 清書後は階層型の「論点マップ」を既定にする。
   // 「会話の関係」は因果を見る別表示として残し、選択は自動更新後も維持する。
   (function(){
-    var allowed=['relation','topics','timeline'];
+    var allowed=['relation','radial','topics','timeline'];
     var defaultVersion='topics-v1';
     var mode=localStorage.getItem('livemtg_generated_map_mode');
     if(localStorage.getItem('livemtg_generated_map_default')!==defaultVersion){
