@@ -21,6 +21,7 @@ assert "hardMs:15000" in html and "reachedHardLimit" in html, "audio must upload
 assert "function itemText(value)" in html and "esc(itemText(x))" in html, "structured AI items must never render as [object Object]"
 assert "def _live_list_text(value):" in server and "old_items = [_live_list_text" in server, "structured list values must be normalized before persistence"
 assert "capture_heartbeat > 45" in server, "heartbeat expiry must exceed the 15-second audio chunk interval"
+assert '"detailing": bool(current_id)' in server and "s.detailing ?" in html
 assert "/api/desktop-health" in html and "/api/ai-check" in html
 assert 'await api(\'/api/health\')' in html, "recording must use the lightweight server check"
 assert "if(!health||!health.ok)" not in html, "AI/ASR diagnostics must not block raw recording"

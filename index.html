@@ -935,6 +935,7 @@ function applyState(s){
     + ` · AI: ${provider}`
     + (s.queue>0 ? tr(` · 文字起こし待ち ${s.queue}件`,` · ${s.queue} awaiting transcription`) : '')
     + (s.analyzing ? tr(' · 解析中',' · Analyzing') : '')
+    + (s.detailing ? tr(' · 詳細整理中',' · Structuring details') : '')
     + (s.exploring ? tr(' · 背景読込中',' · Reading context') : '') + (s.researching>0 ? tr(' · 調査中',' · Researching') : '');
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
