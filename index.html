@@ -199,6 +199,7 @@
   #sbg.show .strategy-modal{transform:translateY(0) scale(1);opacity:1}
   .copilot-head{display:flex;align-items:center;gap:11px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
   .copilot-head h3{margin:0;flex:1}.copilot-head .x{border:0;background:#f0f0f2;border-radius:50%;width:34px;height:34px;font-size:22px;cursor:pointer}
+  .prep-rec{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);padding:9px 13px;font:650 13px/1 inherit;cursor:pointer}.prep-rec .inline-icon{width:16px;height:16px}.prep-rec.on{border-color:#ff453a;background:#fff2f1;color:#c52b22}
   .copilot-intro{margin:0;padding:10px 20px 0;color:var(--sub);font-size:13px;line-height:1.55}
   .copilot-body{min-height:0;overflow:auto;padding:12px 20px 18px;display:flex;flex-direction:column;flex:1}
   .copilot-bubble{position:fixed;right:22px;bottom:22px;z-index:34;display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:#111;color:#fff;padding:13px 18px;box-shadow:0 12px 32px rgba(0,0,0,.22);font:650 14px/1 inherit;cursor:pointer;transition:.18s}
@@ -725,7 +726,7 @@
 <!-- 会議前からライブ中まで続く会議コパイロット -->
 <div class="modal-bg" id="sbg">
   <div class="modal strategy-modal">
-    <div class="copilot-head"><svg class="inline-icon"><use href="#i-chat"/></svg><h3>会議コパイロット</h3><button class="x" id="sclose" aria-label="閉じる">×</button></div>
+    <div class="copilot-head"><svg class="inline-icon"><use href="#i-chat"/></svg><h3>会議コパイロット</h3><button class="prep-rec" id="preprec"><svg class="inline-icon"><use href="#i-mic"/></svg><span>準備会話を録音</span></button><button class="x" id="sclose" aria-label="閉じる">×</button></div>
     <p class="copilot-intro">事前準備も、会議中の訂正もここへ。URLを送れば調べ、選択中の背景フォルダとライブ解析へ反映します。</p>
     <div class="copilot-body">
       <div class="prep-quick">
@@ -744,10 +745,6 @@
           </div>
         </div>
         <details class="prep-details" open><summary>準備ボード・反映先</summary><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></details>
-      </div>
-      <div class="row" style="justify-content:space-between">
-        <button class="cancel" id="sreset">最初から</button>
-        <span class="nextsub">送信するたび自動反映</span>
       </div>
     </div>
   </div>
@@ -976,6 +973,10 @@ function applyState(s){
   $('dot').className = 'dot ' + (recording?'live':'idle');
   $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
+  if($('preprec')){
+    $('preprec').querySelector('span').textContent=recording?tr('録音を停止','Stop recording'):tr('準備会話を録音','Record prep conversation');
+    $('preprec').classList.toggle('on',recording);
+  }
   const provider=s.aiProvider==='codex'?'Codex':'Claude Code';
   const job=s.queue>0?tr(`起こし中 ${s.queue}` ,`Transcribing ${s.queue}`)
     :s.analyzing?tr('即時解析中','Analyzing')
@@ -1290,7 +1291,7 @@ window.addEventListener('resize', ()=>{ if(view==='slide') deckHeight(); });
 // ===== 録音（ブラウザでマイク＋会議タブ音声を録り、発話の切れ目ごとに /api/chunk へ送信）=====
 // 可変長チャンク(VAD): 固定秒ではなく「無音を検知したら区切る」。文の途中で切らないので文字起こし精度が上がる。
 //   区切り条件: (無音が silHold ms 継続 かつ 経過 minMs 以上) または 経過 maxMs 以上（喋り続けでも更新が止まらない保険）
-let capturing=false, mediaRec=null, capCtx=null, capStreams=[], capAnalyser=null, monTimer=null, chunkMs=30000;
+let capturing=false, mediaRec=null, capCtx=null, capStreams=[], capAnalyser=null, monTimer=null, chunkMs=30000, captureKind='meeting', requestedCaptureKind='meeting';
 const VAD={ silDb:-50, silHold:550, softMs:12000, hardMs:15000, softSilHold:260, minMs:2500 };
 // 通常は550msの無音で文末分割。15秒以降は260msの息継ぎを待ち、20秒のみ強制分割。
 async function startCapture(withTab){
@@ -1358,7 +1359,7 @@ function cycle(stream){
 }
 async function sendChunk(blob){
   try{
-    const r=await fetch('/api/chunk',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}),d=await r.json();
+    const r=await fetch('/api/chunk?kind='+encodeURIComponent(captureKind),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}),d=await r.json();
     if(!d.ok)throw new Error();
     $('st').textContent=tr(`音声送信済み · 文字起こし待ち ${d.queue||1}件`,`Audio sent · ${d.queue||1} awaiting transcription`);
   }catch(e){
@@ -1385,8 +1386,9 @@ document.addEventListener('visibilitychange', ()=>{ if(capturing && document.vis
 // AudioContextがOSに一時停止されたら復帰させる（録音の無音化防止）
 setInterval(()=>{ if(capturing && capCtx && capCtx.state==='suspended'){ try{ capCtx.resume(); }catch(e){} } }, 5000);
 
-async function doStart(withTab){
+async function doStart(withTab,kind='meeting'){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
+  captureKind=kind==='prep'?'prep':'meeting';
   // AIログインとWhisper診断は録音データの取得と分離。
   // サーバーが生きていれば録音し、未設定項目は別途診断で案内する。
   try{await api('/api/health');}catch(e){
@@ -1410,12 +1412,13 @@ async function doStart(withTab){
   await acquireWakeLock();   // 録音中は画面を消させない
   recording=true; $('rec').disabled=false;
   $('rec').textContent=tr('録音停止','Stop recording'); $('rec').classList.add('on');
-  $('dot').className='dot live'; $('st').textContent=tr('録音中','Recording');
+  $('dot').className='dot live'; $('st').textContent=captureKind==='prep'?tr('準備会話を録音中','Recording prep conversation'):tr('録音中','Recording');
 }
 async function doStop(){
   $('rec').disabled=true; stopCapture(); releaseWakeLock();
   try{ applyState(await api('/api/stop',{})); }catch(e){}
   recording=false; $('rec').disabled=false;
+  captureKind='meeting';
   $('rec').textContent=tr('録音開始','Start recording'); $('rec').classList.remove('on');
   $('dot').className='dot idle'; $('st').textContent=tr('停止中','Stopped');
   await pollData();
@@ -1428,10 +1431,11 @@ async function fillMics(){
   $('micsel').innerHTML = `<option value="">${tr('既定のマイク（OSの設定に従う）','Default microphone')}</option>`
     + mics.map(d=>`<option value="${esc(d.deviceId)}"${d.deviceId===saved?' selected':''}>${esc(d.label||tr('マイク','Microphone'))}</option>`).join('');
 }
-$('rec').onclick = ()=>{ if(capturing) doStop(); else { $('rbg').classList.add('show'); fillMics(); } };
+function openRecordingSetup(kind='meeting'){requestedCaptureKind=kind==='prep'?'prep':'meeting';$('rbg').classList.add('show');fillMics();}
+$('rec').onclick = ()=>{ if(capturing) doStop(); else openRecordingSetup('meeting'); };
 $('rbg').onclick = e=>{ if(e.target===$('rbg')) $('rbg').classList.remove('show'); };
-$('rmic').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(false); };
-$('rtab').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(true); };
+$('rmic').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(false,requestedCaptureKind); };
+$('rtab').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(true,requestedCaptureKind); };
 // 新規会議（カスタムモーダル）
 $('new').onclick = ()=>{ $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mbg').classList.add('show'); setTimeout(()=>$('mtitle').focus(),50); };
 // 表示中の会議を、ローカル本体・Drive同期・案件フォルダ書き出しまで会議ID限定で削除
@@ -1569,10 +1573,7 @@ $('ssend').onclick=async()=>{
 $('sinput').onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') $('ssend').click(); };
 $('sclose').onclick=()=> $('sbg').classList.remove('show');
 $('sbg').onclick=e=>{if(e.target===$('sbg'))$('sbg').classList.remove('show');};
-$('sreset').onclick=async()=>{
-  if(!confirm(tr('事前準備の壁打ち履歴・準備ボード・フォルダへの書き出しを消し、最初から始めますか？','Clear the prep chat, preparation board, and exported file, then start over?')))return;
-  const r=await api('/api/strategy',{reset:true}); if(r.ok){drawStrategy([],{},'',!!curProj);await pollState();}
-};
+$('preprec').onclick=()=>{if(capturing)doStop();else openRecordingSetup('prep');};
 // プロフィール（私は誰か・一問一答）
 const PROF_KEYS = ['name','org','notes'];
 $('profbtn').onclick = async ()=>{

@@ -49,4 +49,32 @@ with tempfile.TemporaryDirectory() as tmp:
     transcript = open(os.path.join(server.sdir(sid), "transcript.txt"), encoding="utf-8").read()
     assert "依頼者のライブ補足・訂正（文字起こしより優先）" in transcript
 
-print("Long-running jobs are cancellable and live corrections are prioritized")
+    # 事前打ち合わせ録音は本会議の原本音声と分け、背景としてだけ反映する。
+    prep_webm = os.path.join(server.WAVROOT, sid, "prep_1.webm")
+    os.makedirs(os.path.dirname(prep_webm), exist_ok=True)
+    open(prep_webm, "wb").write(b"fake-webm")
+
+    class Result:
+        returncode = 0
+
+    def fake_run(cmd, **_kwargs):
+        open(cmd[-1], "wb").write(b"fake-wav")
+        return Result()
+
+    server._run = fake_run
+    server._mean_db = lambda _wav: -10
+    server._overlap_wav = lambda _sid, wav, _kind="meeting": wav
+    server._whisper = lambda _wav, _sid=None: "本番では価格の確認を優先しよう"
+    server.queue_spoken_lookup = lambda *_args: None
+    server.request_analysis = lambda *_args: None
+    server.request_detail = lambda *_args: None
+    server.process_chunk(sid, prep_webm)
+
+    meeting_audio = os.path.join(server.sdir(sid), "audio", "prep_1.webm")
+    prep_audio = os.path.join(server.sdir(sid), "prep-audio", "prep_1.webm")
+    assert os.path.isfile(prep_audio) and not os.path.isfile(meeting_audio)
+    assert "本番では価格" in open(os.path.join(server.sdir(sid), "prep-transcript.txt"), encoding="utf-8").read()
+    transcript = open(os.path.join(server.sdir(sid), "transcript.txt"), encoding="utf-8").read()
+    assert "事前打ち合わせの背景情報（本会議の発言・決定ではない）" in transcript
+
+print("Long-running jobs are cancellable; live corrections and prep recordings are safely separated")
