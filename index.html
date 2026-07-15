@@ -340,6 +340,14 @@
   .fq-heard{font-size:12px;color:var(--sub);margin-bottom:7px}
   .fq-in{width:100%;font-family:inherit;font-size:15px;padding:9px 11px;border:2px solid var(--line);border-radius:8px;outline:none}
   .fq-in:focus{border-color:var(--blue)}
+  .speaker-review{border:1px solid var(--line);border-radius:14px;padding:14px;background:#f5f5f7;margin-bottom:12px}
+  .speaker-review h4{font-size:16px;margin:0 0 5px}.speaker-review>p{font-size:13px;color:var(--sub);margin:0 0 11px}
+  .speaker-row{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(180px,.7fr);gap:12px;align-items:start;padding:11px 0;border-top:1px solid var(--line)}
+  .speaker-id{font-weight:800;font-size:14px;padding-top:9px}.speaker-examples{font-size:12px;color:var(--ink2);line-height:1.5}
+  .speaker-examples span{display:block;margin-bottom:3px}.speaker-in{width:100%;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
+  .speaker-setup{border:1px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}.speaker-setup p{font-size:13px;margin:0 0 8px}
+  .speaker-token-row{display:flex;gap:8px}.speaker-token-row input{min-width:0;flex:1}
+  @media(max-width:720px){.speaker-row{grid-template-columns:1fr}.speaker-id{padding-top:0}}
   .fnote{color:var(--sub);font-size:14px;padding:6px 0}
   .modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
   .modal .row button{font-family:inherit;font-size:15px;font-weight:800;border:none;border-radius:10px;
@@ -690,7 +698,7 @@
 <div class="modal-bg" id="fbg">
   <div class="modal fmodal">
     <h3>清書の前に確認</h3>
-    <p>文字起こしから、whisperが誤認識しやすい固有名詞を洗い出しました。<b>合っていればそのまま、違えば正しい表記に直して</b>ください。この内容を最優先で清書します。</p>
+    <p>話者分離の発言例と、誤認識しやすい固有名詞を確認します。<b>話者名は空欄のままでも清書できます。</b> 確定した内容だけを最優先で反映します。</p>
     <div id="fqbox" class="fqbox"></div>
     <div class="row" style="justify-content:space-between">
       <button class="cancel" id="fregen" title="新しく話した内容を反映して質問を作り直す"><svg class="inline-icon"><use href="#i-refresh"/></svg>質問を作り直す</button>
@@ -1706,7 +1714,7 @@ $('deckregen').onclick = genDeck;
 // 清書：いきなり実行せず、まず文字起こしから確認質問を生成→依頼者が固有名詞を確定→その表記で清書（認識違い防止）
 async function loadPrep(regen){
   $('final').disabled=true;
-  toast(regen ? '確認事項を作り直しています（10〜20秒）' : '確認事項を準備中… 文字起こしを読んでいます（初回は10〜20秒／2回目以降は即時）', true, 'finalize_prep');
+  toast(regen ? '確認事項と話者分離を作り直しています…' : '清書前の確認を準備中… 初回の話者分離は数分かかる場合があります', true, 'finalize_prep');
   try{
     const r = await api('/api/finalize_prep', regen?{regen:true}:{});
     hideToast(); $('final').disabled=false;
@@ -1718,7 +1726,7 @@ $('final').onclick = async ()=>{
   if(capturing){ toast('録音を停止してから清書してください'); return; }
   const r = await loadPrep(false);
   if(!r) return;
-  buildFinalizeForm(r.questions||[], r.answers||{});
+  buildFinalizeForm(r.questions||[], r.answers||{}, r.diarization||{}, r.speakerMap||{});
   if(r.cached) toast('前回の確認内容を復元しました（作り直す場合は「質問を作り直す」）');
   $('fbg').classList.add('show');
   const first=document.querySelector('.fq-in'); if(first) setTimeout(()=>first.focus(),50);
@@ -1727,13 +1735,25 @@ $('final').onclick = async ()=>{
 $('fregen').onclick = async ()=>{
   const r = await loadPrep(true);
   if(!r) return;
-  buildFinalizeForm(r.questions||[], r.answers||{});
+  buildFinalizeForm(r.questions||[], r.answers||{}, r.diarization||{}, r.speakerMap||{});
 };
-function buildFinalizeForm(qs, answers){
+let finalizeSpeakerMap={};
+function buildFinalizeForm(qs, answers, diarization, speakerMap){
   answers = answers || {};
+  diarization=diarization||{};finalizeSpeakerMap=speakerMap||{};
   const box=$('fqbox');
-  if(!qs.length){ box.innerHTML='<p class="fnote">確認が必要そうな固有名詞は見つかりませんでした。そのまま清書して問題ありません。</p>'; return; }
-  box.innerHTML = qs.map((x,i)=>{
+  let speakerHtml='';
+  if(diarization.status==='ready'&&Array.isArray(diarization.speakers)&&diarization.speakers.length){
+    speakerHtml=`<section class="speaker-review"><h4>${tr('話者を確認','Review speakers')}</h4><p>${tr('発言例を見て、分かる話者だけ名前を入れてください。AIの推測では確定しません。','Name only the speakers you recognize from the examples.')}</p>`+diarization.speakers.map((s,i)=>{
+      const id=String(s.id||`SPEAKER_${i}`),val=finalizeSpeakerMap[id]||'',examples=(s.examples||[]).slice(0,3);
+      return `<div class="speaker-row"><div class="speaker-id">${tr('話者','Speaker')} ${String.fromCharCode(65+i)}</div><div class="speaker-examples">${examples.map(x=>`<span>「${esc(x)}」</span>`).join('')||tr('発言例なし','No examples')}</div><input class="speaker-in" data-speaker="${esc(id)}" value="${esc(val)}" placeholder="${tr('名前（不明なら空欄）','Name (optional)')}"></div>`;
+    }).join('')+`</section>`;
+  }else if(diarization.status==='setup'){
+    speakerHtml=`<section class="speaker-setup"><p>${diarization.installed?tr('話者分離を使うにはHugging Faceトークンを設定してください。','Set a Hugging Face token to enable diarization.'):tr('話者分離は未導入です。ターミナルで live-mtg onboard を実行してください。','Diarization is not installed. Run live-mtg onboard.')}</p>${diarization.installed?`<div class="speaker-token-row"><input id="hftoken" type="password" placeholder="hf_..."><button class="cancel" id="hfsave">${tr('設定して再実行','Save and retry')}</button></div>`:''}</section>`;
+  }else if(diarization.status==='error'){
+    speakerHtml=`<section class="speaker-setup"><p>${tr('話者分離に失敗したため、今回は従来の清書を利用できます。','Diarization failed; standard polishing remains available.')} ${esc(diarization.message||'')}</p></section>`;
+  }
+  const questionsHtml=qs.length?qs.map((x,i)=>{
     const q=x.q||'';
     const val = (answers[q] !== undefined && answers[q] !== '') ? answers[q] : (x.guess||'');  // 前回回答＞推定
     return `<div class="fq">
@@ -1741,7 +1761,9 @@ function buildFinalizeForm(qs, answers){
       ${x.heard?`<div class="fq-heard">聞こえ方：「${esc(x.heard)}」</div>`:''}
       <input class="fq-in" data-q="${esc(q)}" value="${esc(val)}" placeholder="正しい表記（合っていればそのまま）">
     </div>`;
-  }).join('');
+  }).join(''):'<p class="fnote">確認が必要そうな固有名詞は見つかりませんでした。</p>';
+  box.innerHTML=speakerHtml+questionsHtml;
+  const save=$('hfsave');if(save)save.onclick=async()=>{const token=($('hftoken').value||'').trim();if(!token)return;save.disabled=true;const sr=await api('/api/settings',{hfToken:token});if(!sr.ok){toast(tr('トークンを保存できませんでした','Could not save token'));save.disabled=false;return;}const r=await loadPrep(true);if(r)buildFinalizeForm(r.questions||[],r.answers||{},r.diarization||{},r.speakerMap||{});};
 }
 $('fcancel').onclick = ()=> $('fbg').classList.remove('show');
 // ※清書モーダルは外クリックで閉じない（入力途中で誤って消えるのを防ぐ）。閉じるのはキャンセルのみ
@@ -1749,12 +1771,13 @@ $('fok').onclick = async ()=>{
   // 各質問の確定回答を集める（保存＆次回初期値用のマップ＋清書用のhints文字列）
   const answers = {};
   document.querySelectorAll('.fq-in').forEach(inp=>{ const a=inp.value.trim(); if(a) answers[inp.dataset.q]=a; });
-  const hints = Object.entries(answers).map(([q,a])=>q+' → '+a).join('\n');
+  const speakerMap={};document.querySelectorAll('.speaker-in').forEach(inp=>{const a=inp.value.trim();if(a)speakerMap[inp.dataset.speaker]=a;});
+  const hints = [...Object.entries(speakerMap).map(([s,n])=>s+' → '+n),...Object.entries(answers).map(([q,a])=>q+' → '+a)].join('\n');
   $('fbg').classList.remove('show');
   $('final').disabled=true;
   toast('清書中… 全音声をまとめ、確認いただいた固有名詞で補正しながら高精度に議事録を作り直しています（数分）', true, 'finalize');
   try{
-    const r = await api('/api/finalize', {hints, answers});   // answersは次回のために保存される
+    const r = await api('/api/finalize', {hints, answers, speakerMap});   // 回答と話者対応は次回のために保存
     hideToast();
     if(r.ok){ toast('清書が完成しました（画面を高精度版に更新）'); await pollState(); await pollData(); }
     else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));

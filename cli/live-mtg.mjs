@@ -125,8 +125,10 @@ function commandExists(command) {
   return spawnSync(checker, args, { shell: !isWindows, stdio: "ignore", env: commandEnv() }).status === 0;
 }
 
-function runInteractive(command, args) {
-  return spawnSync(command, args, { stdio: "inherit", shell: isWindows, env: commandEnv() }).status === 0;
+function runInteractive(command, args, extraEnv = {}) {
+  return spawnSync(command, args, {
+    stdio: "inherit", shell: isWindows, env: { ...commandEnv(), ...extraEnv }
+  }).status === 0;
 }
 
 async function confirmStep(question, assumeYes = false) {
@@ -198,6 +200,24 @@ async function prepareRuntime(assumeYes) {
       const installed = runInteractive("pipx", ["install", "mlx-whisper"]);
       if (!installed) console.log(t("mlx-whisperのインストールに失敗しました。上のpipxエラーを確認し、live-mtg onboardを再実行してください。", "mlx-whisper installation failed. Review the pipx error above, then run live-mtg onboard again."));
       else if (!commandExists("mlx_whisper")) console.log(t("mlx-whisperは導入されましたが実行ファイルを検出できません。~/.local/bin を確認してください。", "mlx-whisper was installed but its executable was not detected. Check ~/.local/bin."));
+    }
+  }
+  if (isMac && !commandExists("whispermlx") && commandExists("pipx")) {
+    if (await confirmStep(t("話者分離（whispermlx）をインストールしますか？ 清書前に話者A/Bを確認できます。", "Install speaker diarization (whispermlx)? You can review Speaker A/B before polishing."), assumeYes)) {
+      // whispermlx 3.12.2 は mlx-whisper 経由で古いnumbaを選ぶため、素のpip解決では
+      // Python 3.10+という自身の要件と衝突する。動作確認済みの現行numbaへ上書きし、
+      // Homebrew Python 3.12があれば明示してユーザーの通常環境と分離する。
+      const py312 = [
+        "/opt/homebrew/opt/python@3.12/bin/python3.12",
+        "/usr/local/opt/python@3.12/bin/python3.12"
+      ].find(existsSync);
+      const args = ["install"];
+      if (py312) args.push("--python", py312);
+      args.push("whispermlx");
+      const installed = runInteractive("pipx", args, {
+        UV_OVERRIDE: join(root, "defaults", "whispermlx-overrides.txt")
+      });
+      if (!installed) console.log(t("whispermlxのインストールに失敗しました。従来の文字起こしはそのまま利用できます。", "whispermlx installation failed. Standard transcription remains available."));
     }
   }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
@@ -322,6 +342,7 @@ function doctor(provider = selectedProvider()) {
   ];
   console.log("LiveMTG doctor\n");
   for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
+  console.log(`${commandExists("whispermlx") ? "✓" : "○"} ${t("話者分離", "Speaker diarization")}${commandExists("whispermlx") ? " (whispermlx)" : t(" — 任意: live-mtg onboardで導入", " — optional: install with live-mtg onboard")}`);
   const failed = checks.filter(([, ok]) => !ok).length;
   console.log(t(`\nデータ: ${home}`, `\nData: ${home}`));
   console.log(`AI: ${provider === "codex" ? "Codex" : "Claude Code"}`);

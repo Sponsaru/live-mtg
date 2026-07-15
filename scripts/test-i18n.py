@@ -21,7 +21,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-i18n-") as runtime:
 
     assert server.LANGUAGE == "en"
     assert server._asr_language() == "en"
-    assert "English meeting" in server._asr_hint("English meeting")
+    assert "spoken audio faithfully" in server._asr_hint("English meeting")
+    assert "English planning meeting" not in server._asr_hint("English meeting")
     assert "IMPORTANT LANGUAGE RULE" in server._localized_prompt("test")
     assert json.loads(server.EMPTY_DATA)["summary"] == "Press Start recording in the header to begin."
 

@@ -64,6 +64,10 @@ assert 'radial_lines = ["mindmap"' in mindmap and 'data-generated-map="radial"' 
     "generated output must contain the separate radial mind map"
 assert 'width:min(1120px,calc(100vw - 48px))' in html and 'grid-template-columns:minmax(0,1.45fr)' in html
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html
+assert all(token in html for token in ("speaker-review", "speaker-in", "speakerMap", "hftoken")), \
+    "polishing must review anonymous speakers before assigning names"
+assert all(token in server for token in ("prepare_diarization", "_speaker_payload", "_apply_speaker_map", 'shutil.which("whispermlx")')), \
+    "server must support optional whispermlx diarization with deterministic confirmed mapping"
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html
 assert '"prep-audio" if is_prep else "audio"' in server and 'prep-transcript.txt' in server
 assert 'class="prep-summary"' in html and 'overflow-y:auto;overscroll-behavior:contain' in html
