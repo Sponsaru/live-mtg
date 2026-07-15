@@ -501,6 +501,7 @@ os.makedirs(SESS, exist_ok=True)
 lock       = threading.Lock()
 current_id = None          # 現在表示中の会議ID
 recording  = False         # ブラウザが録音送信中か（表示用フラグ）
+capture_heartbeat = 0.0    # ブラウザのMediaRecorderが実際に生きている最終時刻
 deleted_sessions = set()   # 削除中/削除済みの会議を非同期処理が復活させない
 chunk_q    = queue.Queue() # (session_id, webm_path) を順に処理するキュー
 applied    = {}            # session_id -> これまでにclaude整理へ反映済みのtranscript文字数（差分更新用）
@@ -2194,6 +2195,9 @@ def neutral_generated_html(path, persist=False):
     text = re.sub(
         r'background:\s*url\(["\']data:image/[^"\']+["\']\)\s*no-repeat left center;?',
         'background: none;', text, flags=re.I)
+    # Legacy variants used background-image or different spacing. Remove every
+    # embedded bitmap URL from generated chrome before applying the wordmark.
+    text = re.sub(r'url\(\s*(["\']?)data:image/.*?\1\s*\)', 'none', text, flags=re.I | re.S)
     # Remove the former company-theme wordmark block itself, not just its image.
     text = re.sub(
         r'/\*\s*sponsaru テーマ.*?body\[data-theme="sponsaru"\]\s*\.slide::after\s*\{.*?\}\s*',
@@ -2223,6 +2227,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue"
 </style>"""
     if 'id="livemtg-neutral-identity"' not in text:
         text = text.replace("</head>", overrides + "\n</head>", 1)
+    back_style = """<style id="livemtg-back-style">
+#livemtg-back{position:fixed;left:22px;top:22px;z-index:999;color:#1d1d1f;background:rgba(255,255,255,.94);border:1px solid #d2d2d7;border-radius:999px;padding:10px 16px;text-decoration:none;font:700 14px -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.09)}
+@media print{#livemtg-back{display:none!important}}
+</style>"""
+    if 'id="livemtg-back-style"' not in text:
+        text = text.replace("</head>", back_style + "\n</head>", 1)
+    if 'id="livemtg-back"' not in text:
+        text = re.sub(r'(<body\b[^>]*>)', r'\1\n<a id="livemtg-back" href="/">← %s</a>' % _t("ダッシュボード", "Dashboard"), text, count=1)
     if persist and text != original:
         tmp = path + ".neutral.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -2266,11 +2278,19 @@ class H(BaseHTTPRequestHandler):
         return self._send(204, b"", "text/plain")
 
     def _state(self):
+        global recording, capture_heartbeat
+        # タブ終了・リロード・権限取消後に「録音停止」と表示し続けない。
+        # 録音中のブラウザは3秒ごとにheartbeatを送る。
+        if recording and (not capture_heartbeat or time.time() - capture_heartbeat > 12):
+            recording = False
+            capture_heartbeat = 0.0
+            _caffeinate(False)
         cur = read_meta(current_id) if current_id else {}
         strategy = _load_strategy(current_id) if current_id else {}
         return {
-            "ver": "v65-ai-provider-choice",   # デバッグ用：稼働中コードの版を確認するマーカー
+            "ver": "v66-runtime-truth",   # デバッグ用：稼働中コードの版を確認するマーカー
             "recording": recording,
+            "captureHeartbeatAt": int(capture_heartbeat),
             "queue": chunk_q.qsize(),
             "analyzing": bool(current_id) and current_id in analysis_pending,
             "dataUpdatedAt": int(os.path.getmtime(os.path.join(sdir(current_id), "data.json"))) if current_id and os.path.isfile(os.path.join(sdir(current_id), "data.json")) else 0,
@@ -2362,7 +2382,7 @@ class H(BaseHTTPRequestHandler):
         return self._send(404, "not found", "text/plain; charset=utf-8")
 
     def do_POST(self):
-        global current_id, recording
+        global current_id, recording, capture_heartbeat
         p = self.path.split("?", 1)[0]
 
         if p == "/api/settings":
@@ -2379,6 +2399,26 @@ class H(BaseHTTPRequestHandler):
                               json.dumps({"ok": ok, "aiProvider": AI_PROVIDER,
                                           "language": LANGUAGE}, ensure_ascii=False))
 
+        if p == "/api/ai-check":
+            started = time.time()
+            try:
+                answer = _ai_text("接続確認です。OKとのみ返答してください。", timeout=35,
+                                  cwd=tempfile.gettempdir())
+                if not (answer or "").strip():
+                    raise RuntimeError("AIから空の応答が返りました")
+                return self._send(200, json.dumps({"ok": True, "aiProvider": AI_PROVIDER,
+                                                    "elapsed": round(time.time() - started, 1)}, ensure_ascii=False))
+            except Exception as e:
+                return self._send(200, json.dumps({"ok": False, "aiProvider": AI_PROVIDER,
+                                                    "error": str(e)[:300]}, ensure_ascii=False))
+
+        if p == "/api/recording-heartbeat":
+            if current_id:
+                recording = True
+                capture_heartbeat = time.time()
+                _caffeinate(True)
+            return self._send(200, json.dumps(self._state(), ensure_ascii=False))
+
         # 音声チャンク（バイナリ）: ブラウザのMediaRecorderから届く webm を受けてキューへ
         if p == "/api/chunk":
             try:
@@ -2393,6 +2433,7 @@ class H(BaseHTTPRequestHandler):
             if not recording:
                 recording = True
                 _caffeinate(True)
+            capture_heartbeat = time.time()
             d = os.path.join(WAVROOT, sid)
             os.makedirs(d, exist_ok=True)
             path = os.path.join(d, "inc_%d.webm" % int(time.time() * 1000))
@@ -2406,12 +2447,14 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/start":
             with lock:
                 recording = True
+                capture_heartbeat = time.time()
                 _caffeinate(True)    # 録音中はMacをスリープさせない
                 return self._send(200, json.dumps(self._state(), ensure_ascii=False))
 
         if p == "/api/stop":
             with lock:
                 recording = False
+                capture_heartbeat = 0.0
                 _caffeinate(False)
                 clear_queue()   # 未処理チャンクを破棄 → 停止後に更新が続かない
                 if current_id:
@@ -2421,6 +2464,7 @@ class H(BaseHTTPRequestHandler):
         if p == "/api/new":
             with lock:
                 recording = False
+                capture_heartbeat = 0.0
                 _caffeinate(False)
                 clear_queue()
                 current_id = new_session(b.get("title", ""), b.get("project_dir", ""),
@@ -2434,6 +2478,7 @@ class H(BaseHTTPRequestHandler):
             with lock:
                 if is_session(sid):
                     recording = False
+                    capture_heartbeat = 0.0
                     _caffeinate(False)
                     clear_queue()
                     current_id = sid

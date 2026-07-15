@@ -323,6 +323,11 @@
     padding:10px 18px;cursor:pointer}
   .modal .ok{background:var(--blue);color:#fff}
   .modal .cancel{background:#eef3f7;color:var(--sub)}
+  .diag-list{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+  .diag-item{display:grid;grid-template-columns:22px minmax(0,1fr);gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fafafa}
+  .diag-mark{font-weight:800;color:var(--green)}.diag-item.bad .diag-mark{color:var(--red)}
+  .diag-item strong{font-size:14px}.diag-item small{display:block;color:var(--sub);font-size:12px;line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
+  .diag-result{min-height:22px;margin-top:10px;font-size:14px;font-weight:650;color:var(--sub)}.diag-result.ok{color:var(--green)}.diag-result.bad{color:var(--red)}
   /* トースト */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:50;
     background:var(--ink);color:#fff;padding:13px 22px;border-radius:12px;font-size:15px;font-weight:700;
@@ -547,6 +552,7 @@
           <div class="menu-items">
             <button class="menu-item" id="new"><svg class="menu-icon"><use href="#i-plus"/></svg><span class="menu-label">新規会議</span></button>
             <button class="menu-item" id="profbtn" title="あなたが誰かをAIに教える"><svg class="menu-icon"><use href="#i-user"/></svg><span class="menu-label">プロフィール</span></button>
+            <button class="menu-item" id="runtimebtn" title="AI・文字起こし・音声変換の接続状態を確認"><svg class="menu-icon"><use href="#i-settings"/></svg><span class="menu-label">AI・音声の接続診断</span></button>
             <button class="menu-item" id="language"><svg class="menu-icon"><use href="#i-globe"/></svg><span class="menu-label">言語：日本語</span></button>
             <button class="menu-item danger" id="delete" title="表示中の会議のデータと同期コピーを削除"><svg class="menu-icon"><use href="#i-trash"/></svg><span class="menu-label">この会議を削除</span></button>
           </div>
@@ -762,6 +768,19 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="modal-bg" id="diagbg">
+  <div class="modal">
+    <h3>AI・音声の接続診断</h3>
+    <p>どこまで動く状態かを確認できます。AI応答テストは、選択中のCodexまたはClaude Codeを実際に1回呼び出します。</p>
+    <div class="diag-list" id="diaglist"></div>
+    <div class="diag-result" id="diagresult"></div>
+    <div class="row">
+      <button class="cancel" id="diagclose">閉じる</button>
+      <button class="ok" id="aitest">AI応答テスト</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
 let uiLanguage=localStorage.getItem('livemtg_language')||((navigator.language||'ja').toLowerCase().startsWith('en')?'en':'ja');
@@ -884,12 +903,18 @@ function renderLastUpdate(){
 }
 function applyState(s){
   if(s.language&&s.language!==uiLanguage){localStorage.setItem('livemtg_language',s.language);location.reload();return;}
-  recording = s.recording;
+  const serverRecording=!!s.recording;
+  // 「録音停止」は、このタブ自身のMediaRecorderが動いている時だけ表示する。
+  // 別タブの録音は状態文で区別し、録れているふりをしない。
+  recording = serverRecording && capturing;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
   $('dot').className = 'dot ' + (recording?'live':'idle');
   $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
-  $('st').textContent = (recording ? tr('録音中','Recording') : tr('停止中','Stopped'))
+  const provider=s.aiProvider==='codex'?'Codex':'Claude Code';
+  $('st').textContent = (recording ? tr('録音中','Recording') : serverRecording ? tr('別のタブで録音中','Recording in another tab') : tr('停止中','Stopped'))
+    + ` · AI: ${provider}`
+    + (s.queue>0 ? tr(` · 文字起こし待ち ${s.queue}件`,` · ${s.queue} awaiting transcription`) : '')
     + (s.analyzing ? tr(' · 解析中',' · Analyzing') : '')
     + (s.exploring ? tr(' · 背景読込中',' · Reading context') : '') + (s.researching>0 ? tr(' · 調査中',' · Researching') : '');
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
@@ -923,7 +948,7 @@ function applyState(s){
   $('deckregen').style.display = hasDeck ? '' : 'none';
   // 清書ボタン：保存音声があれば押せる。清書済みなら表示を変える
   $('final').disabled = !s.hasAudio;
-  $('delete').disabled = recording || !currentSessionId;
+  $('delete').disabled = serverRecording || !currentSessionId;
   setMenuLabel('final',s.hasFinal ? tr('清書済み（再清書）','Polished (regenerate)') : tr('高精度に清書','Create polished minutes'));
   $('final').title = s.hasAudio ? tr('会議後：保存した全音声を1本にまとめ、分断なしで高精度に議事録を作り直す（数分）','After the meeting, rebuild accurate minutes from all saved audio. This may take a few minutes.')
                                 : tr('保存された音声がまだありません（録音して発話が入ると押せます）','No saved audio yet. Record some speech first.');
@@ -933,11 +958,29 @@ function applyState(s){
 }
 async function pollState(){
   try{
-    applyState(await api('/api/state'));
+    // サーバーの録音表示は、実際にこのタブのMediaRecorderが生きている間だけ維持する。
+    const state=capturing ? await api('/api/recording-heartbeat',{}) : await api('/api/state');
+    applyState(state);
     if(serverDown){ serverDown=false; $('down').classList.remove('show'); }
   }catch(e){
     serverDown=true; $('down').classList.add('show');
     $('st').textContent=tr('サーバ停止','Server stopped'); $('dot').className='dot idle';
+  }
+}
+let runtimeHealth=null;
+async function refreshDiagnostics(openPanel=false){
+  try{
+    const h=await api('/api/desktop-health'); runtimeHealth=h;
+    const provider=h.aiProvider==='codex'?'Codex':'Claude Code';
+    setMenuLabel('runtimebtn',h.ok?tr(`AI・音声 接続OK（${provider}）`,`AI & audio ready (${provider})`):tr(`要設定：AI・音声（${provider}）`,`Setup required (${provider})`));
+    $('diaglist').innerHTML=(h.checks||[]).map(x=>`<div class="diag-item ${x.ok?'':'bad'}"><span class="diag-mark">${x.ok?'✓':'×'}</span><div><strong>${esc(x.label)}</strong>${x.ok?'':`<small>${esc(x.help||'')}</small>`}</div></div>`).join('');
+    if(openPanel)$('diagbg').classList.add('show');
+    return h;
+  }catch(e){
+    setMenuLabel('runtimebtn',tr('接続診断に失敗','Connection check failed'));
+    $('diaglist').innerHTML=`<div class="diag-item bad"><span class="diag-mark">×</span><div><strong>${tr('サーバーに接続できません','Cannot reach the server')}</strong></div></div>`;
+    if(openPanel)$('diagbg').classList.add('show');
+    return null;
   }
 }
 async function pollData(){
@@ -1168,7 +1211,7 @@ window.addEventListener('resize', ()=>{ if(view==='slide') deckHeight(); });
 // 可変長チャンク(VAD): 固定秒ではなく「無音を検知したら区切る」。文の途中で切らないので文字起こし精度が上がる。
 //   区切り条件: (無音が silHold ms 継続 かつ 経過 minMs 以上) または 経過 maxMs 以上（喋り続けでも更新が止まらない保険）
 let capturing=false, mediaRec=null, capCtx=null, capStreams=[], capAnalyser=null, monTimer=null, chunkMs=30000;
-const VAD={ silDb:-50, silHold:550, softMs:15000, hardMs:20000, softSilHold:260, minMs:2500 };
+const VAD={ silDb:-50, silHold:550, softMs:12000, hardMs:15000, softSilHold:260, minMs:2500 };
 // 通常は550msの無音で文末分割。15秒以降は260msの息継ぎを待ち、20秒のみ強制分割。
 async function startCapture(withTab){
   capStreams=[];
@@ -1212,13 +1255,19 @@ function cycle(stream){
   try{ rec=new MediaRecorder(stream,{mimeType:'audio/webm'}); }catch(e){ rec=new MediaRecorder(stream); }
   const parts=[], t0=performance.now(); let silentSince=0, spoke=false;
   rec.ondataavailable=e=>{ if(e.data&&e.data.size) parts.push(e.data); };
-  rec.onstop=()=>{ if(parts.length && spoke) sendChunk(new Blob(parts,{type:'audio/webm'})); if(capturing) cycle(stream); };
+  rec.onstop=()=>{
+    // 入力レベル判定が厳しすぎても音声を永久に捨てない。最大15秒では必ず送り、
+    // 無音・雑音の除外はサーバー側のffmpeg/Whisper判定へ任せる。
+    const reachedHardLimit=performance.now()-t0>=VAD.hardMs-500;
+    if(parts.length && (spoke||reachedHardLimit)) sendChunk(new Blob(parts,{type:'audio/webm'}));
+    if(capturing) cycle(stream);
+  };
   mediaRec=rec; rec.start(250);   // 250ms刻みで小片を集める（onstopで結合して1チャンク送信）
   clearInterval(monTimer);
   monTimer=setInterval(()=>{
     if(!capturing || rec.state==='inactive') return;
     const now=performance.now(), elapsed=now-t0, db=currentDb();
-    if(db>=VAD.silDb){ spoke=true; silentSince=0; }            // 発話あり
+    if(db>=VAD.silDb){ spoke=true; silentSince=0; $('st').textContent=tr('マイク入力あり · 録音中','Microphone active · Recording'); } // 発話あり
     else if(!silentSince){ silentSince=now; }                  // 無音の開始
     const silentFor = silentSince ? now-silentSince : 0;
     // 発話の切れ目（無音が続いた）で区切る。最小長を満たす場合のみ。喋り続けは最大長で強制区切り
@@ -1228,7 +1277,14 @@ function cycle(stream){
   }, 100);
 }
 async function sendChunk(blob){
-  try{ await fetch('/api/chunk',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}); }catch(e){}
+  try{
+    const r=await fetch('/api/chunk',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}),d=await r.json();
+    if(!d.ok)throw new Error();
+    $('st').textContent=tr(`音声送信済み · 文字起こし待ち ${d.queue||1}件`,`Audio sent · ${d.queue||1} awaiting transcription`);
+  }catch(e){
+    $('st').textContent=tr('音声送信に失敗','Audio upload failed');
+    toast(tr('音声をサーバーへ送信できませんでした','Could not send audio to the server'));
+  }
 }
 function stopCapture(){
   capturing=false; clearInterval(monTimer);
@@ -1251,10 +1307,24 @@ setInterval(()=>{ if(capturing && capCtx && capCtx.state==='suspended'){ try{ ca
 
 async function doStart(withTab){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
+  const health=runtimeHealth||await refreshDiagnostics(false);
+  if(!health||!health.ok){
+    $('diagbg').classList.add('show');
+    toast(tr('録音前にAI・文字起こしの設定を完了してください','Complete AI and transcription setup before recording'));
+    return;
+  }
   $('rec').disabled=true;
   try{ await startCapture(withTab); }
   catch(e){ toast(tr('マイクを開始できませんでした：','Could not start the microphone: ')+(e.message||e)); $('rec').disabled=false; return; }
-  try{ applyState(await api('/api/start',{})); }catch(e){}
+  try{
+    const state=await api('/api/start',{});
+    if(!state||!state.recording) throw new Error(tr('サーバーが録音開始を確認できませんでした','The server could not confirm recording'));
+    applyState(state);
+  }catch(e){
+    stopCapture(); releaseWakeLock();
+    toast(tr('録音を開始できませんでした：','Could not start recording: ')+(e.message||e));
+    $('rec').disabled=false; return;
+  }
   await acquireWakeLock();   // 録音中は画面を消させない
   recording=true; $('rec').disabled=false;
   $('rec').textContent=tr('録音停止','Stop recording'); $('rec').classList.add('on');
@@ -1605,6 +1675,15 @@ $('language').onclick=async()=>{
   try{const r=await api('/api/settings',{language:next});if(!r.ok)throw new Error();localStorage.setItem('livemtg_language',next);location.reload();}
   catch(e){toast(tr('言語の変更に失敗しました','Could not change the language'));}
 };
+$('runtimebtn').onclick=()=>{ $('diagresult').textContent=''; refreshDiagnostics(true); };
+$('diagclose').onclick=()=>$('diagbg').classList.remove('show');
+$('diagbg').onclick=e=>{if(e.target===$('diagbg'))$('diagbg').classList.remove('show');};
+$('aitest').onclick=async()=>{
+  const b=$('aitest'),out=$('diagresult');b.disabled=true;out.className='diag-result';out.textContent=tr('選択中のAIを呼び出しています…','Calling the selected AI…');
+  try{const r=await api('/api/ai-check',{});if(r.ok){out.className='diag-result ok';out.textContent=tr(`AI応答OK（${r.elapsed}秒）`,`AI response OK (${r.elapsed}s)`);}else{out.className='diag-result bad';out.textContent=tr('AI応答に失敗：','AI response failed: ')+localizeMessage(r.error||'');}}
+  catch(e){out.className='diag-result bad';out.textContent=tr('AI応答テストに失敗しました','AI response test failed');}
+  finally{b.disabled=false;}
+};
 // ドロップダウンメニュー：開閉と、項目クリックで自動で閉じる
 $('menubtn').onclick = e=>{ e.stopPropagation(); $('menu').classList.toggle('show'); };
 document.addEventListener('click', e=>{ if(!$('menu').contains(e.target) && e.target!==$('menubtn')) $('menu').classList.remove('show'); });
@@ -1615,6 +1694,7 @@ setMenuLabel('language',tr('言語：日本語','Language: English'));
 setView(view);
 (async()=>{
   await pollState();
+  refreshDiagnostics(false); // 診断待ちで初期画面を止めない
   if(recording){ startupPending=false; await pollData(); return; }
   // 前回会議の内容を初期画面に混ぜず、新規開始か明示的な再開かを選ぶ。
   $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mstance').value=curStance;

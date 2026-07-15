@@ -178,6 +178,10 @@
     padding: 11px 20px; cursor: pointer; box-shadow: 0 6px 18px rgba(10,60,90,.3);
     display: inline-flex; align-items: center; gap: 7px; opacity: .92; }
   .pdfbtn:hover { opacity: 1 }
+  .backbtn { position:fixed; left:22px; top:22px; z-index:50; color:var(--ink); background:rgba(255,255,255,.94);
+    border:1px solid var(--line); border-radius:999px; padding:10px 16px; text-decoration:none;
+    font-family:inherit; font-size:14px; font-weight:700; box-shadow:0 4px 18px rgba(0,0,0,.09); }
+  .backbtn:hover { background:#f5f5f7; }
   @media print {
     /* ページ寸法は印刷時にJSが「いまの画面サイズ」を@pageに設定＝画面と同じ描画がそのまま1ページに（下のfallbackは保険） */
     @page { size: 1440px 810px; margin: 0 }
@@ -186,7 +190,7 @@
     .slide { box-shadow: none; border-radius: 0; border-bottom: none;
              page-break-after: always; break-inside: avoid; }
     .slide:last-of-type { page-break-after: auto; }
-    .pdfbtn { display: none !important; }
+    .pdfbtn,.backbtn { display: none !important; }
     .tree-map.root-collapsed .tree-branches { display:flex !important; }
     .tree-branch.collapsed { grid-template-columns:minmax(170px,220px) minmax(260px,1fr) !important; }
     .tree-branch.collapsed .tree-leaves { display:flex !important; }
@@ -197,6 +201,7 @@
 </style>
 </head>
 <body data-theme="neutral">
+<a class="backbtn" id="livemtg-back" href="/">← ダッシュボード</a>
 <button class="pdfbtn" onclick="window.print()" title="印刷ダイアログで「PDFに保存」を選ぶ">PDF保存</button>
 {{SLIDES}}
 <!-- Mermaid本体（相対参照。サーバ配信でも meetings/<id>/ から直接開いても解決） -->

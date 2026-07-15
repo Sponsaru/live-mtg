@@ -37,6 +37,7 @@ import server as app  # noqa: E402
 
 legacy = '''<html><head><style>
 .slide::after{background:url("data:image/png;base64,OLDLOGO") no-repeat left center}
+.legacy-logo{background-image:url('data:image/png;base64,ANOTHERLOGO')}
 /* sponsaru テーマ */
 body[data-theme="sponsaru"] .slide::after {content:"sponsaru."}
 </style></head><body data-theme="mainichi">
@@ -55,5 +56,7 @@ for output in (cleaned, persisted):
     assert "毎日興業 経営会議 議事サマリ" not in output
     assert 'data-theme="neutral"' in output
     assert 'id="livemtg-neutral-identity"' in output
+    assert 'id="livemtg-back"' in output
+    assert 'id="livemtg-back-style"' in output
 
 print("Neutral product branding OK")

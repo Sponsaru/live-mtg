@@ -64,6 +64,12 @@ function saveLanguage(language) {
   writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
 }
 
+function setupComplete() {
+  const config = readConfig();
+  return ["claude", "codex"].includes(String(config.aiProvider || "").toLowerCase())
+    && ["ja", "en"].includes(String(config.language || "").toLowerCase());
+}
+
 function findFile(rootDir, fileName) {
   if (!existsSync(rootDir)) return null;
   const pending = [rootDir];
@@ -554,7 +560,13 @@ try {
   else if (command === "start") await start();
   else if (command === "stop") stop();
   else if (command === "status") console.log(await health() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
-  else if (command === "dashboard") { await start(); openUrl(`http://127.0.0.1:${port}`); }
+  else if (command === "dashboard") {
+    // `npm install -g live-mtg && live-mtg` must not open a dashboard that only
+    // looks usable. On first launch, choose the AI and verify every required
+    // runtime before recording can begin.
+    if (!setupComplete()) await onboard(true, requestedProvider, requestedLanguage);
+    else { await start(); openUrl(`http://127.0.0.1:${port}`); }
+  }
   else if (command === "onboard") await onboard(!args.includes("--no-daemon"), requestedProvider, requestedLanguage, args.includes("--yes"));
   else if (command === "config") await configure(requestedProvider, requestedLanguage);
   else if (command === "update") await update();

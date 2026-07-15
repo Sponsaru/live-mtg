@@ -8,10 +8,10 @@
 
 ```bash
 npm install -g live-mtg@beta
-live-mtg onboard
+live-mtg
 ```
 
-`onboard` がAI選択、選択したCLIのインストールとログイン、ffmpeg・文字起こし環境の準備、常駐起動まで順番に案内する。通常は追加オプション不要。
+初回の `live-mtg` が自動でオンボーディングを開始し、AI選択、選択したCLIのインストールとログイン、ffmpeg・文字起こし環境の準備、常駐起動まで順番に案内する。設定をやり直す場合だけ `live-mtg onboard` を使う。
 
 初期設定で **Claude Code / Codex** を選ぶ。選択は `~/.live-mtg/config.json` に保存され、会議のライブ整理・事前準備・Web調査・清書・成果物生成のすべてで同じAIを使う。
 
