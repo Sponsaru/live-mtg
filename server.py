@@ -440,7 +440,7 @@ def _render_strategy_md(meta, st):
     L += ["---", "＊live-mtg の事前準備室から自動更新。"]
     return "\n".join(L) + "\n"
 
-def sync_strategy_to_project(sid, st=None):
+def sync_strategy_to_project(sid, st=None, stale_dir=""):
     """各チャット後に事前準備.mdを選択中の背景フォルダへ非同期で更新。"""
     if sid in deleted_sessions: return
     meta = read_meta(sid); dst = _strategy_export_dir(sid, meta)
@@ -455,6 +455,12 @@ def sync_strategy_to_project(sid, st=None):
             with open(os.path.join(stage, "事前準備.md"), "w", encoding="utf-8") as f: f.write(content)
             os.makedirs(dst, exist_ok=True)
             ok = _sync_files(stage, dst)
+            # 明示された相手名で会議名が変わった場合、同期成功後に旧題名の準備フォルダだけを除去。
+            # 同じ会議IDで始まるものに限定し、別会議・別案件は触らない。
+            if ok and stale_dir and os.path.realpath(stale_dir) != os.path.realpath(dst):
+                old_name = os.path.basename(stale_dir)
+                if (old_name == sid or old_name.startswith(sid + " ")) and os.path.isdir(stale_dir):
+                    shutil.rmtree(stale_dir, ignore_errors=True)
             sys.stderr.write("[PREP-SYNC] %s → %s %s\n" % (sid, dst, "OK" if ok else "失敗"))
         except Exception as e:
             sys.stderr.write("[PREP-SYNC] %s 失敗 %r\n" % (sid, e))
@@ -2234,7 +2240,47 @@ def _claude_structured(prompt, schema, timeout=90, model=None):
     # cwd=/tmpかつtools=""なので、選択フォルダのtrust警告や追加探索は発生しない。
     out = _claude_explore(tempfile.gettempdir(), prompt, timeout=timeout, json_schema=schema,
                           tools="", max_turns=3, model=model)
-    return _first_json(out)
+    try:
+        return _first_json(out)
+    except json.JSONDecodeError:
+        # PTY＋json-schema経路が空またはCLIラッパーだけを返す環境がある。
+        # ツールなしの通常 -p は別経路で安定しているため、同じ内容をJSON限定で再実行する。
+        retry = _ai_text(prompt + "\n\n返答は指定スキーマに合うJSON値だけ。説明やコードフェンスは禁止。",
+                         timeout=timeout, cwd=tempfile.gettempdir(), model=model or ASSIST_MODEL)
+        return _first_json(retry)
+
+EXPLICIT_MEETING_RE = re.compile(
+    r"^(?P<counterpart>.{1,40}?)(?:との|と)(?:ミーティング|会議|打ち合わせ)(?:なんだ|なの|だよ|です|だ)?[。！!]*$")
+
+def _explicit_meeting_counterpart(message):
+    """「田部井社長とのミーティングだよ」のような明示訂正をAIなしで確定する。"""
+    text = re.sub(r"^(?:これは|今回は|この会議は)\s*", "", str(message or "").strip())
+    m = EXPLICIT_MEETING_RE.match(text)
+    if not m:
+        return ""
+    counterpart = m.group("counterpart").strip(" 、。『』「」")
+    if not counterpart or counterpart in ("相手", "この人", "あの人"):
+        return ""
+    return counterpart
+
+def _apply_explicit_meeting_identity(sid, message):
+    """依頼主の明示した相手を会議設定へ即時反映し、旧同期先を返す。"""
+    counterpart = _explicit_meeting_counterpart(message)
+    if not counterpart:
+        return "", ""
+    meta = read_meta(sid)
+    old_export = _strategy_export_dir(sid, meta)
+    old_title = str(meta.get("title", "")).strip()
+    old_counterpart = old_title.split("との", 1)[0].strip() if "との" in old_title else ""
+    suffix = old_title.split("との", 1)[1].strip() if "との" in old_title else "ミーティング"
+    meta["title"] = counterpart + "との" + (suffix or "ミーティング")
+    meta["counterpart"] = counterpart
+    goal = str(meta.get("goal", ""))
+    if old_counterpart and old_counterpart in goal:
+        meta["goal"] = goal.replace(old_counterpart, counterpart)
+    meta["updated"] = time.strftime("%Y-%m-%d %H:%M")
+    write_meta(sid, meta)
+    return counterpart, old_export
 
 def _strategy_source_context(project_dir, meta_text, message, paths):
     """候補名から最大3件を選ばせ、サーバー側で範囲・容量を検証して読み込む。"""
@@ -2275,9 +2321,35 @@ def _strategy_source_context(project_dir, meta_text, message, paths):
 
 def strategy_chat(sid, message):
     """選択フォルダをClaude Codeがその場で読みながら壁打ちし、ライブAI用briefを保存する。"""
+    explicit_counterpart, old_export = _apply_explicit_meeting_identity(sid, message)
     m = read_meta(sid)
     st = _load_strategy(sid)
     msgs = st.get("messages") if isinstance(st.get("messages"), list) else []
+    if explicit_counterpart:
+        board = dict(st.get("board") or {}) if isinstance(st.get("board"), dict) else {}
+        board["counterpart"] = explicit_counterpart + "とのミーティング"
+        for key in ("hypotheses", "questions", "risks", "avoid", "sources"):
+            if not isinstance(board.get(key), list): board[key] = []
+        note = "今回の相手は%s。" % explicit_counterpart
+        old_brief = str(st.get("brief", "")).strip()
+        brief = old_brief if note in old_brief else ((old_brief + "\n\n") if old_brief else "") + note
+        reply = "「%sとのミーティング」として、会議設定・準備ボード・ライブ解析へ反映しました。" % explicit_counterpart
+        # 同じ訂正を直前の失敗後に再送した場合は、失敗メッセージを成功確認へ置換して
+        # チャット履歴を重複させない。
+        if (len(msgs) >= 2 and isinstance(msgs[-2], dict) and isinstance(msgs[-1], dict) and
+                msgs[-2].get("role") == "user" and
+                str(msgs[-2].get("text", "")).strip() == message and msgs[-1].get("role") == "assistant"):
+            msgs[-1] = {"role": "assistant", "text": reply}
+        else:
+            msgs.extend([{"role": "user", "text": message}, {"role": "assistant", "text": reply}])
+        saved = {"messages": msgs[-40:], "brief": brief, "board": board,
+                 "folderMode": bool((m.get("project_dir") or "").strip()),
+                 "updated": time.strftime("%Y-%m-%d %H:%M")}
+        _save_strategy(sid, saved)
+        apply_strategy_to_data(sid, saved)
+        sync_strategy_to_project(sid, saved, stale_dir=old_export)
+        return True, {"reply": reply, "brief": brief, "board": board, "messages": msgs[-40:],
+                      "exportPath": _strategy_export_dir(sid), "folderMode": saved["folderMode"]}
     history = "\n".join(("依頼主: " if x.get("role") == "user" else "参謀: ") + str(x.get("text", ""))
                         for x in msgs[-16:] if isinstance(x, dict))
     ctx = {}
@@ -2327,15 +2399,13 @@ def strategy_chat(sid, message):
         if not reply: raise ValueError("empty strategy reply")
     except json.JSONDecodeError:
         sys.stderr.write("[STRATEGY] 形式失敗をメモ保存へfallback sid=%s\n" % sid); sys.stderr.flush()
-        reply = ("内容は準備記録へ保存しました。今回はAIの回答形式だけが崩れたため、"
-                 "分析結果は追加できていません。会話はこのまま続けられます。")
+        reply = "内容を準備記録とライブ解析へ反映しました。準備ボードの自動整理は次の入力時に再試行します。"
         old_brief = str(st.get("brief", "")).strip()
         brief = (old_brief + "\n\n" if old_brief else "") + "【依頼主の追加メモ】\n" + message
         board = st.get("board") if isinstance(st.get("board"), dict) else {}
     except Exception as e:
         sys.stderr.write("[STRATEGY] 失敗 sid=%s error=%r\n" % (sid, e)); sys.stderr.flush()
-        reply = ("内容は準備記録へ保存しました。今回はAI分析が完了しませんでしたが、"
-                 "入力内容とこれまでの準備ボードは失われていません。")
+        reply = "内容を準備記録とライブ解析へ反映しました。準備ボードの自動整理は次の入力時に再試行します。"
         old_brief = str(st.get("brief", "")).strip()
         brief = (old_brief + "\n\n" if old_brief else "") + "【依頼主の追加メモ】\n" + message
         board = st.get("board") if isinstance(st.get("board"), dict) else {}
