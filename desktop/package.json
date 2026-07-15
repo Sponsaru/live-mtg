@@ -6,7 +6,7 @@
   "scripts": {
     "tauri": "tauri",
     "build:backend": "node scripts/build-backend.mjs",
-    "icons": "tauri icon icon.svg",
+    "icons": "tauri icon ../app-icon.png",
     "dev": "npm run build:backend && tauri dev",
     "build": "npm run build:backend && tauri build"
   },

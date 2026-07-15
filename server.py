@@ -2646,8 +2646,10 @@ class H(BaseHTTPRequestHandler):
                                                 "language": LANGUAGE}, ensure_ascii=False))
         if p in ("/", "/index.html"):
             return self._file(os.path.join(SCRIPT_DIR, "index.html"), "text/html; charset=utf-8")
-        if p == "/app-logo.svg":
-            return self._file(os.path.join(SCRIPT_DIR, "app-logo.svg"), "image/svg+xml; charset=utf-8")
+        if p == "/brand-logo.png":
+            return self._file(os.path.join(SCRIPT_DIR, "brand-logo.png"), "image/png")
+        if p in ("/app-icon.png", "/favicon.png"):
+            return self._file(os.path.join(SCRIPT_DIR, "app-icon.png"), "image/png")
         if p == "/mermaid.min.js":
             return self._file(os.path.join(SCRIPT_DIR, "mermaid.min.js"),
                               "application/javascript; charset=utf-8")

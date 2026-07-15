@@ -28,6 +28,14 @@ for filename in UI_FILES:
     assert not found_branding, f"{filename}: customer branding found: {found_branding}"
     assert not found_emoji, f"{filename}: emoji UI found: {found_emoji}"
 
+index = (ROOT / "index.html").read_text(encoding="utf-8")
+assert 'href="/favicon.png"' in index, "browser favicon must use the product icon"
+assert 'href="/app-icon.png"' in index, "Apple touch icon must use the product icon"
+assert 'url("/brand-logo.png")' in index, "product wordmark must be used in the UI"
+assert "/app-logo.svg" not in index, "legacy placeholder logo must not return"
+for asset in ("brand-logo.png", "app-icon.png"):
+    assert (ROOT / asset).is_file(), f"missing product brand asset: {asset}"
+
 server = (ROOT / "server.py").read_text(encoding="utf-8")
 assert "neutral_generated_html" in server, "legacy generated decks must be neutralized when served"
 assert 'content:"LiveMTG"' in server, "legacy customer logo must be replaced with product wordmark"
