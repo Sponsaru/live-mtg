@@ -48,7 +48,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     (meeting / "meta.json").write_text(json.dumps({"id": sid, "title": "Parallel"}), encoding="utf-8")
     (meeting / "data.json").write_text(server.EMPTY_DATA, encoding="utf-8")
 
-    fast = {"summary": "fast result", "decisions_add": ["fast decision"]}
+    fast = {"summary": "fast result", "decisions_add": ["fast decision"],
+            "diagram": "flowchart LR\n  A[相談] --> B[合意]"}
     detail = {"mindmap_add": [{"topic": "detail topic", "groups": []}], "lookups": []}
     barrier = threading.Barrier(3)
 
@@ -67,6 +68,7 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     saved = json.loads((meeting / "data.json").read_text(encoding="utf-8"))
     assert saved["summary"] == "fast result"
     assert "fast decision" in saved["decisions"]
+    assert saved["diagram"].startswith("flowchart LR")
     assert any(x.get("topic") == "detail topic" for x in saved["mindmap"])
 
     # Prove the two AI lanes overlap in wall-clock time, not merely that two queues exist.
@@ -105,6 +107,7 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
 source = Path(server.__file__).read_text(encoding="utf-8")
 assert "これは最優先の即時レーンです" in server.LIVE_PATCH_PROMPT
 assert "mindmap_add" not in server.LIVE_PATCH_PROMPT
+assert '"diagram"' in server.LIVE_PATCH_PROMPT
 assert "mindmap_add" in server.DETAIL_PATCH_PROMPT
 assert "threading.Thread(target=detail_worker" in source
 assert "with background_ai_lock:" in source

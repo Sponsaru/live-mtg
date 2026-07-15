@@ -1200,13 +1200,45 @@ async function verifyAssist(i){
 
 // ===== 表示モード（リスト / マインドマップ）=====
 let view = localStorage.getItem('livemtg_view') || 'list';
+let mindmapMode = localStorage.getItem('livemtg_mindmap_mode') || 'timeline';
+if(!['timeline','tree','relation'].includes(mindmapMode))mindmapMode='timeline';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
 function deckHeight(){ const h=document.querySelector('header').offsetHeight;
   $('deck').style.height=(window.innerHeight-h)+'px'; }
 function ds(cls, inner){ return `<section class="ds ${cls||''}">${inner}</section>`; }
+function captureMindmapUi(){
+  const stage=$('deck').querySelector('.dstage'),tree=$('deck').querySelector('[data-tree]');
+  if(!stage||!tree)return null;
+  const branch={},group={},detail={};
+  tree.querySelectorAll('[data-branch]').forEach(b=>{const name=(b.querySelector('.tree-node.branch')?.textContent||'').trim();if(name)branch[name]=b.classList.contains('collapsed')});
+  tree.querySelectorAll('[data-group]').forEach(g=>{const b=(g.closest('[data-branch]')?.querySelector('.tree-node.branch')?.textContent||'').trim(),name=(g.querySelector('.tree-node.group')?.textContent||'').trim();if(name)group[b+'\u241f'+name]=g.classList.contains('group-collapsed')});
+  tree.querySelectorAll('.tree-node.item').forEach(n=>{const b=(n.closest('[data-branch]')?.querySelector('.tree-node.branch')?.textContent||'').trim(),g=(n.closest('[data-group]')?.querySelector('.tree-node.group')?.textContent||'').trim(),name=n.textContent.trim();if(name)detail[b+'\u241f'+g+'\u241f'+name]=n.classList.contains('detail-open')});
+  return{left:stage.scrollLeft,top:stage.scrollTop,root:tree.classList.contains('root-collapsed'),branch,group,detail};
+}
+function applyMindmapMode(mode,remember=true){
+  if(!['timeline','tree','relation'].includes(mode))mode='timeline';
+  mindmapMode=mode;if(remember)localStorage.setItem('livemtg_mindmap_mode',mode);
+  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),relation=deck.querySelector('.relation-map');
+  if(!timeline||!tree||!relation)return;
+  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');relation.classList.toggle('on',mode==='relation');
+  deck.querySelectorAll('[data-mapview]').forEach(x=>x.classList.toggle('on',x.dataset.mapview===mode));
+  if(mode==='relation')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
+}
+function restoreMindmapUi(state){
+  const stage=$('deck').querySelector('.dstage'),tree=$('deck').querySelector('[data-tree]');if(!stage||!tree)return;
+  if(state){
+    tree.classList.toggle('root-collapsed',!!state.root);
+    tree.querySelectorAll('[data-branch]').forEach(b=>{const name=(b.querySelector('.tree-node.branch')?.textContent||'').trim();if(Object.hasOwn(state.branch,name))b.classList.toggle('collapsed',!!state.branch[name])});
+    tree.querySelectorAll('[data-group]').forEach(g=>{const b=(g.closest('[data-branch]')?.querySelector('.tree-node.branch')?.textContent||'').trim(),name=(g.querySelector('.tree-node.group')?.textContent||'').trim(),key=b+'\u241f'+name;if(Object.hasOwn(state.group,key))g.classList.toggle('group-collapsed',!!state.group[key])});
+    tree.querySelectorAll('.tree-node.item').forEach(n=>{const b=(n.closest('[data-branch]')?.querySelector('.tree-node.branch')?.textContent||'').trim(),g=(n.closest('[data-group]')?.querySelector('.tree-node.group')?.textContent||'').trim(),key=b+'\u241f'+g+'\u241f'+n.textContent.trim(),open=!!state.detail[key],panel=n.parentElement.querySelector('.tree-detail');n.classList.toggle('detail-open',open);if(panel)panel.classList.toggle('show',open)});
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{stage.scrollLeft=state.left;stage.scrollTop=state.top;drawLiveTree()}));
+  }
+  applyMindmapMode(mindmapMode,false);
+}
 function buildDeck(d){
+  const preservedUi=captureMindmapUi();
   d=d||{};
   const ml=(v,n=54)=>{let s=itemText(v).replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n)+'…':s;};
   const headline=v=>{const s=itemText(v).replace(/\s+/g,' ').trim(),p=s.split(/[\u3001。:：]/)[0];return (p||s).slice(0,30);};
@@ -1228,19 +1260,16 @@ function buildDeck(d){
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
   const timeline=(Array.isArray(d.log)?d.log:[]).slice(-30).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
-    <div class="maptools"><button class="on" data-mapview="timeline">${tr('時系列','Timeline')}</button><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
+    <div class="maptools"><button data-mapview="timeline">${tr('時系列','Timeline')}</button><button data-mapview="tree">${tr('論点マップ','Topics')}</button><button data-mapview="relation">${tr('会話の関係','Relationships')}</button></div></div>
     <div class="dstage"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div>`);
   bindLiveTree();
   $('deck').querySelectorAll('[data-mapview]').forEach(btn=>btn.onclick=()=>{
-    const mode=btn.dataset.mapview,rel=mode==='relation',tree=mode==='tree';
-    $('deck').querySelector('.timeline-map').classList.toggle('off',mode!=='timeline');
-    $('deck').querySelector('.tree-map').classList.toggle('off',!tree);
-    $('deck').querySelector('.relation-map').classList.toggle('on',rel); $('deck').querySelectorAll('[data-mapview]').forEach(x=>x.classList.toggle('on',x===btn));
-    if(rel)renderLiveMermaid(); else if(tree)requestAnimationFrame(drawLiveTree);
+    applyMindmapMode(btn.dataset.mapview);
   });
+  restoreMindmapUi(preservedUi);
 }
 function drawLiveTree(){
   const tree=$('deck').querySelector('[data-tree]'); if(!tree)return;
