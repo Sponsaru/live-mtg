@@ -63,6 +63,18 @@ function selectedLanguage() {
 
 function t(ja, en) { return selectedLanguage() === "en" ? en : ja; }
 
+function hfCredentialConfigured() {
+  if (String(process.env.HF_TOKEN || "").startsWith("hf_")) return true;
+  if (isMac) {
+    const account = process.env.USER || homedir().split("/").filter(Boolean).at(-1) || "";
+    return spawnSync("/usr/bin/security",
+      ["find-generic-password", "-a", account, "-s", "live-mtg.huggingface"],
+      { stdio: "ignore" }).status === 0;
+  }
+  if (isWindows) return existsSync(join(home, "hf-token.dpapi"));
+  return false;
+}
+
 function selectedProvider() {
   const value = String(process.env.AI_PROVIDER || readConfig().aiProvider || "claude").toLowerCase();
   return value === "codex" ? "codex" : "claude";
@@ -342,7 +354,15 @@ function doctor(provider = selectedProvider()) {
   ];
   console.log("LiveMTG doctor\n");
   for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
-  console.log(`${commandExists("whispermlx") ? "✓" : "○"} ${t("話者分離", "Speaker diarization")}${commandExists("whispermlx") ? " (whispermlx)" : t(" — 任意: live-mtg onboardで導入", " — optional: install with live-mtg onboard")}`);
+  const diarizationInstalled = commandExists("whispermlx");
+  const diarizationReady = diarizationInstalled && hfCredentialConfigured();
+  const diarizationState = diarizationReady ? "✓" : "○";
+  const diarizationDetail = !diarizationInstalled
+    ? t(" — 任意: live-mtg onboardで導入", " — optional: install with live-mtg onboard")
+    : !diarizationReady
+      ? t(" — 任意: 画面の『AI・音声の接続診断』でHFトークンを設定", " — optional: set an HF token in AI & audio diagnostics")
+      : " (whispermlx)";
+  console.log(`${diarizationState} ${t("話者分離", "Speaker diarization")}${diarizationDetail}`);
   const failed = checks.filter(([, ok]) => !ok).length;
   console.log(t(`\nデータ: ${home}`, `\nData: ${home}`));
   console.log(`AI: ${provider === "codex" ? "Codex" : "Claude Code"}`);
