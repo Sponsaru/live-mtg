@@ -1,6 +1,6 @@
 {
   "name": "live-mtg",
-  "version": "0.1.0-beta.36",
+  "version": "0.1.0-beta.37",
   "description": "Real-time bilingual meeting minutes and AI meeting copilot for Claude Code or Codex",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "files": [
     "cli/",
     "defaults/",
+    "scripts/live-diarize-worker.py",
     "server.py",
     "index.html",
     "brand-logo.png",

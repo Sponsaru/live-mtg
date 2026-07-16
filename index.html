@@ -299,6 +299,11 @@
   body.slidemode .whobar{display:none}
   .whobar .wc{display:inline-block;background:#fff;color:var(--blue-d);font-weight:800;font-size:14px;
     border:1px solid var(--line);border-radius:20px;padding:2px 12px}
+  .live-speakers{display:none;padding:7px 22px;background:#f5f5f7;border-bottom:1px solid #e5e5ea;
+    align-items:center;gap:8px;flex-wrap:wrap;color:#6e6e73;font-size:13px}
+  .live-speakers.show{display:flex}.live-speakers b{color:#1d1d1f;font-weight:650}
+  .live-speakers .ls-chip{background:#fff;border:1px solid #d2d2d7;border-radius:999px;padding:3px 10px;color:#1d1d1f;font-weight:600}
+  .live-speakers .ls-state{margin-left:auto;font-size:12px}
   /* 全文ドロワー：話者つきログ＋生の全文 */
   .logh{font-size:13px;font-weight:800;color:var(--blue-d);letter-spacing:.04em;margin:0 0 8px}
   .logline{padding:7px 0;border-bottom:1px dashed var(--line);line-height:1.7}
@@ -613,6 +618,7 @@
 <div id="pview"></div>
 
 <div class="whobar" id="who"></div>
+<div class="live-speakers" id="livespeakers"></div>
 
 <div class="summary" id="summary">音声を待っています…</div>
 
@@ -816,6 +822,10 @@
     <h3>AI・音声の接続診断</h3>
     <p>どこまで動く状態かを確認できます。AI応答テストは、選択中のCodexまたはClaude Codeを実際に1回呼び出します。</p>
     <div class="diag-list" id="diaglist"></div>
+    <div id="hfconfig" class="speaker-setup" style="display:none;margin-top:12px">
+      <p id="hfconfigtext"></p>
+      <div class="speaker-token-row" id="hftokenrow"><input id="hftoken_diag" type="password" autocomplete="off" placeholder="hf_..."><button class="cancel" id="hfsave_diag">安全に保存</button></div>
+    </div>
     <div class="diag-result" id="diagresult"></div>
     <div class="row">
       <button class="cancel" id="diagclose">閉じる</button>
@@ -1005,6 +1015,19 @@ function applyState(s){
   $('st').textContent=job;
   $('st').classList.toggle('active',!!(recording||serverRecording||s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
   $('statuscluster').title=tr(`AI: ${provider}。処理状況と最終解析時刻`,`AI: ${provider}. Processing state and last analysis time`);
+  const ld=s.liveDiarization||{}, ls=$('livespeakers'), liveSpeakerRows=Array.isArray(ld.speakers)?ld.speakers:[];
+  if(ld.status==='ready'&&liveSpeakerRows.length){
+    ls.innerHTML=`<b>${tr('音声からの暫定話者','Provisional audio speakers')}</b>`+liveSpeakerRows.map((x,i)=>`<span class="ls-chip">${tr('話者','Speaker')} ${String.fromCharCode(65+i)}</span>`).join('')+`<span class="ls-state">${tr('清書前に名前を確定','Confirm names before polishing')}</span>`;
+    ls.classList.add('show');ls.title='';
+  }else if(ld.status==='processing'&&serverRecording){
+    ls.innerHTML=`<b>${tr('話者を識別中','Identifying speakers')}</b><span class="ls-state">${tr('録音・文字起こしとは並列処理','Runs alongside recording and transcription')}</span>`;
+    ls.classList.add('show');
+  }else if(ld.status==='error'&&serverRecording){
+    ls.innerHTML=`<b>${tr('話者分離を開始できません','Could not start speaker diarization')}</b><span class="ls-state">${tr('接続診断で設定を確認','Check setup in diagnostics')}</span>`;
+    ls.classList.add('show');ls.title=ld.message||'';
+  }else{
+    ls.classList.remove('show');ls.innerHTML='';ls.title=ld.message||'';
+  }
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
   setMenuLabel('goalbtn',curGoal ? tr('目標・ガイド設定（ON）','Goal & guide settings (ON)') : tr('目標・ガイド設定','Goal & guide settings'));
@@ -1064,6 +1087,14 @@ async function refreshDiagnostics(openPanel=false){
     const provider=h.aiProvider==='codex'?'Codex':'Claude Code';
     setMenuLabel('runtimebtn',h.ok?tr(`AI・音声 接続OK（${provider}）`,`AI & audio ready (${provider})`):tr(`要設定：AI・音声（${provider}）`,`Setup required (${provider})`));
     $('diaglist').innerHTML=(h.checks||[]).map(x=>`<div class="diag-item ${x.ok?'':'bad'}"><span class="diag-mark">${x.ok?'✓':'×'}</span><div><strong>${esc(x.label)}</strong>${x.ok?'':`<small>${esc(x.help||'')}</small>`}</div></div>`).join('');
+    const ds=h.speakerDiarization||{}, hf=$('hfconfig');
+    if(ds.installed){
+      hf.style.display='block';
+      $('hfconfigtext').textContent=ds.tokenConfigured
+        ?tr('話者分離トークンはMacのKeychainに保存済みです。','The diarization token is stored in macOS Keychain.')
+        :tr('リアルタイム話者分離を使うには、Hugging Faceの読み取り専用トークンを一度だけ設定してください。ブラウザや会議データには保存されません。','Set a read-only Hugging Face token once for live diarization. It is not stored in the browser or meeting data.');
+      $('hftokenrow').style.display=ds.tokenConfigured?'none':'flex';
+    }else hf.style.display='none';
     if(openPanel)$('diagbg').classList.add('show');
     return h;
   }catch(e){
@@ -1749,7 +1780,7 @@ function buildFinalizeForm(qs, answers, diarization, speakerMap){
       return `<div class="speaker-row"><div class="speaker-id">${tr('話者','Speaker')} ${String.fromCharCode(65+i)}</div><div class="speaker-examples">${examples.map(x=>`<span>「${esc(x)}」</span>`).join('')||tr('発言例なし','No examples')}</div><input class="speaker-in" data-speaker="${esc(id)}" value="${esc(val)}" placeholder="${tr('名前（不明なら空欄）','Name (optional)')}"></div>`;
     }).join('')+`</section>`;
   }else if(diarization.status==='setup'){
-    speakerHtml=`<section class="speaker-setup"><p>${diarization.installed?tr('話者分離を使うにはHugging Faceトークンを設定してください。','Set a Hugging Face token to enable diarization.'):tr('話者分離は未導入です。ターミナルで live-mtg onboard を実行してください。','Diarization is not installed. Run live-mtg onboard.')}</p>${diarization.installed?`<div class="speaker-token-row"><input id="hftoken" type="password" placeholder="hf_..."><button class="cancel" id="hfsave">${tr('設定して再実行','Save and retry')}</button></div>`:''}</section>`;
+    speakerHtml=`<section class="speaker-setup"><p>${diarization.installed?tr('話者分離を使うにはHugging Faceの読み取り専用トークンを設定してください。MacではKeychainへ安全に保存され、会議データやブラウザには残りません。','Set a read-only Hugging Face token. It is stored in macOS Keychain and never kept in meeting data or the browser.'):tr('話者分離は未導入です。ターミナルで live-mtg onboard を実行してください。','Diarization is not installed. Run live-mtg onboard.')}</p>${diarization.installed?`<div class="speaker-token-row"><input id="hftoken" type="password" autocomplete="off" placeholder="hf_..."><button class="cancel" id="hfsave">${tr('安全に保存して再実行','Store securely and retry')}</button></div>`:''}</section>`;
   }else if(diarization.status==='error'){
     speakerHtml=`<section class="speaker-setup"><p>${tr('話者分離に失敗したため、今回は従来の清書を利用できます。','Diarization failed; standard polishing remains available.')} ${esc(diarization.message||'')}</p></section>`;
   }
@@ -1851,6 +1882,13 @@ $('language').onclick=async()=>{
 $('runtimebtn').onclick=()=>{ $('diagresult').textContent=''; refreshDiagnostics(true); };
 $('diagclose').onclick=()=>$('diagbg').classList.remove('show');
 $('diagbg').onclick=e=>{if(e.target===$('diagbg'))$('diagbg').classList.remove('show');};
+$('hfsave_diag').onclick=async()=>{
+  const input=$('hftoken_diag'),token=input.value.trim(),button=$('hfsave_diag');if(!token)return;
+  button.disabled=true;
+  try{const r=await api('/api/settings',{hfToken:token});input.value='';if(!r.ok)throw new Error();toast(tr('Keychainへ安全に保存しました','Stored securely'));await refreshDiagnostics(true);}
+  catch(e){toast(tr('トークンを保存できませんでした','Could not store the token'));}
+  finally{button.disabled=false;}
+};
 $('aitest').onclick=async()=>{
   const b=$('aitest'),out=$('diagresult');b.disabled=true;out.className='diag-result';out.textContent=tr('選択中のAIを呼び出しています…','Calling the selected AI…');
   try{const r=await api('/api/ai-check',{});if(r.ok){out.className='diag-result ok';out.textContent=tr(`AI応答OK（${r.elapsed}秒）`,`AI response OK (${r.elapsed}s)`);}else{out.className='diag-result bad';out.textContent=tr('AI応答に失敗：','AI response failed: ')+localizeMessage(r.error||'');}}

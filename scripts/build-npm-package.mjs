@@ -11,8 +11,12 @@ for (const path of [
   "cli", "defaults", "server.py", "index.html", "brand-logo.png", "app-icon.png", "mermaid.min.js",
   "make-mindmap.py", "make-slides.sh", "slides-template.html",
   "slide-work-template.html", "slide-work-pattern-examples.html", "slide-work-guide.md", "install.sh",
-  "install.ps1", "LICENSE", "VERSION"
-]) cpSync(join(root, path), join(out, path), { recursive: true });
+  "install.ps1", "scripts/live-diarize-worker.py", "LICENSE", "VERSION"
+]) {
+  const target = join(out, path);
+  mkdirSync(dirname(target), { recursive: true });
+  cpSync(join(root, path), target, { recursive: true });
+}
 
 cpSync(join(root, "README.npm.md"), join(out, "README.md"));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));

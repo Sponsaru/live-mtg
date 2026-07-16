@@ -6,7 +6,7 @@
 #   ヘッダー操作（録音 開始/停止・新規会議・会議切替・スライド化・全文表示）と配信も担当。
 #   会議は 1つ=1フォルダ（meetings/<id>/）で独立管理。
 # ─────────────────────────────────────────────────────────────
-import os, sys, json, subprocess, signal, threading, time, re, html, queue, glob, shutil, difflib, platform, runpy
+import os, sys, json, subprocess, signal, threading, time, re, html, queue, glob, shutil, difflib, platform, runpy, getpass, shlex
 import urllib.request, urllib.parse, tempfile
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
@@ -58,7 +58,9 @@ if AI_PROVIDER not in ("claude", "codex"):
 LANGUAGE = str(os.environ.get("LIVE_MTG_LANGUAGE", _SETTINGS.get("language", "ja"))).strip().lower()
 if LANGUAGE not in ("ja", "en"):
     LANGUAGE = "ja"
-HF_TOKEN = str(os.environ.get("HF_TOKEN", _SETTINGS.get("hfToken", ""))).strip()
+HF_CREDENTIAL_SERVICE = "live-mtg.huggingface"
+HF_TOKEN_OVERRIDE = str(os.environ.get("HF_TOKEN", "")).strip()
+LEGACY_HF_TOKEN = str(_SETTINGS.get("hfToken", "")).strip()
 CODEX_MODEL   = os.environ.get("CODEX_MODEL", "").strip()  # 空ならCodex CLI側の推奨既定モデル
 SILENCE_DB   = float(os.environ.get("SILENCE_DB", "-45")) # mean_volumeがこれ未満(dB)なら無音とみなす
 # 用途別プレイブック（商談.md / 採用面接.md 等）＝「やり方のノウハウ」の蓄積場所。
@@ -91,6 +93,68 @@ def _save_setting(key, value):
     try: os.chmod(SETTINGS_FILE, 0o600)
     except Exception: pass
 
+def _delete_setting(key):
+    try:
+        config = json.load(open(SETTINGS_FILE, encoding="utf-8")) if os.path.isfile(SETTINGS_FILE) else {}
+    except Exception:
+        config = {}
+    if key not in config:
+        return
+    config.pop(key, None)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    try: os.chmod(SETTINGS_FILE, 0o600)
+    except Exception: pass
+
+def _credential_get_hf_token():
+    """OS資格情報ストアから取得。値はHTTP・ログ・設定JSONへ返さない。"""
+    if HF_TOKEN_OVERRIDE:
+        return HF_TOKEN_OVERRIDE
+    try:
+        if sys.platform == "darwin":
+            r = subprocess.run(["/usr/bin/security", "find-generic-password", "-a", getpass.getuser(),
+                                "-s", HF_CREDENTIAL_SERVICE, "-w"], capture_output=True, text=True, timeout=10)
+            return r.stdout.strip() if r.returncode == 0 else ""
+        if os.name == "nt":
+            path = os.path.join(RUN, "hf-token.dpapi")
+            if not os.path.isfile(path): return ""
+            script = ('$b=[IO.File]::ReadAllBytes($args[0]);'
+                      '$p=[Security.Cryptography.ProtectedData]::Unprotect($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);'
+                      '[Console]::Out.Write([Text.Encoding]::UTF8.GetString($p))')
+            r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script, path],
+                               capture_output=True, text=True, timeout=10)
+            return r.stdout.strip() if r.returncode == 0 else ""
+    except Exception:
+        pass
+    return ""
+
+def _credential_set_hf_token(token):
+    token = str(token or "").strip()
+    if not token.startswith("hf_") or len(token) < 10:
+        return False
+    try:
+        if sys.platform == "darwin":
+            # `-w`を最後に置くとsecurityがstdinから安全に入力を読む。argvへ秘密を載せない。
+            r = subprocess.run(["/usr/bin/security", "add-generic-password", "-U", "-a", getpass.getuser(),
+                                "-s", HF_CREDENTIAL_SERVICE, "-l", "LiveMTG Hugging Face", "-w"],
+                               input=token + "\n" + token + "\n", capture_output=True, text=True, timeout=30)
+            return r.returncode == 0
+        if os.name == "nt":
+            os.makedirs(RUN, exist_ok=True)
+            path = os.path.join(RUN, "hf-token.dpapi")
+            script = ('$t=[Console]::In.ReadToEnd();$b=[Text.Encoding]::UTF8.GetBytes($t.Trim());'
+                      '$p=[Security.Cryptography.ProtectedData]::Protect($b,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser);'
+                      '[IO.File]::WriteAllBytes($args[0],$p)')
+            r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script, path],
+                               input=token, capture_output=True, text=True, timeout=30)
+            return r.returncode == 0
+    except Exception:
+        pass
+    return False
+
+def _hf_token_configured():
+    return bool(_credential_get_hf_token())
+
 def _init_runtime():
     """GUI起動でもCLIを発見できるPATHと、書き込み可能な初期データ領域を用意する。"""
     extras = []
@@ -119,6 +183,11 @@ def _init_runtime():
             shutil.copy2(src, dst)
 
 _init_runtime()
+
+# beta.36以前の平文configを一度だけOS資格情報ストアへ移し、成功後に削除する。
+if LEGACY_HF_TOKEN:
+    if _hf_token_configured() or _credential_set_hf_token(LEGACY_HF_TOKEN):
+        _delete_setting("hfToken")
 
 def desktop_health():
     """初回セットアップ画面用。サーバ起動と外部CLIの準備状況を分けて返す。"""
@@ -150,8 +219,8 @@ def desktop_health():
          "required": True,
          "help": _t("Macは pipx install mlx-whisper、Windowsはwhisper.cppのwhisper-cliとモデルを設定してください", "Mac: pipx install mlx-whisper; Windows: configure whisper-cli and its model")},
         {"id": "diarization", "label": _t("話者分離（whispermlx）", "Speaker diarization (whispermlx)"),
-         "ok": has_diarization and bool(HF_TOKEN), "required": False,
-         "help": _t("live-mtg onboardでwhispermlxを導入し、清書前画面でHFトークンを設定", "Install whispermlx with live-mtg onboard, then set an HF token before polishing")},
+         "ok": has_diarization and _hf_token_configured(), "required": False,
+         "help": _t("live-mtg onboardでwhispermlxを導入し、画面の『AI・音声の接続診断』でHFトークンを設定", "Install whispermlx with live-mtg onboard, then set an HF token in AI & audio diagnostics")},
     ]
     if ASR_BACKEND == "cpp" or (not has_mlx and has_cpp):
         checks.append({"id": "model", "label": _t("文字起こしモデル", "Transcription model"), "ok": os.path.isfile(MODEL),
@@ -161,7 +230,7 @@ def desktop_health():
     return {"ok": ai_ok and audio_ok, "aiOk": ai_ok, "audioOk": audio_ok, "checks": checks,
             "platform": platform.system(), "dataDir": RUN, "version": APP_VERSION,
             "aiProvider": AI_PROVIDER, "language": LANGUAGE,
-            "speakerDiarization": {"installed": has_diarization, "tokenConfigured": bool(HF_TOKEN)}}
+            "speakerDiarization": {"installed": has_diarization, "tokenConfigured": _hf_token_configured()}}
 
 def service_health():
     """CLIと録音UI用の軽量生存確認。外部CLIは呼ばず即応する。"""
@@ -186,11 +255,11 @@ def set_language(language):
     return True
 
 def set_hf_token(token):
-    """話者分離用HFトークンをローカル設定へ保存する。APIから値自体は返さない。"""
-    global HF_TOKEN
-    HF_TOKEN = str(token or "").strip()
-    _save_setting("hfToken", HF_TOKEN)
-    return bool(HF_TOKEN)
+    """話者分離用HFトークンをOS資格情報ストアへ保存する。"""
+    ok = _credential_set_hf_token(token)
+    if ok:
+        _delete_setting("hfToken")
+    return ok
 
 def _ai_env():
     """claude をローカル自動実行する時の共通環境（morning-routine.sh の plist 準拠）。
@@ -548,6 +617,12 @@ live_notes_lock = threading.Lock()
 detail_failures = {}
 data_write_lock = threading.Lock()       # AIは並列、data.jsonの統合だけ直列
 background_ai_lock = threading.Lock()    # 即時AI＋背景AIの最大2呼び出しに制限
+live_diarization_q = queue.Queue()
+live_diarization_pending = set()
+live_diarization_lock = threading.Lock()
+live_diarization_last = {}
+live_diarizer_process = None
+live_diarizer_io_lock = threading.Lock()
 long_job_lock = threading.Lock()
 long_jobs = {}                           # (sid, kind) -> {process, cancelled}
 long_job_local = threading.local()
@@ -1855,6 +1930,8 @@ def process_chunk(sid, webm):
         try:
             adir = os.path.join(sdir(sid), "prep-audio" if is_prep else "audio"); os.makedirs(adir, exist_ok=True)
             shutil.copy2(webm, os.path.join(adir, os.path.basename(webm)))
+            if not is_prep:
+                request_live_diarization(sid)
         except Exception:
             pass
         asr_wav = _overlap_wav(sid, wav, "prep" if is_prep else "meeting")
@@ -2083,6 +2160,158 @@ def _load_diarization(sid):
     except Exception:
         return {}
 
+def _live_diarization_path(sid):
+    return os.path.join(sdir(sid), "live-diarization.json")
+
+def _load_live_diarization(sid, compact=False):
+    try:
+        with open(_live_diarization_path(sid), encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict): return {}
+        if compact:
+            return {k: data.get(k) for k in ("status", "speakers", "updated", "message", "latencySeconds") if k in data}
+        return data
+    except Exception:
+        return {}
+
+def _diarizer_python():
+    exe = shutil.which("whispermlx")
+    if not exe:
+        return ""
+    try:
+        first = open(exe, encoding="utf-8").readline().strip()
+        if first.startswith("#!"):
+            command = shlex.split(first[2:])
+            if command and os.path.isfile(command[0]): return command[0]
+    except Exception:
+        pass
+    return ""
+
+def _diarizer_worker_script():
+    return os.path.join(SCRIPT_DIR, "scripts", "live-diarize-worker.py")
+
+def _call_diarizer(wav, max_speakers=8):
+    """常駐ワーカーへ音声パスだけ渡す。トークンはワーカーがOS資格情報から読む。"""
+    global live_diarizer_process
+    request = {"id": "%d" % time.time_ns(), "command": "diarize", "wav": wav,
+               "maxSpeakers": int(max_speakers)}
+    with live_diarizer_io_lock:
+        # ロック内で起動すると再入するため、ここでは直接起動する。
+        if not live_diarizer_process or live_diarizer_process.poll() is not None:
+            python = _diarizer_python(); script = _diarizer_worker_script()
+            if not python or not os.path.isfile(script): raise RuntimeError("話者分離ワーカーが見つかりません")
+            env = dict(os.environ); env["LIVE_MTG_HOME"] = RUN
+            live_diarizer_process = subprocess.Popen(
+                [python, script], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr,
+                text=True, bufsize=1, env=env,
+            )
+        process = live_diarizer_process
+        try:
+            process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n"); process.stdin.flush()
+        except Exception:
+            _kill_process_tree(process); live_diarizer_process = None
+            raise RuntimeError("話者分離ワーカーへ接続できません")
+        # モデル取得や長時間音声が固まっても専用レーンを永久に占有しない。
+        response_q = queue.Queue(maxsize=1)
+        reader = threading.Thread(target=lambda: response_q.put(process.stdout.readline()), daemon=True)
+        reader.start()
+        try:
+            line = response_q.get(timeout=600)
+        except queue.Empty:
+            _kill_process_tree(process); live_diarizer_process = None
+            raise RuntimeError("話者分離が10分以内に完了しませんでした")
+        if not line:
+            live_diarizer_process = None
+            raise RuntimeError("話者分離ワーカーが終了しました")
+    response = json.loads(line)
+    if not response.get("ok"):
+        raise RuntimeError(response.get("error") or "話者分離に失敗しました")
+    return response.get("turns") or []
+
+def _overlap_seconds(a, b):
+    return max(0.0, min(float(a.get("end", 0)), float(b.get("end", 0))) -
+               max(float(a.get("start", 0)), float(b.get("start", 0))))
+
+def _stable_live_speakers(sid, raw_turns):
+    """全音声の再解析結果を前回時間軸へ重ね、Speaker A/Bの入れ替わりを防ぐ。"""
+    previous = _load_live_diarization(sid).get("turns") or []
+    raw_ids = sorted({str(x.get("speaker")) for x in raw_turns},
+                     key=lambda speaker: min((float(x.get("start", 0)) for x in raw_turns if str(x.get("speaker")) == speaker), default=0))
+    old_ids = sorted({str(x.get("speaker")) for x in previous})
+    candidates = []
+    for raw in raw_ids:
+        for old in old_ids:
+            score = sum(_overlap_seconds(n, p) for n in raw_turns for p in previous
+                        if str(n.get("speaker")) == raw and str(p.get("speaker")) == old)
+            if score > 0: candidates.append((score, raw, old))
+    mapping, used = {}, set()
+    for _, raw, old in sorted(candidates, reverse=True):
+        if raw not in mapping and old not in used:
+            mapping[raw] = old; used.add(old)
+    next_index = 0
+    for raw in raw_ids:
+        if raw in mapping: continue
+        while "SPEAKER_%02d" % next_index in used: next_index += 1
+        stable = "SPEAKER_%02d" % next_index
+        mapping[raw] = stable; used.add(stable); next_index += 1
+    turns = [{"speaker": mapping.get(str(x.get("speaker")), str(x.get("speaker"))),
+              "start": float(x.get("start", 0)), "end": float(x.get("end", 0))} for x in raw_turns]
+    info = {}
+    for turn in turns:
+        row = info.setdefault(turn["speaker"], {"id": turn["speaker"], "seconds": 0})
+        row["seconds"] += max(0, turn["end"] - turn["start"])
+    speakers = sorted(info.values(), key=lambda x: x["id"])
+    for row in speakers: row["seconds"] = round(row["seconds"], 1)
+    return speakers, turns
+
+def request_live_diarization(sid):
+    if not is_session(sid) or not shutil.which("whispermlx") or not _hf_token_configured():
+        return
+    with live_diarization_lock:
+        if sid in live_diarization_pending: return
+        live_diarization_pending.add(sid)
+        elapsed = time.time() - live_diarization_last.get(sid, 0)
+    # 全音声を再評価してラベルを安定させるため、長時間会議では負荷を自動調整する。
+    audio_count = len(glob.glob(os.path.join(sdir(sid), "audio", "*")))
+    interval = 30 if audio_count <= 60 else (60 if audio_count <= 180 else 120)
+    delay = max(0, interval - elapsed)
+    def enqueue(): live_diarization_q.put(sid)
+    if delay:
+        timer = threading.Timer(delay, enqueue); timer.daemon = True; timer.start()
+    else: enqueue()
+
+def live_diarization_worker():
+    while True:
+        sid = live_diarization_q.get(); wav = listf = ""; started = time.time()
+        try:
+            if not is_session(sid): continue
+            current = _load_live_diarization(sid)
+            current.update({"status": "processing", "updated": int(time.time())})
+            with open(_live_diarization_path(sid), "w", encoding="utf-8") as f:
+                json.dump(current, f, ensure_ascii=False, indent=2)
+            wav, listf, err = _concat_meeting_audio(sid, "_live-diarize")
+            if err: raise RuntimeError(err)
+            raw_turns = _call_diarizer(wav)
+            speakers, turns = _stable_live_speakers(sid, raw_turns)
+            data = {"status": "ready", "speakers": speakers, "turns": turns,
+                    "signature": _audio_signature(sid), "updated": int(time.time()),
+                    "latencySeconds": round(time.time() - started, 1)}
+            with open(_live_diarization_path(sid), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as error:
+            sys.stderr.write("[LIVE-DIARIZE] sid=%s error=%r\n" % (sid, error)); sys.stderr.flush()
+            with open(_live_diarization_path(sid), "w", encoding="utf-8") as f:
+                json.dump({"status": "error", "message": str(error)[:300], "updated": int(time.time())},
+                          f, ensure_ascii=False, indent=2)
+        finally:
+            for path in (wav, listf):
+                try:
+                    if path: os.remove(path)
+                except Exception: pass
+            live_diarization_last[sid] = time.time()
+            with live_diarization_lock: live_diarization_pending.discard(sid)
+            live_diarization_q.task_done()
+
 def _speaker_payload(result):
     """WhisperX互換JSONを、清書確認UI用の安定した匿名話者と発言例へ変換する。"""
     turns, current = [], None
@@ -2119,17 +2348,19 @@ def prepare_diarization(sid, regen=False):
     if not regen and cached.get("signature") == signature and cached.get("speakers"):
         return cached
     if not shutil.which("whispermlx"):
-        return {"status": "setup", "installed": False, "tokenConfigured": bool(HF_TOKEN), "speakers": []}
-    if not HF_TOKEN:
+        return {"status": "setup", "installed": False, "tokenConfigured": _hf_token_configured(), "speakers": []}
+    if not _hf_token_configured():
         return {"status": "setup", "installed": True, "tokenConfigured": False, "speakers": []}
     wav = listf = ""; work = tempfile.mkdtemp(prefix="livemtg-diarize-")
     try:
         wav, listf, err = _concat_meeting_audio(sid, "_diarize")
         if err:
             return {"status": "error", "message": err, "speakers": []}
+        diarized_turns = _call_diarizer(wav)
+        # ASRと話者分離を分けることでHFトークンをCLI引数へ載せない。
         cmd = ["whispermlx", wav, "--model", MLX_MODEL, "--language", _asr_language(sid),
-               "--diarize", "--hf_token", HF_TOKEN, "--output_format", "json", "--output_dir", work,
-               "--max_speakers", "8", "--no_align", "--verbose", "False", "--print_progress", "False",
+               "--output_format", "json", "--output_dir", work,
+               "--no_align", "--verbose", "False", "--print_progress", "False",
                "--initial_prompt", _asr_hint(sid)]
         _run(cmd, timeout=900)
         outputs = sorted(glob.glob(os.path.join(work, "*.json")))
@@ -2137,6 +2368,17 @@ def prepare_diarization(sid, regen=False):
             raise RuntimeError("whispermlxのJSON出力が見つかりません")
         with open(outputs[0], encoding="utf-8") as f:
             raw = json.load(f)
+        # ASRセグメントへ、時間の重なりが最大の匿名話者を付与する。
+        raw_ids = sorted({str(x.get("speaker")) for x in diarized_turns},
+                         key=lambda speaker: min((float(x.get("start", 0)) for x in diarized_turns
+                                                  if str(x.get("speaker")) == speaker), default=0))
+        normalized = {speaker: "SPEAKER_%02d" % i for i, speaker in enumerate(raw_ids)}
+        for seg in (raw.get("segments") or []):
+            if not isinstance(seg, dict): continue
+            probe = {"start": float(seg.get("start") or 0), "end": float(seg.get("end") or seg.get("start") or 0)}
+            best = max(diarized_turns, key=lambda turn: _overlap_seconds(probe, turn), default=None)
+            if best and _overlap_seconds(probe, best) > 0:
+                seg["speaker"] = normalized.get(str(best.get("speaker")), "SPEAKER_UNKNOWN")
         speakers, turns, transcript = _speaker_payload(raw)
         data = {"status": "ready", "signature": signature, "speakers": speakers,
                 "turns": turns, "transcript": transcript, "generated": time.strftime("%Y-%m-%d %H:%M")}
@@ -2847,6 +3089,17 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 静かに
         pass
 
+    def _origin_allowed(self):
+        origin = str(self.headers.get("Origin") or "").strip()
+        if not origin: return True   # curl/CLI/同一オリジンの一部ブラウザ要求
+        try:
+            parsed = urllib.parse.urlparse(origin)
+            return (parsed.scheme in ("http", "https") and
+                    parsed.hostname in ("127.0.0.1", "localhost", "::1") and
+                    (parsed.port or (443 if parsed.scheme == "https" else 80)) == PORT)
+        except Exception:
+            return False
+
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         if isinstance(body, str):
             body = body.encode("utf-8")
@@ -2854,8 +3107,10 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        if DESKTOP:
-            self.send_header("Access-Control-Allow-Origin", "*")
+        origin = str(self.headers.get("Origin") or "").strip()
+        if origin and self._origin_allowed():
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
@@ -2876,6 +3131,8 @@ class H(BaseHTTPRequestHandler):
             return {}
 
     def do_OPTIONS(self):
+        if not self._origin_allowed():
+            return self._send(403, json.dumps({"ok": False, "error": "origin not allowed"}))
         return self._send(204, b"", "text/plain")
 
     def _state(self):
@@ -2896,6 +3153,7 @@ class H(BaseHTTPRequestHandler):
             "queue": chunk_q.qsize(),
             "analyzing": bool(current_id) and current_id in analysis_pending,
             "detailing": bool(current_id) and current_id in detail_pending,
+            "liveDiarization": _load_live_diarization(current_id, compact=True) if current_id else {},
             "dataUpdatedAt": int(os.path.getmtime(os.path.join(sdir(current_id), "data.json"))) if current_id and os.path.isfile(os.path.join(sdir(current_id), "data.json")) else 0,
             "transcriptUpdatedAt": int(os.path.getmtime(os.path.join(sdir(current_id), "transcript.txt"))) if current_id and os.path.isfile(os.path.join(sdir(current_id), "transcript.txt")) else 0,
             "current": {"id": current_id, "title": cur.get("title", ""),
@@ -2931,7 +3189,8 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, json.dumps({"ok": True, "aiProvider": AI_PROVIDER,
                                                 "language": LANGUAGE,
                                                 "speakerDiarization": {"installed": bool(shutil.which("whispermlx")),
-                                                                        "tokenConfigured": bool(HF_TOKEN)}}, ensure_ascii=False))
+                                                                        "tokenConfigured": _hf_token_configured(),
+                                                                        "credentialStore": ("keychain" if sys.platform == "darwin" else "dpapi" if os.name == "nt" else "unavailable")}}, ensure_ascii=False))
         if p in ("/", "/index.html"):
             return self._file(os.path.join(SCRIPT_DIR, "index.html"), "text/html; charset=utf-8")
         if p == "/brand-logo.png":
@@ -2994,6 +3253,8 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         global current_id, recording, capture_heartbeat
+        if not self._origin_allowed():
+            return self._send(403, json.dumps({"ok": False, "error": "origin not allowed"}))
         p = self.path.split("?", 1)[0]
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
 
@@ -3012,7 +3273,8 @@ class H(BaseHTTPRequestHandler):
                               json.dumps({"ok": ok, "aiProvider": AI_PROVIDER,
                                           "language": LANGUAGE,
                                           "speakerDiarization": {"installed": bool(shutil.which("whispermlx")),
-                                                                  "tokenConfigured": bool(HF_TOKEN)}}, ensure_ascii=False))
+                                                                  "tokenConfigured": _hf_token_configured(),
+                                                                  "credentialStore": ("keychain" if sys.platform == "darwin" else "dpapi" if os.name == "nt" else "unavailable")}}, ensure_ascii=False))
 
         if p == "/api/ai-check":
             started = time.time()
@@ -3371,6 +3633,7 @@ def main():
     threading.Thread(target=chunk_worker, daemon=True).start()
     threading.Thread(target=analysis_worker, daemon=True).start()
     threading.Thread(target=detail_worker, daemon=True).start()
+    threading.Thread(target=live_diarization_worker, daemon=True).start()
     threading.Thread(target=analysis_watchdog, daemon=True).start()
     try:
         tp, dp = os.path.join(sdir(current_id), "transcript.txt"), os.path.join(sdir(current_id), "data.json")

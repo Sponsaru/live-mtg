@@ -68,6 +68,11 @@ assert all(token in html for token in ("speaker-review", "speaker-in", "speakerM
     "polishing must review anonymous speakers before assigning names"
 assert all(token in server for token in ("prepare_diarization", "_speaker_payload", "_apply_speaker_map", 'shutil.which("whispermlx")')), \
     "server must support optional whispermlx diarization with deterministic confirmed mapping"
+assert all(token in html for token in ('id="livespeakers"', "liveDiarization", "話者を識別中", 'id="hftoken_diag"')), \
+    "live diarization and secure credential setup must remain visible"
+assert all(token in server for token in ("_credential_set_hf_token", "live_diarization_worker", "_stable_live_speakers", "_origin_allowed")), \
+    "server must keep secure credentials and parallel live diarization"
+assert '"--hf_token"' not in server, "HF token must never be exposed through process arguments"
 assert "'/api/chunk?kind='+encodeURIComponent(captureKind)" in html
 assert '"prep-audio" if is_prep else "audio"' in server and 'prep-transcript.txt' in server
 assert 'class="prep-summary"' in html and 'overflow-y:auto;overscroll-behavior:contain' in html

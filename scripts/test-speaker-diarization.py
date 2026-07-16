@@ -76,4 +76,20 @@ with tempfile.TemporaryDirectory() as tmp:
     assert historical["summary"] == "" and historical["open"] == []
     assert historical["log"][0]["who"] == "不明"
 
+    first_speakers, first_turns = server._stable_live_speakers(sid, [
+        {"speaker": "raw_a", "start": 0, "end": 4},
+        {"speaker": "raw_b", "start": 4, "end": 8},
+    ])
+    Path(server._live_diarization_path(sid)).write_text(__import__("json").dumps({
+        "turns": first_turns, "speakers": first_speakers,
+    }), encoding="utf-8")
+    # Backend labels may swap on a full re-run; time overlap must preserve UI labels.
+    second_speakers, second_turns = server._stable_live_speakers(sid, [
+        {"speaker": "backend_y", "start": 0, "end": 4},
+        {"speaker": "backend_x", "start": 4, "end": 8},
+    ])
+    assert second_turns[0]["speaker"] == "SPEAKER_00"
+    assert second_turns[1]["speaker"] == "SPEAKER_01"
+    assert [x["id"] for x in second_speakers] == ["SPEAKER_00", "SPEAKER_01"]
+
 print("Anonymous speakers remain stable until user-confirmed mapping")
