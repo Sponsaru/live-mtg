@@ -70,6 +70,10 @@ assert all(token in server for token in ("prepare_diarization", "_speaker_payloa
     "server must support optional whispermlx diarization with deterministic confirmed mapping"
 assert all(token in html for token in ('id="livespeakers"', "liveDiarization", "話者を識別中", 'id="hftoken_diag"')), \
     "live diarization and secure credential setup must remain visible"
+assert all(token in html for token in ('id="recordhealth"', "captureProof.mic", "captureProof.server", "captureProof.transcript")), \
+    "recording must visibly prove microphone, server persistence, and transcription"
+assert all(token in server for token in ("_write_live_receipt", "detail_deferred", "timeout=15", "_cancel_background_ai")), \
+    "live transcription receipt must not wait for slow background analysis"
 assert all(token in server for token in ("_credential_set_hf_token", "live_diarization_worker", "_stable_live_speakers", "_origin_allowed")), \
     "server must keep secure credentials and parallel live diarization"
 assert '"--hf_token"' not in server, "HF token must never be exposed through process arguments"

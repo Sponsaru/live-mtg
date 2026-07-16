@@ -71,6 +71,13 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     assert saved["diagram"].startswith("flowchart LR")
     assert any(x.get("topic") == "detail topic" for x in saved["mindmap"])
 
+    # Transcription receipt is visible before AI returns and is marked only after its range is analyzed.
+    server._write_live_receipt(sid, "いま届いた発話", 12)
+    receipt = json.loads((meeting / "data.json").read_text(encoding="utf-8"))["liveReceipt"]
+    assert receipt["text"] == "いま届いた発話" and receipt["analyzed"] is False
+    server._mark_live_receipt_analyzed(sid, 12)
+    assert json.loads((meeting / "data.json").read_text(encoding="utf-8"))["liveReceipt"]["analyzed"] is True
+
     # Prove the two AI lanes overlap in wall-clock time, not merely that two queues exist.
     (meeting / "transcript.txt").write_text("会議の新しい発言です。" * 30, encoding="utf-8")
     server.applied[sid] = 0
@@ -78,8 +85,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
 
     def fake_ai(prompt, **_kwargs):
         time.sleep(0.4)
-        if "最優先の即時レーン" in prompt:
-            return json.dumps({"summary": "latest fast", "decisions_add": ["parallel decision"]}, ensure_ascii=False)
+        if "最新発話を即時整理" in prompt:
+            return json.dumps({"summary": "latest fast", "decision": "parallel decision"}, ensure_ascii=False)
         return json.dumps({"mindmap_add": [{"topic": "parallel detail", "groups": []}], "lookups": []}, ensure_ascii=False)
 
     server._ai_text = fake_ai
@@ -104,14 +111,35 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     server.request_detail(sid)
     assert server.detail_q.qsize() == 1
 
+    # Starting a recording defers heavy detail work instead of competing with the live lane.
+    queued_before = server.detail_q.qsize()
+    server.recording = True
+    server.current_id = sid
+    server.request_detail(sid)
+    assert sid in server.detail_deferred and server.detail_q.qsize() == queued_before
+    server.recording = False
+
+    # A background CLI already running at record-start is preemptible.
+    class FakeProcess:
+        def poll(self): return None
+    fake_process, killed = FakeProcess(), []
+    original_kill = server._kill_process_tree
+    server._kill_process_tree = lambda process: killed.append(process)
+    try:
+        server._register_background_process(fake_process)
+        assert server._cancel_background_ai() == 1 and killed == [fake_process]
+    finally:
+        server._unregister_background_process(fake_process)
+        server._kill_process_tree = original_kill
+
 source = Path(server.__file__).read_text(encoding="utf-8")
-assert "これは最優先の即時レーンです" in server.LIVE_PATCH_PROMPT
+assert "最新発話を即時整理" in server.LIVE_PATCH_PROMPT
 assert "mindmap_add" not in server.LIVE_PATCH_PROMPT
-assert '"diagram"' in server.LIVE_PATCH_PROMPT
+assert '"relation"' in server.LIVE_PATCH_PROMPT and "_normalize_fast_patch" in source
 assert "mindmap_add" in server.DETAIL_PATCH_PROMPT
 assert "threading.Thread(target=detail_worker" in source
 assert "with background_ai_lock:" in source
-assert "len(transcript) - off > 2700" in source and "off + 900" in source
+assert "len(transcript) - off > 2700" in source and "off + 500" in source
 assert "end - 3000" in source
 assert 'capture = kw.pop("capture_output", True)' in source
 

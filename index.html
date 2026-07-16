@@ -293,6 +293,14 @@
     padding:11px 22px;font-size:15px;font-weight:700;text-align:center}
   .downbar.show{display:block}
   .downbar b{color:#a12a2a}
+  .record-health{display:none;align-items:center;gap:12px;padding:9px 22px;background:#f5f5f7;flex-wrap:wrap;
+    border-bottom:1px solid #e5e5ea;color:#6e6e73;font-size:13px;font-weight:600}
+  .record-health.show{display:flex}.record-health .rh-live{color:#1d1d1f;font-weight:750}
+  .record-health .rh-live::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:#ff453a;margin-right:7px;box-shadow:0 0 0 4px rgba(255,69,58,.12)}
+  .record-health .rh-step{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .record-health .rh-step.ok{color:#16794b}.record-health .rh-step.wait{color:#8a6d1d}
+  .record-health .rh-note{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .whobar{display:none;padding:9px 22px;font-size:14px;color:var(--sub);background:#eef7fd;
     border-bottom:1px solid var(--line);align-items:center;gap:8px;flex-wrap:wrap}
   .whobar.show{display:flex}
@@ -614,6 +622,7 @@
 </header>
 
 <div class="downbar" id="down"><svg class="inline-icon"><use href="#i-alert"/></svg>サーバが停止しています。ターミナルで <b>live-mtg.sh</b> を起動し直してください（録音の停止は画面の「録音停止」ボタンです。ターミナルのCtrl+Cはサーバごと終了します）。</div>
+<div class="record-health" id="recordhealth"></div>
 
 <div id="pview"></div>
 
@@ -976,6 +985,17 @@ async function cancelCurrentOperation(){
 }
 
 let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
+let captureProof={mic:false,server:false,transcript:false,baseline:0,started:0};
+function renderCaptureProof(note=''){
+  const el=$('recordhealth');if(!capturing){el.classList.remove('show');el.innerHTML='';return;}
+  const step=(ok,label,waiting)=>`<span class="rh-step ${ok?'ok':'wait'}">${ok?'✓':'○'} ${esc(ok?label:waiting)}</span>`;
+  el.innerHTML=`<span class="rh-live">${tr('録音中','Recording')}</span>`
+    +step(captureProof.mic,tr('マイク入力OK','Microphone OK'),tr('声を確認中','Waiting for voice'))
+    +step(captureProof.server,tr('サーバー保存OK','Server save OK'),tr('最初の音声待ち','Waiting for first audio'))
+    +step(captureProof.transcript,tr('文字起こしOK','Transcription OK'),tr('文字起こし確認中','Checking transcription'))
+    +`<span class="rh-note">${esc(note)}</span>`;
+  el.classList.add('show');
+}
 let startupPending=true; // 初回表示で前回の別会議を勝手に表示しない
 function setMenuLabel(id,text){const b=$(id),label=b&&b.querySelector('.menu-label');if(label)label.textContent=text;}
 function renderLastUpdate(){
@@ -996,6 +1016,7 @@ function applyState(s){
   // 別タブの録音は状態文で区別し、録れているふりをしない。
   recording = serverRecording && capturing;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
+  if(capturing&&transcriptUpdatedAt>captureProof.baseline){captureProof.transcript=true;renderCaptureProof(tr('録音パイプラインは正常です','Recording pipeline is healthy'));}
   $('dot').className = 'dot ' + (recording?'live':'idle');
   $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
@@ -1114,6 +1135,8 @@ async function pollData(){
     const r=await fetch('/data.json?t='+Date.now(),{cache:'no-store'});
     const d=await r.json();
     lastData=d;
+    const receipt=d.liveReceipt&&typeof d.liveReceipt==='object'?d.liveReceipt:null;
+    if(capturing&&receipt){const heard=String(receipt.text||'').replace(/\s+/g,' ').slice(-90);renderCaptureProof((heard?`「${heard}」 · `:'')+(receipt.analyzed?tr('AI整理済み','Analyzed'):tr('AI整理中','AI organizing')));}
     $('summary').textContent=itemText(d.summary)||'—';
     fill('agenda', d.agenda, x=>`<li>${esc(itemText(x))}</li>`);
     fill('points', d.points, x=>`<li>${esc(itemText(x))}</li>`);
@@ -1437,7 +1460,7 @@ function cycle(stream){
   monTimer=setInterval(()=>{
     if(!capturing || rec.state==='inactive') return;
     const now=performance.now(), elapsed=now-t0, db=currentDb();
-    if(db>=VAD.silDb){ spoke=true; silentSince=0; $('st').textContent=tr('マイク入力あり · 録音中','Microphone active · Recording'); } // 発話あり
+    if(db>=VAD.silDb){ spoke=true; silentSince=0; captureProof.mic=true;renderCaptureProof(tr('音声を検知しました','Voice detected'));$('st').textContent=tr('マイク入力あり · 録音中','Microphone active · Recording'); } // 発話あり
     else if(!silentSince){ silentSince=now; }                  // 無音の開始
     const silentFor = silentSince ? now-silentSince : 0;
     // 発話の切れ目（無音が続いた）で区切る。最小長を満たす場合のみ。喋り続けは最大長で強制区切り
@@ -1450,6 +1473,7 @@ async function sendChunk(blob){
   try{
     const r=await fetch('/api/chunk?kind='+encodeURIComponent(captureKind),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}),d=await r.json();
     if(!d.ok)throw new Error();
+    captureProof.server=true;renderCaptureProof(tr('音声をサーバーへ保存しました','Audio saved to server'));
     $('st').textContent=tr(`音声送信済み · 文字起こし待ち ${d.queue||1}件`,`Audio sent · ${d.queue||1} awaiting transcription`);
   }catch(e){
     $('st').textContent=tr('音声送信に失敗','Audio upload failed');
@@ -1478,6 +1502,7 @@ setInterval(()=>{ if(capturing && capCtx && capCtx.state==='suspended'){ try{ ca
 async function doStart(withTab,kind='meeting'){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
   captureKind=kind==='prep'?'prep':'meeting';
+  captureProof={mic:false,server:false,transcript:false,baseline:transcriptUpdatedAt,started:Date.now()};
   // AIログインとWhisper診断は録音データの取得と分離。
   // サーバーが生きていれば録音し、未設定項目は別途診断で案内する。
   try{await api('/api/health');}catch(e){
@@ -1493,6 +1518,7 @@ async function doStart(withTab,kind='meeting'){
     const state=await api('/api/start',{});
     if(!state||!state.recording) throw new Error(tr('サーバーが録音開始を確認できませんでした','The server could not confirm recording'));
     applyState(state);
+    captureProof.baseline=Number(state.transcriptUpdatedAt||transcriptUpdatedAt||0);renderCaptureProof(tr('話して動作を確認できます','Speak to verify the pipeline'));
   }catch(e){
     stopCapture(); releaseWakeLock();
     toast(tr('録音を開始できませんでした：','Could not start recording: ')+(e.message||e));
@@ -1507,6 +1533,7 @@ async function doStop(){
   $('rec').disabled=true; stopCapture(); releaseWakeLock();
   try{ applyState(await api('/api/stop',{})); }catch(e){}
   recording=false; $('rec').disabled=false;
+  $('recordhealth').innerHTML=`<span class="rh-step ok">✓ ${tr('録音を保存しました','Recording saved')}</span>`;$('recordhealth').classList.add('show');setTimeout(()=>{if(!capturing)$('recordhealth').classList.remove('show');},3500);
   captureKind='meeting';
   $('rec').textContent=tr('録音開始','Start recording'); $('rec').classList.remove('on');
   $('dot').className='dot idle'; $('st').textContent=tr('停止中','Stopped');
