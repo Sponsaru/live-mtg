@@ -8,6 +8,7 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+CLI_SOURCE = (ROOT / "cli" / "live-mtg.mjs").read_text(encoding="utf-8")
 
 
 def doctor_home(fake_home: Path, language="en") -> str:
@@ -33,7 +34,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-home-test-") as tmp:
     (legacy_meeting / "meta.json").write_text("{}", encoding="utf-8")
     output = doctor_home(base)
     assert f"Data: {base / 'mtg-live'}" in output, output
-    assert "○ Speaker diarization" in output and "HF token" in output, output
+    assert "○ Speaker diarization" in output, output
+    assert "hfCredentialConfigured" in CLI_SOURCE and "set an HF token in AI & audio diagnostics" in CLI_SOURCE
     legacy_default = doctor_home(base, language=None)
     assert "言語: 日本語" in legacy_default, legacy_default
 
