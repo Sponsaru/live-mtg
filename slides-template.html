@@ -205,7 +205,7 @@
     .slide { box-shadow: none; border-radius: 0; border-bottom: none;
              page-break-after: always; break-inside: avoid; }
     .slide:last-of-type { page-break-after: auto; }
-    .pdfbtn,.backbtn { display: none !important; }
+    .pdfbtn,.backbtn,.generated-maptools { display: none !important; }
     .tree-map.root-collapsed .tree-branches { display:flex !important; }
     .tree-branch.collapsed { grid-template-columns:minmax(170px,220px) minmax(260px,1fr) !important; }
     .tree-branch.collapsed .tree-leaves { display:flex !important; }
@@ -249,6 +249,10 @@
       localStorage.setItem('livemtg_generated_map_mode',mode);
       localStorage.setItem('livemtg_generated_map_default',defaultVersion);
     }
+    // URLの ?view= 指定は保存された選択より優先（サーバ側のPDF書き出し・特定ビューへの直リンク用）。
+    // 既定バージョン判定より後に置くこと（前に置くと mode が radial に上書きされる）
+    var urlView=new URLSearchParams(location.search).get('view');
+    if(allowed.indexOf(urlView)>=0)mode=urlView;
     if(allowed.indexOf(mode)<0)mode='radial';
     function apply(next){
       mode=allowed.indexOf(next)>=0?next:'radial';

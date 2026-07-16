@@ -1,6 +1,6 @@
 {
   "name": "live-mtg",
-  "version": "0.1.0-beta.47",
+  "version": "0.1.0-beta.48",
   "description": "Real-time bilingual meeting minutes and AI meeting copilot for Claude Code or Codex",
   "type": "module",
   "bin": {
@@ -17,6 +17,9 @@
     "mermaid.min.js",
     "make-mindmap.py",
     "make-slides.sh",
+    "make-learn-slides.sh",
+    "make-minutes-deck.py",
+    "make-map-slide.py",
     "slides-template.html",
     "slide-work-template.html",
     "slide-work-pattern-examples.html",

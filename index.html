@@ -380,8 +380,13 @@
   .vbtn:disabled{opacity:.5; cursor:default}
   .vresult{margin-top:8px; font-size:13px; line-height:1.7; color:var(--ink)}
   .vresult:empty{margin:0}
-  /* 補足・訂正：レール最下部に常駐（タブ非依存）。AIの勘違い・不足背景をその場で伝える入口 */
-  .railfix{margin-top:auto;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  /* 補足・訂正：レール最下部に常駐（タブ非依存）。AIの勘違い・不足背景をその場で伝える入口。
+     レールが長い時もスクロールせずに見えるよう、スクロール領域の下端に貼り付ける（sticky） */
+  .railfix{position:sticky;bottom:0;z-index:2;margin:auto -16px 0;padding:12px 16px 14px;background:#eceef2;
+    border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  @media(max-width:1100px){
+    .railfix{margin-left:-22px;margin-right:-22px;padding-left:22px;padding-right:22px}
+  }
   .fixhead{font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.06em}
   .fixquick{display:flex;gap:8px}
   .fixquick button{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;
@@ -492,7 +497,20 @@
   .speaker-review h4{font-size:16px;margin:0 0 5px}.speaker-review>p{font-size:13px;color:var(--sub);margin:0 0 11px}
   .speaker-row{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(180px,.7fr);gap:12px;align-items:start;padding:11px 0;border-top:1px solid var(--line)}
   .speaker-id{font-weight:800;font-size:14px;padding-top:9px}.speaker-examples{font-size:12px;color:var(--ink2);line-height:1.5}
-  .speaker-examples span{display:block;margin-bottom:3px}.speaker-in{width:100%;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
+  .speaker-examples span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-bottom:4px}
+  .speaker-id .spk-open{display:block;margin-top:7px}
+  /* 話者の発言確認モーダル（清書前確認の上に重ねる） */
+  .spkbg{z-index:46}
+  .spkmodal{width:min(680px,94vw)}
+  .spkbody{position:relative;max-height:62vh;overflow-y:auto;margin:10px 0 14px;padding-right:6px}
+  .spk-line{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);
+    line-height:1.75;font-size:14px;color:#9aa3ab}
+  .spk-line .lw{flex:none;display:inline-block;background:#eef0f3;color:#9aa3ab;font-weight:800;font-size:12px;
+    border-radius:6px;padding:1px 8px;min-width:26px;text-align:center}
+  .spk-line .spk-time{flex:none;font-size:12px;color:#b3bac0;font-variant-numeric:tabular-nums}
+  .spk-line.me{color:var(--ink)}
+  .spk-line.me .lw{background:#e0f4fd;color:var(--blue-d)}
+  .spk-line.me .spk-time{color:var(--sub)}.speaker-in{width:100%;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
   .speaker-setup{border:1px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#fff}.speaker-setup p{font-size:13px;margin:0 0 8px}
   .speaker-token-row{display:flex;gap:8px}.speaker-token-row input{min-width:0;flex:1}
   @media(max-width:720px){.speaker-row{grid-template-columns:1fr}.speaker-id{padding-top:0}}
@@ -503,6 +521,10 @@
   .modal .ok{background:var(--blue);color:#fff}
   .modal .cancel{background:#eef3f7;color:var(--sub)}
   .diag-list{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+  .diag-asr{display:flex;align-items:center;gap:10px;margin:2px 0 12px;font-size:13px;font-weight:700;color:var(--sub)}
+  .diag-asr label{flex:none}
+  .diag-asr select{flex:1;min-width:0;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+    padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
   .diag-item{display:grid;grid-template-columns:22px minmax(0,1fr);gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fafafa}
   .diag-mark{font-weight:800;color:var(--green)}.diag-item.bad .diag-mark{color:var(--red)}
   .diag-item strong{font-size:14px}.diag-item small{display:block;color:var(--sub);font-size:12px;line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
@@ -812,7 +834,7 @@
     <div class="ahead">解釈の確認</div>
     <div class="cflist" id="cflist"></div>
   </div>
-  <div class="railhint">録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。</div>
+  <div class="railhint">録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。AIが解釈に自信を持てない点（人名の聞き間違いなど）があった時だけ、「解釈の確認」カードが届きます。</div>
 </div>
 
 <div class="railpane" id="rail-goal">
@@ -904,9 +926,10 @@
   <p class="pv-sub">推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 成果物の生成 → 学びと次の一手。生成中は画面下のトーストから中断できます。</p>
   <div class="phasecards">
     <div class="phasecard"><h3>高精度清書 <span class="pc-status" id="rvst-final">—</span></h3><p>保存した全音声をまとめて、分断のない議事録を作り直します。開始前に話者名と固有名詞を確認します。</p><button class="pcbtn" id="rvbtn-final" data-proxy="final">清書する</button></div>
-    <div class="phasecard"><h3>放射マップ（成果物） <span class="pc-status" id="rvst-map">—</span></h3><p>会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。</p><button class="pcbtn" id="rvbtn-map" data-proxy="slides">作成する</button><button class="pcbtn sub" id="rvbtn-map-regen" data-proxy="regen" style="display:none">作り直す</button></div>
-    <div class="phasecard"><h3>議事録PDF</h3><p>要約・議題・決定・ToDo・論点・未解決を項目ごとにページを分け、省略なしの全文で書き出します。</p><button class="pcbtn" data-proxy="pdf">PDF保存</button></div>
-    <div class="phasecard"><h3>学びと次の一手</h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。プレイブックへの蓄積は任意。</p><button class="pcbtn" data-proxy="learnbtn">レポートを作る</button></div>
+    <div class="phasecard"><h3>放射マップ（成果物） <span class="pc-status" id="rvst-map">—</span></h3><p>会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。</p><button class="pcbtn" id="rvbtn-map" data-proxy="slides">作成する</button><button class="pcbtn sub" id="rvbtn-map-pdf">PDF保存</button><button class="pcbtn sub" id="rvbtn-map-regen" data-proxy="regen" style="display:none">作り直す</button></div>
+    <div class="phasecard"><h3>会話の関係 <span class="pc-status" id="rvst-rel">—</span></h3><p>人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。</p><button class="pcbtn" id="rvbtn-rel-open">開く</button><button class="pcbtn sub" id="rvbtn-rel-pdf">PDF保存</button></div>
+    <div class="phasecard"><h3>議事録PDF <span class="pc-status" id="rvst-minutes">—</span></h3><p>表紙・要旨・議題・決定・ToDo・論点・未解決をスライド様式のページに分け、省略なしの全文で書き出します。</p><button class="pcbtn" id="rvbtn-minutes-pdf">PDF保存</button></div>
+    <div class="phasecard"><h3>学びと次の一手 <span class="pc-status" id="rvst-learn">—</span></h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。作成すると自動保存されます。プレイブックへの蓄積は任意。</p><button class="pcbtn" id="rvbtn-learn-view" style="display:none">要点を見る</button><button class="pcbtn sub" id="rvbtn-learn-slides" style="display:none">スライドを作る</button><button class="pcbtn" id="rvbtn-learn" data-proxy="learnbtn">レポートを作る</button></div>
   </div>
 </section>
 
@@ -945,6 +968,18 @@
         <button class="cancel" id="fcancel">キャンセル</button>
         <button class="ok" id="fok">この内容で清書</button>
       </span>
+    </div>
+  </div>
+</div>
+
+<!-- 話者の発言確認：清書前確認の話者行「発言を確認」から開く入れ子モーダル。
+     該当話者をハイライトした会話全体を出す（前後のやり取りが分かると誰か特定しやすい） -->
+<div class="modal-bg spkbg" id="spkbg">
+  <div class="modal spkmodal">
+    <h3 id="spktitle">話者の発言を確認</h3>
+    <div class="spkbody" id="spkbody"></div>
+    <div class="row" style="justify-content:flex-end">
+      <button class="cancel" id="spkclose">閉じる</button>
     </div>
   </div>
 </div>
@@ -1009,6 +1044,13 @@
     <h3>AI・音声の接続診断</h3>
     <p>どこまで動く状態かを確認できます。AI応答テストは、選択中のCodexまたはClaude Codeを実際に1回呼び出します。</p>
     <div class="diag-list" id="diaglist"></div>
+    <div class="diag-asr">
+      <label for="asrmodel">文字起こしモデル</label>
+      <select id="asrmodel">
+        <option value="accurate">高精度（large-v3・録音中は重い）</option>
+        <option value="fast">高速・低発熱（large-v3-turbo）</option>
+      </select>
+    </div>
     <div id="hfconfig" class="speaker-setup" style="display:none;margin-top:12px">
       <p id="hfconfigtext"></p>
       <div class="speaker-token-row" id="hftokenrow"><input id="hftoken_diag" type="password" autocomplete="off" placeholder="hf_..."><button class="cancel" id="hfsave_diag">安全に保存</button></div>
@@ -1073,7 +1115,7 @@ const EN_TEXT=new Map([
   ['要約・議題・決定・ToDo・論点・未解決を項目ごとにページを分け、省略なしの全文で書き出します。','Exports summary, agenda, decisions, todos, points, and open items as full-text pages, one section per page.'],
   ['頭にあることをそのまま話してください。URLを送れば調べ、内容は背景フォルダとライブ解析へ反映されます。','Say whatever is on your mind. URLs get researched; everything feeds the context folder and live analysis.'],
   ['いま録音中なら停止し、新しい会議として整理を始めます。用途・目標・背景フォルダは作成後の「準備」で設定できます。','If recording, it stops and a new meeting begins. Set the type, goal, and context folder in Prep afterwards.'],
-  ['録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。','Suggested questions and reference answers will appear here as the conversation progresses.'],
+  ['録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。AIが解釈に自信を持てない点（人名の聞き間違いなど）があった時だけ、「解釈の確認」カードが届きます。','Suggested questions and reference answers will appear here as the conversation progresses. When the AI is unsure about an interpretation (such as a possibly misheard name), a confirmation card will appear.'],
   ['目標を設定すると、狙いへの進捗・相手の回答の読み・調査結果がここに表示されます（メニュー → 目標・ガイド設定）。','Set a goal to see progress, answer analysis, and research here (Menu → Goal & guide settings).'],
   ['商談ガイド設定','Meeting guide settings'],['着地点','Outcome'],['相手情報','Counterpart'],
   ['仮説を広げる','Expand hypotheses'],['懸念を洗う','Explore risks'],['質問を作る','Draft questions'],
@@ -1099,6 +1141,12 @@ const EN_TEXT=new Map([
   ['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
   ['補足・訂正','Context / correction'],['反映','Apply'],['AIと確認','Ask AI'],
   ['勘違いを訂正','Correct AI'],['背景を補足','Add context'],['送信','Send'],
+  ['要点を見る','View highlights'],['スライドを作る','Create slides'],['スライドを見る','Open slides'],
+  ['PDF保存','Save PDF'],['開く','Open'],
+  ['人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。','See how people, topics, and causes connect. A view of the map artifact, exportable as PDF.'],
+  ['文字起こしモデル','Transcription model'],
+  ['高精度（large-v3・録音中は重い）','Accurate (large-v3, heavy while recording)'],
+  ['高速・低発熱（large-v3-turbo）','Fast and cool (large-v3-turbo)'],
   ['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
   ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],
   ['破棄','Discard'],['プレイブックに追記','Add to playbook'],['録音を開始','Start recording'],['使用するマイク','Microphone'],
@@ -1386,6 +1434,7 @@ async function refreshDiagnostics(openPanel=false){
     const provider=h.aiProvider==='codex'?'Codex':'Claude Code';
     setMenuLabel('runtimebtn',h.ok?tr(`AI・音声 接続OK（${provider}）`,`AI & audio ready (${provider})`):tr(`要設定：AI・音声（${provider}）`,`Setup required (${provider})`));
     $('diaglist').innerHTML=(h.checks||[]).map(x=>`<div class="diag-item ${x.ok?'':'bad'}"><span class="diag-mark">${x.ok?'✓':'×'}</span><div><strong>${esc(x.label)}</strong>${x.ok?'':`<small>${esc(x.help||'')}</small>`}</div></div>`).join('');
+    if(h.asrModel)$('asrmodel').value=h.asrModel;
     const ds=h.speakerDiarization||{}, hf=$('hfconfig');
     if(ds.installed){
       hf.style.display='block';
@@ -1973,6 +2022,47 @@ $('learnbtn').onclick = async ()=>{
   }catch(e){ hideToast(); $('learnbtn').disabled=false; toast(tr('抽出に失敗しました','Extraction failed.')); }
 };
 $('lcancel').onclick = ()=> $('lbg').classList.remove('show');
+// 保存済みレポートの再表示（振り返りカード「要点を見る」）
+$('rvbtn-learn-view').onclick = async ()=>{
+  try{
+    const r=await api('/api/learnings');
+    if(!r.ok){ toast(tr('保存されたレポートが見つかりません','No saved report found.')); return; }
+    $('linsights').innerHTML=mdToHtml(r.insights||'');
+    $('lpbsec').style.display='none'; $('lok').style.display='none';   // 閲覧時は追記UIを出さない（learnbtn側で毎回再計算される）
+    $('lbg').classList.add('show');
+  }catch(e){ toast(tr('読み込みに失敗しました','Could not load the report.')); }
+};
+// PDF書き出し（マップ・議事録共通）：AI不要（Chromeの印刷変換のみ）なので、押すたびに最新の内容で書き出し直す
+async function exportPdf(btn, path, body, cancelKind){
+  btn.disabled=true;
+  toast(tr('PDFを書き出し中…（20秒ほど）','Exporting PDF… (about 20 seconds)'), true, cancelKind);
+  try{
+    const r=await api(path, body);
+    hideToast();
+    if(r.ok){ toast(tr('PDFを保存しました（会議フォルダに保存・案件フォルダへ同期）','PDF saved to the meeting folder.')); window.open(r.url,'_blank'); await pollState(); }
+    else if(!r.cancelled) toast(tr('書き出しに失敗：','Export failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
+  }catch(e){ hideToast(); toast(tr('書き出しに失敗しました','Export failed.')); }
+  btn.disabled=false;
+}
+$('rvbtn-map-pdf').onclick=()=>exportPdf($('rvbtn-map-pdf'),'/api/map_pdf',{view:'radial'},'mappdf');
+$('rvbtn-rel-pdf').onclick=()=>exportPdf($('rvbtn-rel-pdf'),'/api/map_pdf',{view:'relation'},'mappdf');
+$('rvbtn-minutes-pdf').onclick=()=>exportPdf($('rvbtn-minutes-pdf'),'/api/minutes_pdf',{},'minutespdf');
+$('rvbtn-rel-open').onclick=()=>window.open('/slides.html?view=relation&ts='+Date.now(),'_blank');
+// 学びスライド：未生成なら生成（依頼者のボタン押下時のみ）、生成済みなら開く
+$('rvbtn-learn-slides').onclick = async ()=>{
+  const btn=$('rvbtn-learn-slides');
+  if(btn.dataset.has==='1'){ window.open('/learn-slides.html?ts='+Date.now(),'_blank'); return; }
+  btn.disabled=true;
+  toast(tr('学びスライドを生成中…（1〜2分）','Generating learning slides… (1–2 minutes)'), true, 'learnslides');
+  try{
+    const r=await api('/api/learn_slides',{});
+    hideToast();
+    if(r.ok){ toast(tr('学びスライドが完成しました','Learning slides ready.')); window.open(r.url,'_blank'); await pollState(); }
+    else if(r.cancelled){ /* キャンセル時は静かに戻る */ }
+    else toast(tr('生成に失敗：','Generation failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
+  }catch(e){ hideToast(); toast(tr('生成に失敗しました','Generation failed.')); }
+  btn.disabled=false;
+};
 $('lok').onclick = async ()=>{
   const text = $('llearn').value.trim();
   $('lbg').classList.remove('show');
@@ -2233,6 +2323,7 @@ $('final').onclick = async ()=>{
   buildFinalizeForm(r.questions||[], r.answers||{}, r.diarization||{}, r.speakerMap||{});
   if(r.cached) toast('前回の確認内容を復元しました（作り直す場合は「質問を作り直す」）');
   $('fbg').classList.add('show');
+  fitFinalizeInputs();   // 表示前の計算は高さ0になるため、表示してから改めて内容に合わせる
   const first=document.querySelector('.fq-in'); if(first) setTimeout(()=>first.focus(),50);
 };
 // モーダル内「質問を作り直す」
@@ -2241,16 +2332,24 @@ $('fregen').onclick = async ()=>{
   if(!r) return;
   buildFinalizeForm(r.questions||[], r.answers||{}, r.diarization||{}, r.speakerMap||{});
 };
-let finalizeSpeakerMap={};
+// 回答欄は内容に合わせて自動で伸ばす（推定回答が長いと1行では読めないため）。
+// モーダル非表示中は scrollHeight が0になるため、モーダルを表示した直後にも呼び直すこと
+function fitAnswerBox(t){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight+2,220)+'px'; }
+function fitFinalizeInputs(){ document.querySelectorAll('#fqbox textarea.fq-in').forEach(fitAnswerBox); }
+let finalizeSpeakerMap={}, finalizeTurns=[], finalizeSpeakerLetters={};
 function buildFinalizeForm(qs, answers, diarization, speakerMap){
   answers = answers || {};
   diarization=diarization||{};finalizeSpeakerMap=speakerMap||{};
+  finalizeTurns=Array.isArray(diarization.turns)?diarization.turns:[];
+  finalizeSpeakerLetters={};
   const box=$('fqbox');
   let speakerHtml='';
   if(diarization.status==='ready'&&Array.isArray(diarization.speakers)&&diarization.speakers.length){
     speakerHtml=`<section class="speaker-review"><h4>${tr('話者を確認','Review speakers')}</h4><p>${tr('発言例を見て、分かる話者だけ名前を入れてください。AIの推測では確定しません。','Name only the speakers you recognize from the examples.')}</p>`+diarization.speakers.map((s,i)=>{
-      const id=String(s.id||`SPEAKER_${i}`),val=finalizeSpeakerMap[id]||'',examples=(s.examples||[]).slice(0,3);
-      return `<div class="speaker-row"><div class="speaker-id">${tr('話者','Speaker')} ${String.fromCharCode(65+i)}</div><div class="speaker-examples">${examples.map(x=>`<span>「${esc(x)}」</span>`).join('')||tr('発言例なし','No examples')}</div><input class="speaker-in" data-speaker="${esc(id)}" value="${esc(val)}" placeholder="${tr('名前（不明なら空欄）','Name (optional)')}"></div>`;
+      const id=String(s.id||`SPEAKER_${i}`),val=finalizeSpeakerMap[id]||'',examples=(s.examples||[]).slice(0,3),letter=String.fromCharCode(65+i);
+      finalizeSpeakerLetters[id]=letter;
+      const viewBtn=finalizeTurns.length?`<button type="button" class="linklike spk-open" data-id="${esc(id)}" data-letter="${letter}">${tr('発言を確認','View utterances')}</button>`:'';
+      return `<div class="speaker-row"><div class="speaker-id">${tr('話者','Speaker')} ${letter}${viewBtn}</div><div class="speaker-examples">${examples.map(x=>`<span>「${esc(x)}」</span>`).join('')||tr('発言例なし','No examples')}</div><input class="speaker-in" data-speaker="${esc(id)}" value="${esc(val)}" placeholder="${tr('名前（不明なら空欄）','Name (optional)')}"></div>`;
     }).join('')+`</section>`;
   }else if(diarization.status==='setup'){
     speakerHtml=`<section class="speaker-setup"><p>${diarization.installed?tr('話者分離を使うにはHugging Faceの読み取り専用トークンを設定してください。MacではKeychainへ安全に保存され、会議データやブラウザには残りません。','Set a read-only Hugging Face token. It is stored in macOS Keychain and never kept in meeting data or the browser.'):tr('話者分離は未導入です。ターミナルで live-mtg onboard を実行してください。','Diarization is not installed. Run live-mtg onboard.')}</p>${diarization.installed?`<div class="speaker-token-row"><input id="hftoken" type="password" autocomplete="off" placeholder="hf_..."><button class="cancel" id="hfsave">${tr('安全に保存して再実行','Store securely and retry')}</button></div>`:''}</section>`;
@@ -2267,13 +2366,25 @@ function buildFinalizeForm(qs, answers, diarization, speakerMap){
     </div>`;
   }).join(''):'<p class="fnote">確認が必要そうな固有名詞は見つかりませんでした。</p>';
   box.innerHTML=speakerHtml+questionsHtml;
-  // 回答欄は内容に合わせて自動で伸ばす（推定回答が長いと1行では読めないため）
-  box.querySelectorAll('textarea.fq-in').forEach(t=>{
-    const fit=()=>{t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,220)+'px';};
-    t.addEventListener('input',fit); fit();
-  });
+  box.querySelectorAll('textarea.fq-in').forEach(t=>t.addEventListener('input',()=>fitAnswerBox(t)));
+  fitFinalizeInputs();
+  box.querySelectorAll('.spk-open').forEach(b=>b.onclick=()=>openSpeakerLog(b.dataset.id,b.dataset.letter));
   const save=$('hfsave');if(save)save.onclick=async()=>{const token=($('hftoken').value||'').trim();if(!token)return;save.disabled=true;const sr=await api('/api/settings',{hfToken:token});if(!sr.ok){toast(tr('トークンを保存できませんでした','Could not save token'));save.disabled=false;return;}const r=await loadPrep(true);if(r)buildFinalizeForm(r.questions||[],r.answers||{},r.diarization||{},r.speakerMap||{});};
 }
+// 話者の発言確認：該当話者をハイライトした会話全体（前後の文脈で誰か特定しやすくする）
+function openSpeakerLog(id,letter){
+  $('spktitle').textContent=`${tr('話者','Speaker')} ${letter} ${tr('の発言を確認','— review utterances')}`;
+  const fmt=s=>{s=Math.max(0,Math.floor(Number(s)||0));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
+  $('spkbody').innerHTML=finalizeTurns.map(t=>{
+    const me=t.speaker===id, l=finalizeSpeakerLetters[t.speaker]||'?';
+    return `<div class="spk-line${me?' me':''}"><span class="lw">${esc(l)}</span><span class="spk-time">${fmt(t.start)}</span><div>${esc(t.text||'')}</div></div>`;
+  }).join('')||`<p class="fnote">${tr('発言が見つかりません','No utterances found.')}</p>`;
+  $('spkbg').classList.add('show');
+  const first=$('spkbody').querySelector('.spk-line.me');
+  if(first)$('spkbody').scrollTop=Math.max(0,first.offsetTop-46);
+}
+$('spkclose').onclick=()=>$('spkbg').classList.remove('show');
+$('spkbg').onclick=e=>{ if(e.target===$('spkbg'))$('spkbg').classList.remove('show'); };
 $('fcancel').onclick = ()=> $('fbg').classList.remove('show');
 // ※清書モーダルは外クリックで閉じない（入力途中で誤って消えるのを防ぐ）。閉じるのはキャンセルのみ
 $('fok').onclick = async ()=>{
@@ -2344,6 +2455,14 @@ $('language').onclick=async()=>{
   catch(e){toast(tr('言語の変更に失敗しました','Could not change the language'));}
 };
 $('runtimebtn').onclick=()=>{ $('diagresult').textContent=''; refreshDiagnostics(true); };
+// 文字起こしモデルの切替（次のチャンクから適用。turbo初回はモデルDLで数分かかる）
+$('asrmodel').onchange=async()=>{
+  try{
+    const r=await api('/api/settings',{asrModel:$('asrmodel').value});
+    toast(r.ok?tr('文字起こしモデルを変更しました（初回は数分のダウンロードあり）','Transcription model updated. First use may download the model.')
+              :tr('変更に失敗しました','Could not update the model.'));
+  }catch(e){ toast(tr('変更に失敗しました','Could not update the model.')); }
+};
 $('diagclose').onclick=()=>$('diagbg').classList.remove('show');
 $('diagbg').onclick=e=>{if(e.target===$('diagbg'))$('diagbg').classList.remove('show');};
 $('hfsave_diag').onclick=async()=>{
@@ -2422,6 +2541,16 @@ function updateReviewCards(s){
   chip('rvst-final', !s.hasAudio?tr('録音音声なし','No audio'):s.hasFinal?tr('清書済み','Done'):tr('未作成','Not yet'), s.hasFinal);
   const bf=$('rvbtn-final'); if(bf)bf.textContent=s.hasFinal?tr('再清書する','Regenerate'):tr('清書する','Create minutes');
   chip('rvst-map', hasSlides?tr('生成済み','Done'):tr('未作成','Not yet'), hasSlides);
+  chip('rvst-learn', s.hasLearn?tr('生成済み','Done'):tr('未作成','Not yet'), s.hasLearn);
+  const bl=$('rvbtn-learn'); if(bl){ bl.textContent=s.hasLearn?tr('作り直す','Regenerate'):tr('レポートを作る','Create report'); bl.classList.toggle('sub',!!s.hasLearn); }
+  const lv=$('rvbtn-learn-view'); if(lv)lv.style.display=s.hasLearn?'':'none';
+  const lsl=$('rvbtn-learn-slides');
+  if(lsl){ lsl.style.display=s.hasLearn?'':'none'; lsl.dataset.has=s.hasLearnSlides?'1':'0';
+    lsl.textContent=s.hasLearnSlides?tr('スライドを見る','Open slides'):tr('スライドを作る','Create slides'); }
+  chip('rvst-rel', s.hasRelationPdf?tr('PDF保存済み','PDF saved'):hasSlides?tr('表示可','Ready'):tr('未作成','Not yet'), s.hasRelationPdf||hasSlides);
+  // PDFはdata.jsonから直接スライドを組むため、マップ成果物が未作成でも書き出せる。「開く」だけ成果物依存
+  const relOpen=$('rvbtn-rel-open'); if(relOpen)relOpen.disabled=!hasSlides;
+  chip('rvst-minutes', s.hasMinutesPdf?tr('PDF保存済み','PDF saved'):tr('未作成','Not yet'), s.hasMinutesPdf);
   const bm=$('rvbtn-map'); if(bm)bm.textContent=hasSlides?tr('開く','Open'):tr('作成する','Create');
   const bmr=$('rvbtn-map-regen'); if(bmr)bmr.style.display=hasSlides?'':'none';
 }
