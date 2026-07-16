@@ -2671,7 +2671,7 @@ def live_diarization_worker():
             if rerun: request_live_diarization(sid)
             live_diarization_q.task_done()
 
-def _speaker_payload(result):
+def _speaker_payload(result, sid=None):
     """WhisperX互換JSONを、清書確認UI用の安定した匿名話者と発言例へ変換する。"""
     turns, current = [], None
     for seg in (result.get("segments") or []):
@@ -2682,6 +2682,9 @@ def _speaker_payload(result):
             words = [w for w in (seg.get("words") or []) if isinstance(w, dict) and w.get("speaker")]
             speaker = str(words[0].get("speaker")) if words else "SPEAKER_UNKNOWN"
         text = re.sub(r"\s+", " ", str(seg.get("text") or "")).strip()
+        # ライブ本線と同じ基準で、initial_promptの漏れ出し・定型ハルシネーションを除外する
+        # （whisperは無音区間でヒント文を発話として吐く。発言例と清書用transcriptの両方を守る）
+        text = _clean(text, sid)
         if not text:
             continue
         start, end = float(seg.get("start") or 0), float(seg.get("end") or seg.get("start") or 0)
@@ -2694,8 +2697,11 @@ def _speaker_payload(result):
         speaker = turn["speaker"]
         row = info.setdefault(speaker, {"id": speaker, "seconds": 0, "examples": []})
         row["seconds"] += max(0, turn["end"] - turn["start"])
-        if len(row["examples"]) < 3 and len(turn["text"]) >= 4:
-            row["examples"].append(turn["text"][:180])
+        if len(row["examples"]) < 3 and len(turn["text"]) >= 8:
+            # 発言例は「誰の声か思い出す」ためのもの。長文全文は不要なので80字で切り、重複は載せない
+            snippet = turn["text"][:80] + ("…" if len(turn["text"]) > 80 else "")
+            if snippet not in row["examples"]:
+                row["examples"].append(snippet)
     speakers = sorted(info.values(), key=lambda x: (-x["seconds"], x["id"]))
     transcript = "\n".join("[%s] %s" % (t["speaker"], t["text"]) for t in turns)
     return speakers, turns, transcript
@@ -2738,7 +2744,7 @@ def prepare_diarization(sid, regen=False):
             best = max(diarized_turns, key=lambda turn: _overlap_seconds(probe, turn), default=None)
             if best and _overlap_seconds(probe, best) > 0:
                 seg["speaker"] = normalized.get(str(best.get("speaker")), "SPEAKER_UNKNOWN")
-        speakers, turns, transcript = _speaker_payload(raw)
+        speakers, turns, transcript = _speaker_payload(raw, sid)
         data = {"status": "ready", "signature": signature, "speakers": speakers,
                 "turns": turns, "transcript": transcript, "generated": time.strftime("%Y-%m-%d %H:%M")}
         with open(_diarization_path(sid), "w", encoding="utf-8") as f:
