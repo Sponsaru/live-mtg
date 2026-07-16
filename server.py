@@ -961,12 +961,34 @@ def _append_context_note(sid, text, kind="live"):
             json.dump(notes, f, ensure_ascii=False, indent=2)
     return notes
 
+def _explicit_participants(text):
+    """「参加者はAとBの2名のみ」の明示訂正だけを安全に抽出する。"""
+    sentence = next((x.strip() for x in re.split(r"[。\n]", text) if "参加者は" in x), "")
+    if not sentence or not re.search(r"(?:のみ|[0-9０-９一二三四五六七八九十]+名)", sentence):
+        return []
+    body = sentence.split("参加者は", 1)[1]
+    body = re.sub(r"(?:の)?[0-9０-９一二三四五六七八九十]+名(?:のみ)?(?:です)?$", "", body)
+    body = re.sub(r"(?:のみ)?です$|のみ$", "", body)
+    names = [x.strip(" ・、,") for x in re.split(r"\s*(?:と|、|,)\s*", body) if x.strip(" ・、,")]
+    return names if 1 <= len(names) <= 12 and all(len(x) <= 40 for x in names) else []
+
 def add_live_note(sid, text):
     """会議中の補足・訂正を最優先の明示情報として保存し、次の解析へ即時投入。"""
     text = re.sub(r"\s+", " ", str(text or "")).strip()
     if not text:
         return False, _t("内容が空です", "The note is empty")
     notes = _append_context_note(sid, text, "live")
+    confirmed = _explicit_participants(text)
+    if confirmed:
+        # AIの解析完了を待たず、その場で正しい参加者と関連表示を確定する。
+        with data_write_lock:
+            obj = _read_live_data(sid)
+            obj["_confirmedSpeakers"] = confirmed
+            obj = _enforce_confirmed_speakers(obj, confirmed)
+            tmp = os.path.join(sdir(sid), "data.json.tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(obj, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, os.path.join(sdir(sid), "data.json"))
     # 発話と混同しないラベルを付ける。差分解析はこれを新情報として読み、既存の誤認を訂正する。
     with open(os.path.join(sdir(sid), "transcript.txt"), "a", encoding="utf-8") as f:
         f.write("【依頼者のライブ補足・訂正（文字起こしより優先）】" + text[:2000] + "\n")
@@ -1432,6 +1454,25 @@ def _live_list_text(value):
         return first
     return " — ".join(filter(None, (_live_list_text(x) for x in value.values())))
 
+def _enforce_confirmed_speakers(obj, corrected):
+    """明示確定された参加者を、AIの各差分より後に必ず適用する。"""
+    corrected = _append_unique([], list(filter(None, (_live_list_text(x) for x in (corrected or [])))), 12)
+    if not corrected:
+        return obj
+    old_speakers = list(filter(None, (_live_list_text(x) for x in (obj.get("speakers") or []))))
+    removed = set(old_speakers) - set(corrected)
+    obj["_confirmedSpeakers"] = corrected
+    obj["speakers"] = corrected
+    if any(name in str(obj.get("summary") or "") for name in removed):
+        obj["summary"] = ""
+    obj["open"] = [item for item in (obj.get("open") or [])
+                   if not any(name in _live_list_text(item) for name in removed)
+                   and not re.search(r"(?:話者|参加者|スピーカー).*(?:矛盾|同一|確認|不明|表記)", _live_list_text(item))]
+    for entry in (obj.get("log") or []):
+        if isinstance(entry, dict) and _live_list_text(entry.get("who")) in removed:
+            entry["who"] = "不明"
+    return obj
+
 def _merge_live_patch(old, patch, now):
     """AIの小さな差分を既存議事へ決定的に統合する。"""
     obj = dict(old or {})
@@ -1451,18 +1492,7 @@ def _merge_live_patch(old, patch, now):
     if isinstance(speakers_set, list):
         # 明示訂正だけはappend-onlyにしない。誤認名が永遠に残るのを防ぐ。
         corrected = _append_unique([], list(filter(None, (_live_list_text(x) for x in speakers_set))), 12)
-        removed = set(old_speakers) - set(corrected)
-        obj["speakers"] = corrected
-        # 過去の誤認名が要旨・要確認・発言者欄へ残ると、参加者欄だけ直っても
-        # UI全体では誤情報のままになる。明示訂正で除外された名前だけ決定的に掃除する。
-        if any(name in str(obj.get("summary") or "") for name in removed):
-            obj["summary"] = ""
-        obj["open"] = [item for item in (obj.get("open") or [])
-                       if not any(name in _live_list_text(item) for name in removed)
-                       and not re.search(r"(?:話者|参加者|スピーカー).*(?:矛盾|同一|確認|不明|表記)", _live_list_text(item))]
-        for entry in (obj.get("log") or []):
-            if isinstance(entry, dict) and _live_list_text(entry.get("who")) in removed:
-                entry["who"] = "不明"
+        obj["_confirmedSpeakers"] = corrected
     else:
         obj["speakers"] = _append_unique(old_speakers, new_speakers, 12)
     log_add = []
@@ -1500,7 +1530,7 @@ def _merge_live_patch(old, patch, now):
                                          lambda x: str(x.get("question", "")) if isinstance(x, dict) else str(x))
         obj["guide"] = og
     obj["lookups"] = (patch.get("lookups") or [])[:2]
-    return obj
+    return _enforce_confirmed_speakers(obj, obj.get("_confirmedSpeakers"))
 
 def _read_live_data(sid):
     try:

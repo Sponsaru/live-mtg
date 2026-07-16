@@ -57,5 +57,13 @@ with tempfile.TemporaryDirectory() as tmp:
     assert corrected["summary"] == ""
     assert corrected["open"] == ["金額は未確認"]
     assert corrected["log"][0]["who"] == "不明"
+    assert server._explicit_participants("参加者は丹野健心と田部井社長の2名のみです。誤認名は除外。") == ["丹野健心", "田部井社長"]
+    persisted = server._merge_live_patch(
+        corrected,
+        {"speakers_add": ["丹野健吾"], "summary": "丹野健吾が説明した"},
+        "12:01",
+    )
+    assert persisted["speakers"] == ["丹野健心", "田部井社長"]
+    assert persisted["summary"] == ""
 
 print("Anonymous speakers remain stable until user-confirmed mapping")
