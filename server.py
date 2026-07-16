@@ -2692,6 +2692,11 @@ def _speaker_payload(result, sid=None):
             current["text"] = (current["text"] + " " + text).strip(); current["end"] = end
         else:
             current = {"speaker": speaker, "start": start, "end": end, "text": text}; turns.append(current)
+    speakers = _speakers_from_turns(turns)
+    transcript = "\n".join("[%s] %s" % (t["speaker"], t["text"]) for t in turns)
+    return speakers, turns, transcript
+
+def _speakers_from_turns(turns):
     info = {}
     for turn in turns:
         speaker = turn["speaker"]
@@ -2702,16 +2707,44 @@ def _speaker_payload(result, sid=None):
             snippet = turn["text"][:80] + ("…" if len(turn["text"]) > 80 else "")
             if snippet not in row["examples"]:
                 row["examples"].append(snippet)
-    speakers = sorted(info.values(), key=lambda x: (-x["seconds"], x["id"]))
-    transcript = "\n".join("[%s] %s" % (t["speaker"], t["text"]) for t in turns)
-    return speakers, turns, transcript
+    return sorted(info.values(), key=lambda x: (-x["seconds"], x["id"]))
+
+def _sanitize_diarization(sid, data):
+    """旧バージョンが保存した話者分離キャッシュへ、現行の浄化ルール（ヒント漏れ除去・
+    発言例80字・重複なし）を適用し直す。whisperの再実行なしで直せる部分だけ直し、
+    変化があればキャッシュも上書きする。"""
+    turns_in = [t for t in (data.get("turns") or []) if isinstance(t, dict) and t.get("speaker")]
+    if not turns_in:
+        return data
+    kept, changed = [], False
+    for t in turns_in:
+        text = _clean(re.sub(r"\s+", " ", str(t.get("text") or "")).strip(), sid)
+        if not text:
+            changed = True
+            continue
+        if text != t.get("text"):
+            changed = True
+        kept.append({**t, "text": text})
+    speakers = _speakers_from_turns(kept)
+    if speakers != data.get("speakers"):
+        changed = True
+    if not changed:
+        return data
+    data = {**data, "speakers": speakers, "turns": kept,
+            "transcript": "\n".join("[%s] %s" % (t["speaker"], t["text"]) for t in kept)}
+    try:
+        with open(_diarization_path(sid), "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    return data
 
 def prepare_diarization(sid, regen=False):
     """清書前に全音声を話者分離する。利用不可でも清書本体は止めない。"""
     signature = _audio_signature(sid)
     cached = _load_diarization(sid)
     if not regen and cached.get("signature") == signature and cached.get("speakers"):
-        return cached
+        return _sanitize_diarization(sid, cached)   # 旧版キャッシュにも現行の浄化ルールを適用
     if not shutil.which("whispermlx"):
         return {"status": "setup", "installed": False, "tokenConfigured": _hf_token_configured(), "speakers": []}
     if not _hf_token_configured():
