@@ -972,6 +972,15 @@ def _explicit_participants(text):
     names = [x.strip(" ・、,") for x in re.split(r"\s*(?:と|、|,)\s*", body) if x.strip(" ・、,")]
     return names if 1 <= len(names) <= 12 and all(len(x) <= 40 for x in names) else []
 
+def _explicit_rejected_speakers(text):
+    """「A・Bは文字起こし由来の誤認名」のA/Bだけを抽出する。"""
+    sentence = next((x.strip() for x in re.split(r"[。\n]", text) if "誤認名" in x), "")
+    if not sentence or "は" not in sentence:
+        return []
+    left = sentence.rsplit("は", 1)[0]
+    names = [x.strip(" ・、,") for x in re.split(r"\s*(?:・|と|、|,)\s*", left) if x.strip(" ・、,")]
+    return names if 1 <= len(names) <= 12 and all(len(x) <= 40 for x in names) else []
+
 def add_live_note(sid, text):
     """会議中の補足・訂正を最優先の明示情報として保存し、次の解析へ即時投入。"""
     text = re.sub(r"\s+", " ", str(text or "")).strip()
@@ -984,7 +993,10 @@ def add_live_note(sid, text):
         with data_write_lock:
             obj = _read_live_data(sid)
             obj["_confirmedSpeakers"] = confirmed
-            obj = _enforce_confirmed_speakers(obj, confirmed)
+            rejected = sorted({name for note in notes for name in _explicit_rejected_speakers(str(note.get("text") or ""))})
+            if rejected:
+                obj["_rejectedSpeakers"] = rejected
+            obj = _enforce_confirmed_speakers(obj, confirmed, rejected)
             tmp = os.path.join(sdir(sid), "data.json.tmp")
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(obj, f, ensure_ascii=False, indent=2)
@@ -1454,14 +1466,16 @@ def _live_list_text(value):
         return first
     return " — ".join(filter(None, (_live_list_text(x) for x in value.values())))
 
-def _enforce_confirmed_speakers(obj, corrected):
+def _enforce_confirmed_speakers(obj, corrected, rejected=None):
     """明示確定された参加者を、AIの各差分より後に必ず適用する。"""
     corrected = _append_unique([], list(filter(None, (_live_list_text(x) for x in (corrected or [])))), 12)
     if not corrected:
         return obj
     old_speakers = list(filter(None, (_live_list_text(x) for x in (obj.get("speakers") or []))))
-    removed = set(old_speakers) - set(corrected)
+    removed = (set(old_speakers) - set(corrected)) | set(filter(None, rejected or obj.get("_rejectedSpeakers") or []))
     obj["_confirmedSpeakers"] = corrected
+    if removed:
+        obj["_rejectedSpeakers"] = sorted(removed)
     obj["speakers"] = corrected
     if any(name in str(obj.get("summary") or "") for name in removed):
         obj["summary"] = ""
@@ -1530,7 +1544,7 @@ def _merge_live_patch(old, patch, now):
                                          lambda x: str(x.get("question", "")) if isinstance(x, dict) else str(x))
         obj["guide"] = og
     obj["lookups"] = (patch.get("lookups") or [])[:2]
-    return _enforce_confirmed_speakers(obj, obj.get("_confirmedSpeakers"))
+    return _enforce_confirmed_speakers(obj, obj.get("_confirmedSpeakers"), obj.get("_rejectedSpeakers"))
 
 def _read_live_data(sid):
     try:

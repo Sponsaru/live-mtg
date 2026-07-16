@@ -58,6 +58,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert corrected["open"] == ["金額は未確認"]
     assert corrected["log"][0]["who"] == "不明"
     assert server._explicit_participants("参加者は丹野健心と田部井社長の2名のみです。誤認名は除外。") == ["丹野健心", "田部井社長"]
+    assert server._explicit_rejected_speakers("丹野健一郎・丹野健吾・野沢栄一は文字起こし由来の誤認名です。") == ["丹野健一郎", "丹野健吾", "野沢栄一"]
     persisted = server._merge_live_patch(
         corrected,
         {"speakers_add": ["丹野健吾"], "summary": "丹野健吾が説明した"},
@@ -65,5 +66,13 @@ with tempfile.TemporaryDirectory() as tmp:
     )
     assert persisted["speakers"] == ["丹野健心", "田部井社長"]
     assert persisted["summary"] == ""
+    historical = server._enforce_confirmed_speakers({
+        "speakers": ["丹野健心", "田部井社長"],
+        "summary": "丹野健吾と確定",
+        "open": ["丹野健一郎との同一性未確認"],
+        "log": [{"who": "野沢栄一", "text": "発言"}],
+    }, ["丹野健心", "田部井社長"], ["丹野健一郎", "丹野健吾", "野沢栄一"])
+    assert historical["summary"] == "" and historical["open"] == []
+    assert historical["log"][0]["who"] == "不明"
 
 print("Anonymous speakers remain stable until user-confirmed mapping")
