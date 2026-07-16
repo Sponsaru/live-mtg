@@ -977,7 +977,7 @@ def _explicit_rejected_speakers(text):
     sentence = next((x.strip() for x in re.split(r"[。\n]", text) if "誤認名" in x), "")
     if not sentence or "は" not in sentence:
         return []
-    left = sentence.rsplit("は", 1)[0]
+    left = sentence.split("は", 1)[0]
     names = [x.strip(" ・、,") for x in re.split(r"\s*(?:・|と|、|,)\s*", left) if x.strip(" ・、,")]
     return names if 1 <= len(names) <= 12 and all(len(x) <= 40 for x in names) else []
 

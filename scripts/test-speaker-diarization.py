@@ -59,6 +59,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert corrected["log"][0]["who"] == "不明"
     assert server._explicit_participants("参加者は丹野健心と田部井社長の2名のみです。誤認名は除外。") == ["丹野健心", "田部井社長"]
     assert server._explicit_rejected_speakers("丹野健一郎・丹野健吾・野沢栄一は文字起こし由来の誤認名です。") == ["丹野健一郎", "丹野健吾", "野沢栄一"]
+    assert server._explicit_rejected_speakers("丹野健一郎・野沢栄一は参加者ではなく、文字起こしが作った誤認名です。") == ["丹野健一郎", "野沢栄一"]
     persisted = server._merge_live_patch(
         corrected,
         {"speakers_add": ["丹野健吾"], "summary": "丹野健吾が説明した"},
