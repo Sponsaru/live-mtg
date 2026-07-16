@@ -1450,7 +1450,19 @@ def _merge_live_patch(old, patch, now):
     speakers_set = patch.get("speakers_set")
     if isinstance(speakers_set, list):
         # 明示訂正だけはappend-onlyにしない。誤認名が永遠に残るのを防ぐ。
-        obj["speakers"] = _append_unique([], list(filter(None, (_live_list_text(x) for x in speakers_set))), 12)
+        corrected = _append_unique([], list(filter(None, (_live_list_text(x) for x in speakers_set))), 12)
+        removed = set(old_speakers) - set(corrected)
+        obj["speakers"] = corrected
+        # 過去の誤認名が要旨・要確認・発言者欄へ残ると、参加者欄だけ直っても
+        # UI全体では誤情報のままになる。明示訂正で除外された名前だけ決定的に掃除する。
+        if any(name in str(obj.get("summary") or "") for name in removed):
+            obj["summary"] = ""
+        obj["open"] = [item for item in (obj.get("open") or [])
+                       if not any(name in _live_list_text(item) for name in removed)
+                       and not re.search(r"(?:話者|参加者|スピーカー).*(?:矛盾|同一|確認|不明|表記)", _live_list_text(item))]
+        for entry in (obj.get("log") or []):
+            if isinstance(entry, dict) and _live_list_text(entry.get("who")) in removed:
+                entry["who"] = "不明"
     else:
         obj["speakers"] = _append_unique(old_speakers, new_speakers, 12)
     log_add = []

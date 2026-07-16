@@ -604,7 +604,8 @@ Usage:
   live-mtg doctor                      Check required dependencies
   live-mtg config --provider codex     Switch AI (claude is also supported)
   live-mtg config --language en        Switch language (ja is also supported)
-  live-mtg start | stop | status       Start, stop, or check status
+  live-mtg start | stop | restart | status
+                                       Start, stop, restart, or check status
   live-mtg update                      Update to the latest release
   live-mtg logs [--lines 200]          Show server logs
   live-mtg report                      Create a privacy-safe diagnostic report
@@ -621,7 +622,8 @@ Issues: https://github.com/Sponsaru/live-mtg/issues` : `LiveMTG
   live-mtg doctor                    必要環境を診断
   live-mtg config --provider codex   AIをCodexへ変更（claudeも可）
   live-mtg config --language en      言語を英語へ変更（jaも可）
-  live-mtg start | stop | status     起動・停止・状態確認
+  live-mtg start | stop | restart | status
+                                     起動・停止・再起動・状態確認
   live-mtg update                    最新版へ更新
   live-mtg logs [--lines 200]        サーバーログを表示
   live-mtg report                    個人情報を伏せた診断レポートを作成
@@ -650,6 +652,11 @@ try {
   else if (command === "serve") serve();
   else if (command === "start") await start();
   else if (command === "stop") stop();
+  else if (command === "restart") {
+    stop();
+    for (let i = 0; i < 20 && await serviceHealth(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+    await start();
+  }
   else if (command === "status") console.log(await serviceHealth() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
   else if (command === "dashboard") {
     // `npm install -g live-mtg && live-mtg` must not open a dashboard that only

@@ -46,10 +46,16 @@ with tempfile.TemporaryDirectory() as tmp:
     assert mapped["log"][0] == {"who": "丹野健心", "text": "田部井社長へ質問"}
 
     corrected = server._merge_live_patch(
-        {"speakers": ["丹野健心", "丹野健一郎", {"name": "丹野健吾"}]},
+        {"speakers": ["丹野健心", "丹野健一郎", {"name": "丹野健吾"}],
+         "summary": "話者が丹野健吾と確定",
+         "open": ["話者『丹野健一郎』と依頼主の同一性未確認", "金額は未確認"],
+         "log": [{"who": "丹野健吾", "text": "実際の発言"}]},
         {"speakers_set": ["丹野健心", "田部井社長"]},
         "12:00",
     )
     assert corrected["speakers"] == ["丹野健心", "田部井社長"]
+    assert corrected["summary"] == ""
+    assert corrected["open"] == ["金額は未確認"]
+    assert corrected["log"][0]["who"] == "不明"
 
 print("Anonymous speakers remain stable until user-confirmed mapping")
