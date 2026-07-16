@@ -137,7 +137,7 @@ radial_diagram = "\n".join(radial_lines)
 
 body = '''<div class="slide mindmap-page">
   <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div>
-    <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="radial">%s</button><button data-generated-map="relation" title="%s">Mermaid</button><button data-generated-map="timeline">%s</button></div>
+    <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="radial">%s</button><button data-generated-map="relation">%s</button><button data-generated-map="timeline">%s</button></div>
   </div>
   <div class="stage">
     <div class="generated-map-view generated-radial" data-generated-view="radial"><div class="mermaid">%s</div></div>
@@ -149,7 +149,7 @@ body = '''<div class="slide mindmap-page">
     </div></div>
     <div class="generated-map-view generated-timeline" data-generated-view="timeline">%s</div>
   </div>
-</div>''' % (html.escape(title), tr("マインドマップ・放射マップ・Mermaid・時系列", "Mind map, radial map, Mermaid, and timeline"),
+</div>''' % (html.escape(title), tr("マインドマップ・放射マップ・会話の関係・時系列", "Mind map, radial map, relationships, and timeline"),
              tr("マインドマップ", "Mind map"), tr("放射マップ", "Radial map"), tr("会話の関係", "Conversation relationships"), tr("時系列", "Timeline"),
              html.escape(radial_diagram), html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
              "".join(timeline_rows) or '<div class="generated-empty">%s</div>' % tr("発言を整理中です", "Organizing the conversation"))

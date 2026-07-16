@@ -27,43 +27,36 @@
   #pview .pband .t small{font-weight:700;font-size:12px;opacity:.85;margin-left:10px;letter-spacing:.08em}
   #pview .pband .m{font-size:11px;font-weight:700;opacity:.95;flex:none;text-align:right;line-height:1.5}
   /* 要約ヒーロー ＋ KPIタイル列 */
-  #pview .phero{display:flex;gap:10px;align-items:stretch;margin-bottom:10px}
-  #pview .psum{flex:1;font-size:13px;font-weight:700;color:var(--ink);line-height:1.6;
-    background:#f2f8fd;border-radius:10px;padding:10px 14px;border-left:5px solid var(--blue)}
-  #pview .pkpis{display:flex;gap:8px;flex:none}
+  #pview .pkpis{display:flex;gap:10px;margin-top:6px}
   #pview .pkpi{width:92px;background:#fff;border:1px solid #e2ebf1;border-top:3px solid var(--kc,var(--blue));
     border-radius:10px;padding:7px 10px 6px;display:flex;flex-direction:column;justify-content:center}
   #pview .pkpi .v{font-size:26px;font-weight:800;color:var(--ink);line-height:1.05}
   #pview .pkpi .l{font-size:10px;font-weight:700;color:var(--sub);display:flex;align-items:center;gap:4px;margin-top:2px}
   #pview .pkpi .l::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--kc,var(--blue));flex:none}
-  /* セクションカード：上辺に色アクセント */
-  #pview .pcols{columns:3;column-gap:10px}
-  #pview .pcard{break-inside:avoid;background:#fff;border:1px solid #e2ebf1;border-top:3px solid var(--sc,var(--blue));
-    border-radius:10px;padding:8px 12px 7px;margin-bottom:10px}
-  #pview .pcard h3{font-size:12.5px;font-weight:800;color:var(--ink);letter-spacing:.02em;
-    padding-bottom:5px;margin:0 0 5px;border-bottom:1px solid #eef3f7;
-    display:flex;align-items:center;gap:6px}
-  #pview .pcard h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sc,var(--blue));flex:none}
-  #pview .pcard h3 .c{margin-left:auto;font-size:10px;font-weight:800;color:var(--sub);
-    background:#f2f6fa;border-radius:10px;padding:1px 8px}
-  #pview ul{margin:0;padding:0;list-style:none}
-  #pview li{font-size:11px;line-height:1.5;padding:3px 0 3px 13px;position:relative;color:var(--ink)}
-  #pview li+li{border-top:1px dashed #edf2f6}
-  #pview li::before{content:"";position:absolute;left:1px;top:9.5px;width:4.5px;height:4.5px;border-radius:50%;background:var(--sc,var(--blue));opacity:.75}
-  #pview .ptd li{padding-left:0} #pview .ptd li::before{display:none}
-  #pview .pwho{display:inline-block;background:#fff4e2;color:#b56a08;font-weight:800;font-size:9px;
-    border-radius:4px;padding:0.5px 6px;margin-right:5px;border:1px solid #f1ddb6}
-  #pview li.pempty{color:var(--sub)} #pview li.pempty::before{display:none}
+  #pview .pwho{display:inline-block;background:#fff4e2;color:#b56a08;font-weight:800;font-size:11px;
+    border-radius:5px;padding:1px 8px;margin-right:7px;border:1px solid #f1ddb6}
   /* フッター */
   #pview .pfoot{display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:var(--sub);
     letter-spacing:.06em;padding:2px 4px 0}
   #pview .pbrand{display:block;width:92px;height:22px;background:url("/brand-logo.png") no-repeat left center;background-size:contain}
+  /* セクションごとに改ページする複数ページ構成（旧・1枚圧縮レイアウトは廃止） */
+  #pview .psec{page-break-after:always;break-after:page}
+  #pview .psec:last-of-type{page-break-after:auto;break-after:auto}
+  #pview .psec-t{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:.02em;display:flex;align-items:center;gap:10px;
+    margin:0 0 14px;padding-bottom:9px;border-bottom:3px solid var(--sc,var(--blue))}
+  #pview .psec-t .c{margin-left:auto;font-size:12px;font-weight:800;color:var(--sub)}
+  #pview .plist{margin:0;padding:0;list-style:none}
+  #pview .plist li{font-size:14px;line-height:1.75;padding:8px 0 8px 18px;position:relative;color:var(--ink);
+    border-bottom:1px dashed #edf2f6;break-inside:avoid;page-break-inside:avoid;overflow-wrap:anywhere;white-space:normal}
+  #pview .plist li::before{content:"";position:absolute;left:2px;top:17px;width:6px;height:6px;border-radius:50%;background:var(--sc,var(--blue));opacity:.75}
+  #pview .plist .pwho{margin-right:7px}
+  #pview .psum-full{font-size:15px;line-height:1.9;color:var(--ink);font-weight:600;margin:14px 0;
+    background:#f6f9fc;border-left:5px solid var(--blue);border-radius:8px;padding:14px 18px;overflow-wrap:anywhere;white-space:normal}
   @media print{
-    @page{ size: A4 landscape; margin: 8mm }
+    @page{ size: A4 landscape; margin: 10mm }
     body>*{display:none!important}
     body>#pview{display:block!important;position:static!important;left:0!important;margin:0 auto;
-      width:1000px!important;height:680px!important;overflow:hidden!important;break-after:avoid;page-break-after:avoid}
-    body>#pview>#pwrap{break-inside:avoid;page-break-inside:avoid}
+      width:1000px!important;overflow:visible!important}
     html,body{background:#fff}
   }
   *{box-sizing:border-box}
@@ -79,10 +72,6 @@
     box-shadow:0 2px 10px rgba(0,120,180,.25);
   }
   header .logo{display:block;flex:none;width:152px;height:38px;background:url("/brand-logo.png") no-repeat left center;background-size:contain;border-radius:0}
-  header h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.02em;white-space:nowrap}
-  .dot{width:12px;height:12px;border-radius:50%;background:#ff5a5a;flex:none}
-  .dot.live{box-shadow:0 0 0 0 rgba(255,90,90,.7); animation:pulse 1.4s infinite}
-  .dot.idle{background:#bfe6fb}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,90,90,.7)}
     70%{box-shadow:0 0 0 11px rgba(255,90,90,0)}100%{box-shadow:0 0 0 0 rgba(255,90,90,0)}}
   .controls{display:flex;align-items:center;gap:9px;margin-left:auto;flex-wrap:nowrap;min-width:0;max-width:100%}
@@ -97,7 +86,6 @@
   .btn.slides{background:#fff;color:var(--blue-d)}
   .btn.ghost{background:rgba(255,255,255,.10)}
   .btn.regen{padding:9px 12px;font-size:17px;line-height:1;font-weight:800}
-  .vsep{width:1px;align-self:stretch;background:rgba(255,255,255,.28);flex:none;margin:3px 3px}
   /* ドロップダウンメニュー（副次操作を集約） */
   .menuwrap{position:relative}
   .menu{position:absolute;top:calc(100% + 8px);right:0;background:#fff;border-radius:12px;
@@ -107,36 +95,181 @@
   .menu-item{font-family:inherit;font-size:15px;font-weight:700;text-align:left;border:none;background:transparent;
     color:var(--ink);padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:9px;white-space:nowrap;width:100%}
   .menu-icon{width:20px;height:20px;flex:0 0 20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .menu-group summary .menu-icon{width:19px;height:19px;flex-basis:19px}
   .menu-label{min-width:0}
   .menu-item:hover{background:#eef7fd;color:var(--blue-d)}
   .menu-item:disabled{opacity:.4;cursor:default}
   .menu-item:disabled:hover{background:transparent;color:var(--ink)}
   .menu-item.danger{color:#b52d35}.menu-item.danger:hover{background:#fff0f1;color:#941f27}
-  .menu-group{border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
-  .menu-group summary{list-style:none;cursor:pointer;padding:10px 12px;border-radius:8px;color:#40566b;font-size:14px;font-weight:900;
-    display:flex;align-items:center;gap:8px}.menu-group summary::-webkit-details-marker{display:none}
-  .menu-group summary:hover{background:#f3f7fa}.menu-group summary::after{content:"›";margin-left:auto;font-size:20px;line-height:1;color:#8092a3;transition:.15s}
-  .menu-group[open] summary::after{transform:rotate(90deg)}.menu-group .menu-items{padding:2px 0 3px 12px;border-left:2px solid #e5edf3;margin-left:17px}
   .menu-sep{height:1px;background:var(--line);margin:5px 8px}
-  select.sess{font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:10px;
-    padding:9px 12px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;max-width:230px}
-  select.sess option{color:#12232e}
-  .status{font-size:11px;line-height:1.2;width:132px;flex:0 0 132px;display:grid;grid-template-columns:58px 74px;align-items:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
-  .status-recording,.lastupdate{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .status-recording{font-weight:700}
-  .status-recording.active{color:var(--blue)}
-  .lastupdate{font-size:11px;font-weight:700;opacity:.82;border-left:1px solid var(--line);padding-left:9px;text-align:left}
-  .lastupdate.stale{color:#ffe08a;opacity:1}
+  /* 会議切替：ネイティブselectは状態保持用に隠し、カスタムドロップダウン（選択のみ）で表示 */
+  .sesswrap{position:relative}
+  .sesswrap select{display:none}
+  .sessbtn{font-family:inherit;font-size:15px;font-weight:700;border:none;border-radius:10px;padding:9px 12px;
+    background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:8px;max-width:230px}
+  .sessbtn:hover{background:rgba(255,255,255,.28)}
+  .sessbtn #sesslabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .sessbtn .sess-caret{font-size:10px;opacity:.8;flex:none}
+  .sessmenu{display:none;position:absolute;top:calc(100% + 8px);left:0;background:#fff;border-radius:12px;
+    box-shadow:0 10px 30px rgba(10,60,90,.28);padding:6px;min-width:300px;max-width:440px;
+    max-height:min(70vh,480px);overflow:auto;z-index:27}
+  .sessmenu.show{display:block}
+  .sess-item{display:block;width:100%;text-align:left;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    border:none;background:transparent;border-radius:8px;padding:9px 11px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sess-item:hover{background:#eef7fd}
+  .sess-item.on{background:#e8f2fc;color:var(--blue-d);font-weight:700}
+  /* コンボ：入力も選択もできる（用途・立場） */
+  .combo{position:relative;display:flex;align-items:stretch}
+  .combo input{flex:1;min-width:0;padding-right:30px!important}
+  .combo-caret{position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:none;background:transparent;
+    color:var(--sub);cursor:pointer;font-size:11px;border-radius:0 9px 9px 0}
+  .combo-caret:hover{color:var(--ink)}
+  .combo-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;
+    border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.14);padding:5px;z-index:30;max-height:260px;overflow:auto}
+  .combo.open .combo-menu{display:block}
+  .combo-item{display:block;width:100%;text-align:left;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+    border:none;background:transparent;border-radius:8px;padding:8px 10px;cursor:pointer}
+  .combo-item:hover{background:#f0f3f7}
+  /* 3フェーズナビ（準備｜ライブ｜振り返り）。行き来自由 */
+  .phasetabs{display:inline-flex;gap:4px;background:rgba(255,255,255,.16);border-radius:12px;padding:4px;margin-left:8px;flex:none}
+  .phasetabs button{font-family:inherit;font-size:13px;font-weight:700;border:none;border-radius:9px;
+    padding:7px 14px;cursor:pointer;background:transparent;color:#fff;white-space:nowrap}
+  .phasetabs button.on{background:#fff;color:var(--blue-d)}
+  .phaseview{display:none;padding:20px 22px 40px}
+  #reviewview .phasecards{max-width:1400px}
+  .phaseview h2{font-size:17px;font-weight:800;color:var(--ink);margin:0 0 4px}
+  .phaseview .pv-sub{font-size:13px;color:var(--sub);margin:0 0 16px;line-height:1.7}
+  .phasecards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+  .phasecard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .phasecard h3{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 6px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .pc-status{font-size:11px;font-weight:700;color:var(--sub);background:#f0f1f4;border-radius:999px;padding:3px 9px;flex:none}
+  .pc-status.done{color:#1d9e63;background:#e7f5ee}
+  .phasecard .pcbtn.sub{color:var(--sub);margin-left:8px}
+  .phasecard p{font-size:13px;color:var(--sub);line-height:1.65;margin:0}
+  .phasecard .pcbtn{font-family:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:#fff;
+    color:var(--blue-d);border-radius:10px;padding:8px 14px;cursor:pointer;margin-top:12px}
+  .phasecard .pcbtn:hover{border-color:var(--blue)}
+  body.phase-prep .workspace,body.phase-prep .railtoggle,body.phase-prep .whobar,body.phase-prep .live-speakers,
+  body.phase-review .workspace,body.phase-review .railtoggle,body.phase-review .whobar,body.phase-review .live-speakers{display:none!important}
+  body.phase-prep #prepview,body.phase-review #reviewview{display:block}
+  /* 準備フェーズ＝ライブと同じ構造言語：左はページ地の上の作業面（カード枠なし）、右は端まで伸びるサイドバー面 */
+  #prepview{padding:0}
+  .prep-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,520px);gap:0 20px;align-items:stretch}
+  .prep-main{min-width:0;display:flex;flex-direction:column;height:calc(100vh - 58px);box-sizing:border-box;padding:12px 0 14px 22px}
+  .chathead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none;
+    font-size:12px;font-weight:800;letter-spacing:.05em;color:var(--sub);margin-bottom:8px}
+  .prep-main .strategy-log{flex:1;min-height:0}
+  .prep-main .prep-quick{margin:10px 0 8px}
+  .prep-brief{min-width:0;background:#eceef2;border-left:1px solid var(--line)}
+  /* 注意：flexにすると中身（textarea等）が押し潰されるため、通常フローで内部スクロールさせる */
+  .briefinner{position:sticky;top:58px;max-height:calc(100vh - 58px);overflow-y:auto;overscroll-behavior:contain;
+    padding:14px 18px 20px;box-sizing:border-box}
+  .bhead{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    font-size:12px;font-weight:800;letter-spacing:.05em;color:var(--sub);margin-bottom:6px}
+  .briefinner input,.briefinner textarea{width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;
+    padding:9px 11px;border:1px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink);resize:vertical}
+  .briefinner textarea{min-height:66px}
+  .briefinner input:focus,.briefinner textarea:focus{border-color:var(--blue)}
+  .briefinner .flabel{margin-top:10px}
+  .brief-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .brief-board{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .briefinner .prep-save{margin-top:12px}
+  .gprojhint{font-size:12px;font-weight:600;color:var(--sub);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 学びレポート（個人向け気づき） */
+  .learn-insights{background:#f6f9fc;border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    font-size:14px;line-height:1.8;color:var(--ink);max-height:46vh;overflow-y:auto;margin:10px 0 4px}
+  .learn-insights ul{margin:0;padding-left:19px}
+  .learn-insights li{margin:5px 0}
+  .learn-insights p{margin:6px 0}
+  .brief-import{display:flex;gap:18px}
+  .brief-import .linklike{margin-top:4px}
+  .linklike{font-family:inherit;font-size:12px;font-weight:700;border:none;background:transparent;
+    color:var(--blue-d);padding:0;cursor:pointer;margin-top:12px;display:inline-flex}
+  .linklike:hover{text-decoration:underline}
+  @media(max-width:1100px){
+    .prep-layout{display:block}
+    .prep-main{height:auto;padding:12px 22px 14px}
+    .prep-main .strategy-log{max-height:52vh;min-height:260px}
+    .prep-brief{border-left:none;border-top:1px solid var(--line)}
+    .briefinner{position:static;max-height:none;padding:14px 22px 24px}
+  }
+  /* 状態ピル：固定幅・4状態のみ。詳細はクリックでポップオーバー */
+  .pillwrap{position:relative;flex:none}
+  .statuspill{font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    min-width:106px;border:none;border-radius:999px;padding:8px 13px;cursor:pointer;position:relative;
+    background:rgba(255,255,255,.16);color:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+  /* 録音中の停滞バッジ：録音表示は維持したまま「解析・文字起こしが止まっている」ことに気づける */
+  .statuspill.stall::after{content:"!";position:absolute;top:-4px;right:-3px;width:15px;height:15px;border-radius:50%;
+    background:#ffcf5a;color:#5a4300;font-size:11px;font-weight:800;line-height:15px;text-align:center}
+  .statuspill:hover{background:rgba(255,255,255,.28)}
+  .sp-dot{width:9px;height:9px;border-radius:50%;background:#bfe6fb;flex:none}
+  .statuspill.ok .sp-dot{background:#3ddc8b}
+  .statuspill.rec .sp-dot{background:#ff5a5a;animation:pulse 1.4s infinite}
+  .statuspill.proc .sp-dot{background:#8fd0ff}
+  .statuspill.warn .sp-dot{background:#ffcf5a}
+  .statuspop{position:absolute;top:calc(100% + 8px);right:0;background:#fff;color:var(--ink);border-radius:12px;
+    box-shadow:0 10px 30px rgba(10,60,90,.28);padding:12px 14px;min-width:280px;z-index:26;display:none;text-align:left}
+  .statuspop.show{display:block}
+  .statuspop .sp-row{display:flex;justify-content:space-between;gap:14px;font-size:13px;font-weight:600;padding:4px 0}
+  .statuspop .sp-row b{font-weight:700;color:var(--sub);flex:none}
+  .statuspop .sp-row span{text-align:right;min-width:0;overflow-wrap:anywhere}
+  .statuspop .sp-stale{color:var(--red);font-style:normal;font-weight:700}
+  .statuspop .sp-note{font-size:12px;margin-top:6px;border-top:1px solid var(--line);padding-top:8px;display:flex;gap:10px;flex-wrap:wrap}
+  .statuspop .sp-note .ok{color:#1d9e63;font-weight:700}
+  .statuspop .sp-note .wait{color:var(--sub)}
   @media(max-width:1180px){
-    header h1{display:none}select.sess{max-width:180px}
+    .sessbtn{max-width:180px}
   }
   @media(max-width:900px){
-    header{flex-wrap:wrap}.controls{width:100%;margin-left:0;overflow-x:auto;padding-bottom:2px}.status{display:none}
+    header{flex-wrap:wrap}.controls{width:100%;margin-left:0;overflow-x:auto;padding-bottom:2px}
   }
+  /* ===== メイン＋ライブ支援レールの2カラム ===== */
+  /* 右レール＝端まで伸びるフラットなサイドバー面（囲い枠・角丸なし。色面＋左ヘアラインで区別） */
+  .workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:0 20px;align-items:stretch;padding:0 0 0 22px;
+    min-height:calc(100vh - 58px);min-height:calc(100dvh - 58px)}
+  .mainpane{min-width:0;padding:14px 0 40px}
+  .siderail{min-width:0;background:#eceef2;border-left:1px solid var(--line)}
+  .railinner{position:sticky;top:58px;max-height:calc(100vh - 58px);overflow-y:auto;overscroll-behavior:contain;
+    display:flex;flex-direction:column;gap:14px;padding:14px 16px 20px}
+  body.railclosed .workspace{grid-template-columns:minmax(0,1fr);padding-right:22px}
+  body.railclosed .siderail{display:none}
+  /* レール開閉ハンドル：開いている時はパネルの左端（境界線の中央）、閉じたら画面右端 */
+  /* z-indexはヘッダー（20）より下に置く：ヘッダー内のドロップダウン（会議一覧・状態詳細・メニュー）を遮らないため */
+  .railtoggle{position:fixed;top:50%;transform:translateY(-50%);z-index:18;width:16px;height:40px;
+    border:1px solid var(--line);background:#fff;color:var(--sub);
+    font-size:10px;font-weight:800;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:0;outline:none}
+  body:not(.railclosed) .railtoggle{right:calc(360px - 8px);border-radius:999px}
+  body.railclosed .railtoggle{right:0;border-right:none;border-radius:8px 0 0 8px}
+  .railtoggle:hover{color:var(--blue-d);border-color:#b9c2cc}
+  /* 幅1100px未満（Zoom等と半画面を分け合う通常運用）：レールをメイン下に落とすと支援機能が
+     埋もれ、畳む手段もなくなるため、右からのオーバーレイに切替える。開閉トグルは常時表示。
+     top はヘッダー実高（折返しで58pxを超える）にJSで追随（--hdrh） */
+  @media(max-width:1100px){
+    .workspace{display:block;padding:0 22px;min-height:0}
+    .mainpane{padding:14px 0 24px}
+    .siderail{position:fixed;top:var(--hdrh,58px);right:0;bottom:0;width:min(360px,90vw);z-index:17;
+      box-shadow:-14px 0 34px rgba(10,60,90,.20)}
+    .railinner{position:static;max-height:none;height:100%;padding:14px 22px 24px}
+    body:not(.railclosed) .railtoggle{right:calc(min(360px,90vw) - 8px)}
+  }
+  /* レールを畳んでいる間に新しい提案が届いたらトグルに赤ポチ（開くと消える） */
+  .railtoggle.hasnew::after{content:"";position:absolute;top:3px;right:2.5px;width:7px;height:7px;
+    border-radius:50%;background:var(--red)}
+  /* レール内2タブ（質問・参考回答／会議の狙い）。裏タブの新着は赤ドット。各セクションは常時展開（折りたたみなし） */
+  .railtabs{display:flex;gap:6px;background:#e0e3e9;border-radius:12px;padding:4px;flex:none}
+  .railtabs button{flex:1;font-family:inherit;font-size:13px;font-weight:800;border:none;border-radius:9px;
+    padding:8px 4px;cursor:pointer;background:transparent;color:var(--sub);position:relative;white-space:nowrap}
+  .railtabs button.on{background:#fff;color:var(--blue-d);box-shadow:0 1px 4px rgba(0,0,0,.10)}
+  .railtabs button .rdot{position:absolute;top:5px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--red);display:none}
+  .railtabs button.hasnew .rdot{display:block}
+  .railpane{display:none;flex-direction:column;gap:14px;min-width:0}
+  .railpane.on{display:flex}
+  .railhint{font-size:13px;color:var(--sub);background:#fff;border:1px dashed #c9ccd3;border-radius:12px;padding:14px;line-height:1.7}
+  #rail-ask:has(.nextwrap.show) .railhint,#rail-ask:has(.assist.show) .railhint{display:none}
+  #rail-goal:has(.gwrap.show) .railhint{display:none}
   .summary{
     background:linear-gradient(135deg,#e8f6fe,#d3edfb);
-    border-left:6px solid var(--blue); margin:18px 22px;
+    border-left:6px solid var(--blue); margin:0 0 14px;
     padding:16px 20px; border-radius:10px; font-size:24px; font-weight:700; color:var(--blue-d);
   }
   /* 商談ガイド */
@@ -146,22 +279,19 @@
   .pickbtn{flex:none;font-family:inherit;font-size:14px;font-weight:800;border:2px solid var(--line);
     background:#f4f8fb;color:var(--blue-d);border-radius:10px;padding:0 14px;cursor:pointer}
   .pickbtn:hover{background:#e8f4fd;border-color:var(--blue)}
-  .gwrap{display:none;margin:0 22px 14px}
+  .gwrap{display:none;margin:0}
   .gwrap.show{display:block}
-  body.slidemode .gwrap{display:none}
-  .ghead{display:flex;align-items:center;gap:14px;cursor:pointer;background:linear-gradient(120deg,#1b2a44,#243b5e);
-    color:#fff;border-radius:12px;padding:14px 20px;min-height:58px;box-shadow:0 3px 10px rgba(24,43,73,.16)}
-  .ghead .gtitle{font-weight:900;font-size:17px;flex:none;letter-spacing:.02em}
-  .ghead .gprog{font-size:16px;font-weight:700;line-height:1.45;opacity:.96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-  .ghead .gcaret{flex:none;font-size:18px;opacity:.9}
-  .gbody{display:none;background:#f6f8fc;border:1px solid #dde5f0;border-top:none;border-radius:0 0 12px 12px;
-    padding:18px 20px}
+  /* 会議の狙い：小見出し＋白カード（レール共通の言語。黒バー廃止） */
+  .ghead{display:flex;flex-direction:column;gap:8px;cursor:default}
+  .ghead .gtitle{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.05em;color:var(--sub)}
+  .ghead .gprog{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+    font-size:14px;font-weight:700;color:var(--ink);line-height:1.6;box-shadow:0 1px 2px rgba(0,0,0,.04);overflow-wrap:anywhere}
+  .gbody{display:none;margin-top:10px}
   .gwrap.open .gbody{display:block}
-  .gwrap.open .ghead{border-radius:10px 10px 0 0}
-  .ggrid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px}
-  .gsection-title{flex:0 0 100%;font-size:15px;font-weight:900;color:#33507e;letter-spacing:.02em;margin:4px 0 -3px}.gsection-title:first-child{margin-top:0}
-  .gpanel{flex:0 1 400px;max-width:100%;background:#fff;border:1px solid #dce5ef;border-radius:12px;padding:14px 15px;box-shadow:0 2px 7px rgba(39,74,126,.05)}
-  .gpanel h4{margin:0 0 10px;font-size:15px;font-weight:900;color:#33507e;letter-spacing:.02em}
+  .ggrid{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}
+  .gsection-title{flex:0 0 100%;font-size:12px;font-weight:800;color:var(--sub);letter-spacing:.05em;margin:6px 0 -2px}.gsection-title:first-child{margin-top:0}
+  .gpanel{flex:0 1 400px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .gpanel h4{margin:0 0 10px;font-size:15px;font-weight:700;color:#33507e;letter-spacing:.02em}
   .gcard{border-top:1px solid #edf1f6;padding:10px 0}.gcard:first-of-type{border-top:0;padding-top:0}.gcard:last-child{padding-bottom:0}
   .gcard-title{font-size:16px;font-weight:850;color:var(--ink);line-height:1.45;margin-bottom:7px}
   .grow{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;font-size:14px;line-height:1.55;margin-top:5px;color:#52667c}
@@ -177,97 +307,101 @@
   .research-card{padding:0;overflow:hidden}.research-card>summary{cursor:pointer;list-style:none;padding:13px 14px;font-size:15px;font-weight:850;color:#294d82;line-height:1.45;display:flex;gap:8px;align-items:flex-start}.research-card>summary::-webkit-details-marker{display:none}.research-card>summary::before{content:"＋";flex:none;color:#587aa7}.research-card[open]>summary{border-bottom:1px solid #e8edf3}.research-card[open]>summary::before{content:"−"}.research-card>.research-digest{margin:10px 14px 5px}.research-card>.gsource{margin:7px 14px 12px}
   .gempty{font-size:15px;color:#687b92;background:#fff;border:1px dashed #ccd8e5;border-radius:10px;padding:11px 14px;width:fit-content;max-width:520px}
   /* 目標達成のための「次の質問」は折り畳まず、画面上に大きなバブルで常時表示 */
-  .nextwrap{display:none;margin:0 22px 14px;padding:18px 21px;background:linear-gradient(135deg,#eef4ff,#f8faff);
-    border:1px solid #bfd3f1;border-radius:16px;box-shadow:0 4px 14px rgba(39,74,126,.1)}
-  .nextwrap.show{display:block} body.slidemode .nextwrap{display:none}
-  .nexthead{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:900;color:#294d82;margin-bottom:13px;line-height:1.35}
-  .nexthead .nextsub{font-size:14px;font-weight:700;color:#6d7f96}
-  .nexthead .pulse{width:11px;height:11px;border-radius:50%;background:#4778bd;box-shadow:0 0 0 6px rgba(71,120,189,.13)}
-  .nextchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:13px;align-items:start;width:100%}
-  .nextitem{display:flex;flex-direction:column;align-items:flex-start;min-width:0;width:100%;max-width:none}
-  .nextempty{font-size:16px;color:#687b92;line-height:1.6}
-  .nextchip{font-family:inherit;text-align:left;border:1px solid #bfcfeb;background:#fff;color:var(--ink);border-radius:18px;
-    padding:14px 18px;cursor:pointer;font-size:18px;font-weight:800;line-height:1.5;width:100%;max-width:none;
-    display:flex;align-items:flex-start;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;
-    box-shadow:0 2px 7px rgba(39,74,126,.08);transition:.15s}
-  .nextchip::before{content:"→";display:inline-grid;place-items:center;flex:0 0 auto;width:21px;height:21px;margin-right:8px;border-radius:50%;
-    background:#335f9d;color:#fff;font-size:13px;vertical-align:1px}
-  .nextchip:hover,.nextchip.active{border-color:#335f9d;background:#f7faff;transform:translateY(-1px)}
-  .nextq,.nextintenttext{display:block;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
-  .nextinlineintent{display:none;width:calc(100% - 12px);max-width:none;margin:9px 0 0 12px;padding:11px 15px;background:#fff;border:1px solid #ccdaeb;border-left:4px solid #4778bd;border-radius:9px;color:#40536c;font-size:15px;line-height:1.65;box-shadow:0 3px 10px rgba(39,74,126,.07);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
-  .nextinlineintent.show{display:block}.nextinlineintent b{display:block;color:#294d82;font-size:12px;letter-spacing:.04em;margin-bottom:3px}
+  /* ===== レール統一言語：小さなグレー見出し＋フラットな白カード＋文字階層のみ ===== */
+  .nextwrap{display:none;margin:0}
+  .nextwrap.show{display:block}
+  .nexthead,.assist .ahead{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;
+    letter-spacing:.05em;color:var(--sub);margin-bottom:8px;line-height:1.3;white-space:nowrap}
+  .nextchips{display:flex;flex-direction:column;gap:8px;width:100%}
+  .nextempty{font-size:13px;color:var(--sub);line-height:1.6}
+  .railitem{background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:12px 14px;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .railitem .ri-q{font-size:14px;font-weight:700;color:var(--ink);line-height:1.5;
+    white-space:normal;overflow-wrap:anywhere}
+  .railitem .ri-body{font-size:13px;line-height:1.6;color:var(--sub);margin-top:4px;white-space:normal;overflow-wrap:anywhere}
+  .railitem .ri-check{margin-top:6px;font-size:12px;font-weight:600;color:#b0453c}
   /* 会議前の任意作戦チャット */
-  #sbg{align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.28)}
-  #sbg .strategy-modal{width:min(1120px,calc(100vw - 48px))!important;height:min(760px,calc(100dvh - 48px));max-height:none;margin:0;border-radius:22px;padding:0;overflow:hidden;display:flex;flex-direction:column;transform:translateY(12px) scale(.985);opacity:0;transition:transform .2s ease,opacity .2s ease}
-  #sbg.show .strategy-modal{transform:translateY(0) scale(1);opacity:1}
-  .copilot-head{display:flex;align-items:center;gap:11px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
-  .copilot-head h3{margin:0;flex:1}.copilot-head .x{border:0;background:#f0f0f2;border-radius:50%;width:34px;height:34px;font-size:22px;cursor:pointer}
+  /* 旧コパイロットモーダルのCSSは準備フェーズ統合で撤去（2026-07-16） */
   .prep-rec{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);padding:9px 13px;font:650 13px/1 inherit;cursor:pointer}.prep-rec .inline-icon{width:16px;height:16px}.prep-rec.on{border-color:#ff453a;background:#fff2f1;color:#c52b22}
-  .copilot-intro{margin:0;padding:10px 20px 0;color:var(--sub);font-size:13px;line-height:1.55}
-  .copilot-body{min-height:0;overflow:auto;padding:12px 20px 18px;display:flex;flex-direction:column;flex:1}
-  .copilot-bubble{position:fixed;right:22px;bottom:22px;z-index:34;display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:#111;color:#fff;padding:13px 18px;box-shadow:0 12px 32px rgba(0,0,0,.22);font:650 14px/1 inherit;cursor:pointer;transition:.18s}
-  .copilot-bubble:hover{transform:translateY(-2px);box-shadow:0 16px 38px rgba(0,0,0,.27)}.copilot-bubble .menu-icon{width:18px;height:18px}
   .prep-quick{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 10px}
   .prep-quick button{font-family:inherit;border:1px solid #cddcf0;background:#f7faff;color:#315580;border-radius:18px;
     padding:7px 11px;font-size:13px;font-weight:800;cursor:pointer}.prep-quick button:hover{background:#eaf2ff}
-  .strategy-workspace{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr);min-height:0;gap:14px;flex:1}
-  .strategy-chatcol{min-width:0;display:flex;flex-direction:column;min-height:330px;flex:1}.strategy-log{min-height:230px;flex:1;overflow:auto;background:#f5f7fb;border:1px solid var(--line);border-radius:12px;
+  /* チャットが主役：残り幅を全部チャットに、準備ボードは300〜400pxの脇役 */
+  .strategy-log{min-height:230px;overflow:auto;background:#f5f7fb;border:1px solid var(--line);border-radius:12px;
     padding:13px;display:flex;flex-direction:column;gap:10px}
-  .smsg{max-width:86%;padding:10px 13px;border-radius:14px;font-size:15px;line-height:1.65;white-space:pre-wrap}
+  .smsg{max-width:min(88%,880px);padding:10px 13px;border-radius:14px;font-size:15px;line-height:1.65;white-space:pre-wrap}
   .smsg.user{align-self:flex-end;background:#237bb0;color:#fff;border-bottom-right-radius:4px}
   .smsg.assistant{align-self:flex-start;background:#fff;color:var(--ink);border:1px solid #dce5ed;border-bottom-left-radius:4px}
-  .strategy-send{display:flex;gap:10px;margin-top:10px;align-items:stretch}.strategy-send textarea{flex:1;resize:none}
+  .strategy-send{display:flex;gap:10px;margin-top:10px;align-items:stretch}
+  .strategy-send textarea{flex:1;resize:none;font-family:inherit;font-size:15px;line-height:1.55;padding:10px 13px;
+    border:2px solid var(--line);border-radius:12px;outline:none;background:#fff;color:var(--ink);box-sizing:border-box}
+  .strategy-send textarea:focus{border-color:var(--blue)}
   .strategy-send .send-btn{flex:none;align-self:stretch;min-width:102px;border:0;border-radius:12px;background:linear-gradient(135deg,#1d6f9e,#15577f);
-    color:#fff;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(21,87,127,.24);transition:.15s}
+    color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(21,87,127,.24);transition:.15s}
   .strategy-send .send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(21,87,127,.3)}
   .strategy-send .send-btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
-  .prep-details{border:1px solid var(--line);border-radius:14px;background:#fff;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-  .prep-summary{flex:none;padding:14px 16px;border-bottom:1px solid var(--line);font-size:16px;font-weight:700}
-  .prep-board{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;background:#fbfcfe;padding:16px;scrollbar-gutter:stable}
-  .prep-board h4{margin:0 0 12px;color:#294d82;font-size:19px}.pbcard{background:#fff;border:1px solid #e0e7ee;
-    border-radius:14px;padding:14px 16px;margin-bottom:12px}.pbcard .pbt{font-size:14px;font-weight:750;color:#58708f;letter-spacing:.02em;margin-bottom:7px}
-  .pbcard .pbv{font-size:17px;line-height:1.7;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
-  .pbcard li{font-size:16px;padding:6px 0 6px 16px;border:none;line-height:1.65}.pbcard li::before{width:6px;height:6px;left:1px;top:16px;background:#6988b3}
+  /* ブリーフ内のAIセクション（着地点・仮説・聞くこと等）：レール共通カードと同じ静かな言語 */
+  .pbcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin:0}
+  .pbcard .pbt{font-size:11px;font-weight:800;color:var(--sub);letter-spacing:.05em;margin-bottom:5px}
+  .pbcard .pbv{font-size:13px;line-height:1.65;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
+  .pbcard li{font-size:13px;padding:4px 0 4px 13px;border:none;line-height:1.6;position:relative}
+  .pbcard li::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;left:1px;top:12px;background:#8ba3c0}
   .prep-save{display:flex;align-items:center;gap:9px;margin-top:8px;padding:9px 10px;background:#f3f7fb;border:1px solid #dbe5ed;border-radius:10px;min-width:0}
   .prep-save .save-icon{font-size:18px;flex:none}.prep-save .save-info{min-width:0;flex:1}.prep-save .save-info span{display:block;font-size:10px;font-weight:900;color:#71869b;letter-spacing:.05em}
   .prep-save .save-info strong{display:block;font-size:12px;color:#314c68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prep-save .save-info small{display:block;font-size:10px;color:#8595a5}
   .prep-save button{flex:none;border:1px solid #b9cbda;background:#fff;color:#315b7a;border-radius:8px;padding:6px 8px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
-  @media(max-width:820px){#sbg{padding:0}#sbg .strategy-modal{width:100vw!important;height:100dvh;border-radius:0}.strategy-workspace{grid-template-columns:1fr}.prep-details{max-height:220px}.copilot-bubble{right:14px;bottom:14px;padding:13px}.copilot-bubble span{display:none}}
   /* AIサポート（会話から疑問・要調査を検出して補足。議事＝青と区別するため黄系） */
-  .assist{margin:0 22px 8px; display:none; flex-direction:column; gap:9px}
+  .assist{margin:0; display:none; flex-direction:column; gap:9px}
   .assist.show{display:flex}
-  body.slidemode .assist{display:none}
-  .assist .ahead{font-size:14px; font-weight:800; color:#8a6d1a; display:flex; align-items:center; gap:7px}
-  .assist .ahead .sub{font-weight:600; color:var(--sub); font-size:13px}
-  /* 疑問はバブル（チップ）で横並び。タップで回答パネルが開く */
-  .achips{display:flex; flex-wrap:wrap; gap:8px}
-  .achip{font-family:inherit; font-size:15px; font-weight:700; border:1px solid #f0e4c0; background:#fffdf3;
-    color:#8a6d1a; border-radius:20px; padding:8px 15px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
-    transition:background .12s,color .12s,border-color .12s; max-width:min(560px,90vw)}
-  .achip .qt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .achip::before{content:"？"; font-size:12px; font-weight:800; width:18px; height:18px; border-radius:50%; flex:none;
-    background:#f0e4c0; color:#8a6d1a; display:inline-flex; align-items:center; justify-content:center}
-  .achip .caret{font-size:11px; opacity:.7; flex:none}
-  .achip:hover{background:#fff6df}
-  .achip.active{background:var(--amber); color:#fff; border-color:var(--amber)}
-  .achip.active::before{background:rgba(255,255,255,.32); color:#fff}
-  .apanel{display:none; background:#fffdf3; border:1px solid #f0e4c0; border-left:4px solid var(--amber);
-    border-radius:10px; padding:13px 16px}
-  .apanel.show{display:block}
-  .apanel .aq{font-weight:800; color:#8a6d1a; font-size:15px; margin-bottom:5px}
-  .apanel .aa{font-size:16px; color:var(--ink); line-height:1.6}
-  .apanel .acheck{margin-top:7px; font-size:13px; color:var(--red); font-weight:700}
-  .averify{margin-top:11px; border-top:1px dashed #f0e4c0; padding-top:11px}
-  .vbtn{font-family:inherit; font-size:14px; font-weight:800; border:1px solid var(--blue); background:#fff;
-    color:var(--blue-d); border-radius:8px; padding:7px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:6px}
-  .vbtn:hover{background:#eef7fd}
-  .vbtn:disabled{opacity:.55; cursor:default}
-  .vresult{margin-top:10px; font-size:15px; line-height:1.75; color:var(--ink)}
+  /* 質問支援とAIサポートは、リスト/どのマップでも共通表示する。 */
+  /* 支援レール化により、slidemode時も質問・AIサポートは通常レイアウトのままレールに表示される */
+  /* 疑問と回答は .railitem（レール共通カード）で常時全表示 */
+  .achips{display:flex;flex-direction:column;gap:8px;width:100%}
+  /* 解釈の確認：合ってる/違うの一問一答 */
+  .confirmwrap{display:none}
+  .confirmwrap.show{display:block}
+  .cflist{display:flex;flex-direction:column;gap:8px;width:100%}
+  .cf-actions{display:flex;gap:8px;margin-top:9px}
+  .cf-btn{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;
+    border-radius:999px;padding:6px 14px;cursor:pointer;color:var(--ink)}
+  .cf-btn.ok:hover{border-color:#1d9e63;color:#1d9e63;background:#f2faf6}
+  .cf-btn.no:hover{border-color:#b0453c;color:#b0453c;background:#fdf4f3}
+  .cf-fix{display:none;gap:8px;margin-top:9px}
+  .cf-fix.show{display:flex}
+  .cf-fix input{flex:1;min-width:0;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);
+    border-radius:10px;outline:none;background:#fff;color:var(--ink)}
+  .cf-fix input:focus{border-color:var(--blue)}
+  .cf-fix button{font-family:inherit;font-size:12px;font-weight:700;border:none;border-radius:10px;
+    padding:8px 14px;cursor:pointer;background:var(--blue);color:#fff;flex:none}
+  .averify{margin-top:9px;border-top:1px solid var(--line);padding-top:8px}
+  .vbtn{font-family:inherit;font-size:12px;font-weight:700;border:none;background:transparent;
+    color:var(--blue-d);padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .vbtn:hover{text-decoration:underline}
+  .vbtn:disabled{opacity:.5; cursor:default}
+  .vresult{margin-top:8px; font-size:13px; line-height:1.7; color:var(--ink)}
   .vresult:empty{margin:0}
-  .vresult .vhead{font-size:13px; font-weight:800; color:var(--blue-d); margin-bottom:5px; display:flex; align-items:center; gap:6px}
+  /* 補足・訂正：レール最下部に常駐（タブ非依存）。AIの勘違い・不足背景をその場で伝える入口 */
+  .railfix{margin-top:auto;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  .fixhead{font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.06em}
+  .fixquick{display:flex;gap:8px}
+  .fixquick button{font-family:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;
+    border-radius:999px;padding:6px 12px;cursor:pointer;color:var(--ink)}
+  .fixquick button:hover{border-color:var(--blue);color:var(--blue-d)}
+  .fixrow{display:flex;gap:8px}
+  .fixrow input{flex:1;min-width:0;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);
+    border-radius:10px;outline:none;background:#fff;color:var(--ink)}
+  .fixrow input:focus{border-color:var(--blue)}
+  .fixrow button{font-family:inherit;font-size:12px;font-weight:700;border:none;border-radius:10px;
+    padding:8px 14px;cursor:pointer;background:var(--blue);color:#fff;flex:none}
+  .fixrow button:disabled{opacity:.5;cursor:default}
+  .fixlog{display:flex;flex-direction:column;gap:4px}
+  .fixlog:empty{display:none}
+  .fixitem{font-size:12px;color:var(--sub);line-height:1.6;overflow-wrap:anywhere}
+  .fixitem::before{content:"✓ ";color:#1d9e63}
+  .vresult .vhead{font-size:12px; font-weight:800; color:var(--blue-d); margin-bottom:5px; display:flex; align-items:center; gap:6px}
   .vresult a{color:var(--blue-d); font-weight:700; word-break:break-all}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:0 22px 40px}
-  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:0}
+  @media(max-width:1360px){.grid{grid-template-columns:1fr}}
   .col{display:flex;flex-direction:column;gap:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
     padding:16px 18px; box-shadow:0 1px 4px rgba(20,60,90,.05)}
@@ -384,10 +518,13 @@
   @keyframes sp{to{transform:rotate(360deg)}}
 
   /* 表示切替セグメント */
-  .viewseg{display:inline-flex;background:rgba(255,255,255,.16);border-radius:10px;padding:3px;gap:2px}
-  .viewseg button{font-family:inherit;font-size:14px;font-weight:800;border:none;border-radius:8px;
-    padding:6px 13px;cursor:pointer;background:transparent;color:#fff}
-  .viewseg button.on{background:#fff;color:var(--blue-d)}
+  /* 表示モード5タブ（メイン上部）。レール内タブと同じセグメント言語 */
+  .viewtabs{display:flex;gap:4px;align-items:center;margin:0 0 14px;background:#e0e3e9;border-radius:12px;
+    padding:4px;width:max-content;max-width:100%;overflow-x:auto}
+  .viewtabs button{font-family:inherit;font-size:13px;font-weight:700;border:none;border-radius:9px;
+    padding:7px 14px;cursor:pointer;background:transparent;color:var(--sub);white-space:nowrap}
+  .viewtabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .viewtabs .vt-full{margin-left:8px;color:var(--blue-d)}
 
   /* ライブ・マインドマップ表示（data.jsonから直接生成。claude不要・4秒ごと更新）*/
   #deck{display:none;overflow-y:auto;scroll-snap-type:y mandatory;background:#fff}
@@ -403,13 +540,18 @@
     width:118px;height:29px;background:url("/brand-logo.png") no-repeat left center;background-size:contain;opacity:.9;z-index:2}
   #deck .ds>*{position:relative;z-index:1}
   #deck .ds.mindmap-slide{padding:0}
+  /* ライブのマップ表示は純粋なキャンバス：装飾ヘッダー・ロゴフッター・背景装飾を出さない */
+  #deck .ds.mindmap-slide::before,#deck .ds.mindmap-slide::after{display:none}
   #deck .pg{position:absolute;right:clamp(40px,6vw,96px);bottom:clamp(16px,2.4vh,26px);
     font-size:16px;color:var(--sub);font-weight:700;letter-spacing:.1em;z-index:2}
   #deck .dhead{padding:12px 24px 10px;border-bottom:2px solid var(--blue);background:rgba(255,255,255,.97);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   #deck .dkick{font-size:11px;color:var(--blue-d);font-weight:800;letter-spacing:.06em;margin:0}
   #deck .dhead h2{font-size:clamp(20px,2vw,28px);color:var(--ink);font-weight:800;margin:0;line-height:1.18}
-  #deck .dstage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(16px,2.6vh,28px);overflow:scroll;overscroll-behavior:contain;scrollbar-gutter:stable both-edges;touch-action:pan-x pan-y;cursor:grab}
-  #deck .dstage.dragging{cursor:grabbing;user-select:none} #deck .dstage::-webkit-scrollbar{width:13px;height:13px} #deck .dstage::-webkit-scrollbar-track{background:#eef3f7} #deck .dstage::-webkit-scrollbar-thumb{background:#9eb4c7;border:3px solid #eef3f7;border-radius:10px}
+  /* マップはスクロールバー非表示（ドラッグでパン・Ctrl/⌘＋ホイールまたはピンチでズーム） */
+  #deck .dstage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;gap:clamp(16px,2.6vh,28px);overflow:scroll;overscroll-behavior:contain;touch-action:pan-x pan-y;cursor:grab;scrollbar-width:none}
+  #deck .dstage::-webkit-scrollbar{display:none}
+  #deck .dstage.dragging{cursor:grabbing;user-select:none}
+  #deck .zoomwrap{transform-origin:0 0;width:100%;flex:none}
   #deck .dpanel{background:var(--bg);border:1px solid var(--line);border-radius:18px;
     padding:clamp(20px,2.8vh,30px) clamp(22px,2.6vw,34px)}
   #deck .dpanel ul{padding-left:4px}
@@ -446,14 +588,14 @@
   #deck .tree-branch{display:grid;grid-template-columns:max-content max-content;align-items:center;column-gap:72px;min-height:44px;overflow:visible}
   #deck .tree-leaves{display:flex;flex-direction:column;gap:clamp(7px,.9vh,11px);max-height:2200px;opacity:1;transform:translateX(0);overflow:visible;visibility:visible;transition:max-height .38s ease,opacity .24s ease,transform .38s cubic-bezier(.2,.8,.2,1),visibility 0s}
   #deck .tree-node{border-radius:10px;padding:clamp(9px,1.15vh,13px) clamp(14px,1.5vw,22px);color:#102238;font-size:clamp(14px,1.2vw,19px);line-height:1.3;box-shadow:0 1px 0 rgba(16,34,56,.04)}
-  #deck .tree-node.root{background:#b8bef8;font-size:clamp(17px,1.5vw,23px);font-weight:800;white-space:nowrap}
-  #deck .tree-node.branch{background:#b9d3ef;font-size:clamp(16px,1.35vw,21px);font-weight:800;white-space:nowrap}
+  #deck .tree-node.root{background:#b8bef8;font-size:clamp(17px,1.5vw,23px);font-weight:650;white-space:nowrap}
+  #deck .tree-node.branch{background:#b9d3ef;font-size:clamp(16px,1.35vw,21px);font-weight:650;white-space:nowrap}
   #deck .tree-node.leaf{background:#a9ded5;max-width:410px} #deck .tree-node.leaf.tone-1{background:#b6e1ce}
   #deck .tree-subbranch{display:grid;grid-template-columns:max-content max-content;align-items:center;column-gap:64px;overflow:visible;transition:grid-template-columns .38s cubic-bezier(.2,.8,.2,1),column-gap .38s ease}
-  #deck .tree-items{display:flex;flex-direction:column;gap:7px;max-width:2200px;opacity:1;visibility:visible;overflow:visible;transform:translateX(0);transition:max-width .38s cubic-bezier(.2,.8,.2,1),opacity .24s ease,transform .38s cubic-bezier(.2,.8,.2,1),visibility 0s} #deck .tree-node.group{background:#d9e7f5;font-weight:800;font-size:clamp(14px,1.1vw,17px);width:max-content;min-width:240px;max-width:none;white-space:nowrap}
+  #deck .tree-items{display:flex;flex-direction:column;gap:7px;max-width:2200px;opacity:1;visibility:visible;overflow:visible;transform:translateX(0);transition:max-width .38s cubic-bezier(.2,.8,.2,1),opacity .24s ease,transform .38s cubic-bezier(.2,.8,.2,1),visibility 0s} #deck .tree-node.group{background:#d9e7f5;font-weight:650;font-size:clamp(14px,1.1vw,17px);width:max-content;min-width:240px;max-width:none;white-space:nowrap}
   #deck .tree-node.item{background:#a9ded5;width:max-content;min-width:420px;max-width:560px;font-size:clamp(13px,1.05vw,17px)}
   #deck .tree-node.root,#deck .tree-node.branch,#deck .tree-node.group,#deck .tree-node.item{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;user-select:none}
-  #deck .tree-node.root::after,#deck .tree-node.branch::after,#deck .tree-node.group::after,#deck .tree-node.item::after{content:'›';flex:0 0 auto;font-weight:900;font-size:20px;line-height:1;opacity:.7;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+  #deck .tree-node.root::after,#deck .tree-node.branch::after,#deck .tree-node.group::after,#deck .tree-node.item::after{content:'›';flex:0 0 auto;font-weight:700;font-size:20px;line-height:1;opacity:.7;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
   #deck .tree-detailrow{display:grid;grid-template-columns:max-content 0fr;align-items:center;column-gap:0;transition:grid-template-columns .38s cubic-bezier(.2,.8,.2,1),column-gap .38s ease}
   #deck .tree-detailrow:has(.tree-detail.show){grid-template-columns:max-content max-content;column-gap:64px}
   #deck .tree-detail{display:block;background:#f7f4ff;border:0 solid #d8d0ef;width:640px;max-width:720px;max-height:0;padding:0;overflow:hidden;opacity:0;visibility:hidden;transform:translateX(-14px) scale(.97);font-size:clamp(13px,1vw,16px);line-height:1.5;transition:opacity .24s ease,transform .38s cubic-bezier(.2,.8,.2,1),max-height .38s ease,padding .38s ease,border-width .2s ease,visibility 0s .38s}
@@ -465,8 +607,7 @@
   #deck .tree-subbranch.group-collapsed .tree-items{max-width:0;opacity:0;visibility:hidden;overflow:hidden;pointer-events:none;transform:translateX(-12px);transition:max-width .3s ease,opacity .18s ease,transform .3s ease,visibility 0s .3s}
   #deck .tree-map:not(.root-collapsed) .tree-node.root::after,#deck .tree-branch:not(.collapsed)>.branch-head .tree-node.branch::after,#deck .tree-subbranch:not(.group-collapsed)>.tree-node.group::after{transform:rotate(90deg)}
   #deck .tree-map.root-collapsed .tree-branches{display:none}
-  #deck .maptools{display:flex;gap:7px;margin-top:10px} #deck .maptools button{border:1px solid var(--line);background:#fff;color:var(--sub);font:800 13px/1 inherit;border-radius:18px;padding:8px 13px;cursor:pointer}
-  #deck .maptools button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  /* デッキ内のマップ切替は5タブ（#viewtabs）に統合済み */
   #deck .relation-map,#deck .radial-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
   #deck .relation-map.on,#deck .radial-map.on{display:flex} #deck .tree-map.off{display:none}
   #deck .timeline-map{width:min(920px,calc(100% - 48px));min-width:620px;margin:0 auto;padding:42px 36px 80px;display:flex;flex-direction:column;gap:0}
@@ -497,40 +638,34 @@
     box-shadow:none;backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px);
   }
   body[data-theme] header .logo{display:block;width:152px;height:38px;background:url("/brand-logo.png") no-repeat left center;background-size:contain;padding:0;border-radius:0}
-  body[data-theme] header h1::before{content:none}
-  header h1{font-weight:650;letter-spacing:-.025em}
   .inline-icon{width:18px;height:18px;display:inline-block;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
   .gtitle,.ahead,.modal h3,.pickbtn,.modal .row button{display:flex;align-items:center;gap:7px}
-  .controls{gap:8px}.vsep{background:#d2d2d7;margin:5px 4px}
+  .controls{gap:8px}
   .btn,body[data-theme] .btn.rec{border:1px solid transparent;border-radius:999px;background:#e9e9ed;color:var(--ink);font-weight:600;box-shadow:none}
   .btn:hover,body[data-theme] .btn.rec:hover{background:#dedee3}
   body[data-theme] .btn.rec{background:var(--ink);color:#fff;padding-inline:18px}
   body[data-theme] .btn.rec.on{background:var(--red);color:#fff}
   .btn.ghost{background:transparent;border-color:#d2d2d7}.btn.regen{background:#e9e9ed;color:var(--ink)}
-  select.sess{background:#fff;color:var(--ink);border:1px solid #d2d2d7;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  select.sess option{color:var(--ink)}
-  .viewseg{background:#e9e9ed;border-radius:999px;padding:3px}.viewseg button{color:var(--sub);font-weight:600;border-radius:999px}
-  .viewseg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
-  .status{color:var(--sub)}.lastupdate.stale{color:var(--red)}.dot.idle{background:#a1a1a6}
+  .sessbtn{background:#fff;color:var(--ink);border:1px solid #d2d2d7;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .sessbtn:hover{background:#f5f5f7}
+  .sessmenu{border:1px solid rgba(0,0,0,.08);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.16)}
+  .viewtabs button{font-weight:600}
+  .statuspill{background:#e9e9ed;color:var(--ink);font-weight:650}.statuspill:hover{background:#e2e2e6}
+  .phasetabs{background:#e9e9ed}.phasetabs button{color:var(--sub);font-weight:600}
+  .phasetabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  .sp-dot{background:#a1a1a6}
+  .statuspop{border:1px solid rgba(0,0,0,.08);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.16)}
   .menu{border:1px solid rgba(0,0,0,.08);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.16);padding:8px}
   .menu-item{font-weight:600;border-radius:11px}.menu-item:hover{background:#f0f0f2;color:var(--ink)}
-  .menu-group summary{font-weight:650;color:var(--sub)}.menu-group summary:hover{background:#f5f5f7}
   .summary{background:#fff;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:20px;color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.03);padding:20px 24px}
-  .nextwrap{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  .nexthead,.nextinlineintent b{color:var(--ink)}.nexthead{font-weight:650;letter-spacing:-.02em}.nexthead .nextsub{font-weight:500}.nexthead .pulse{background:var(--blue);box-shadow:0 0 0 6px rgba(0,113,227,.1)}
-  .nextchip{border-color:#d2d2d7;border-radius:14px;box-shadow:none;font-weight:600}.nextchip::before{background:var(--blue)}
-  .nextchip:hover,.nextchip.active{border-color:var(--blue);background:#f7faff}
-  .nextinlineintent{border-color:#d2d2d7;border-left-color:var(--blue);box-shadow:none}
-  .ghead{background:var(--ink);border-radius:18px;box-shadow:none}.ghead .gtitle{font-weight:650;letter-spacing:-.01em}.ghead .gprog{font-weight:550}.gbody{background:#f0f0f2;border-color:var(--line);border-radius:0 0 18px 18px}
-  .gpanel,.card,.prep-board,.strategy-log,.pbcard{border-color:var(--line);box-shadow:none;border-radius:16px}
-  .gsection-title,.gpanel h4,.grow b,.research-card>summary,.prep-board h4{color:var(--ink)}
+  .ghead .gprog{font-weight:600}
+  .gpanel,.card,.strategy-log,.pbcard{border-color:var(--line);box-shadow:none;border-radius:16px}
+  .gsection-title,.gpanel h4,.grow b,.research-card>summary{color:var(--ink)}
   .gsection-title,.gpanel h4{font-weight:650;letter-spacing:-.01em}.gcard-title,.ginsight .quote{font-weight:600}
   .research-card>summary,.gresearch summary{font-weight:600;letter-spacing:-.01em}.research-digest li{font-weight:500}
   .gmore summary,.gsource>summary{font-weight:600}
   .grow b,.detail-status{background:#eeeef0;color:var(--ink)}
-  .assist .ahead,.apanel .aq{color:var(--ink)}.achip{border-color:#d2d2d7;background:#fff;color:var(--ink);box-shadow:none}
-  .achip::before{background:#e9e9ed;color:var(--ink)}.achip:hover{background:#f5f5f7}.achip.active{background:var(--ink);border-color:var(--ink)}
-  .apanel{background:#fff;border-color:var(--line);border-left-color:var(--ink);border-radius:16px}.averify{border-top-color:var(--line)}
+  .railitem .ri-q{font-weight:650}
   .grid{gap:16px}.card{padding:20px}.card h2{font-weight:650;border-bottom:1px solid var(--line)}
   .card h2 .tag,h2.d .tag,h2.t .tag,h2.o .tag{background:#e9e9ed;color:var(--ink)}
   li::before,.decisions li::before,.open li::before{background:#8e8e93}.who{background:#eeeef0;color:var(--ink);border-color:#d2d2d7}
@@ -547,9 +682,9 @@
   #deck .tree-lines path{stroke:#8e8e93}#deck .tree-node{box-shadow:none;border:1px solid #d2d2d7;color:var(--ink)}
   #deck .tree-node.root{background:var(--ink);color:#fff}#deck .tree-node.branch{background:#e8e8ed}
   #deck .tree-node.group{background:#f2f2f4}#deck .tree-node.item,#deck .tree-node.leaf,#deck .tree-node.leaf.tone-1,#deck .tree-node.leaf.tone-2,#deck .tree-node.leaf.tone-3,#deck .tree-node.leaf.tone-4{background:#fff}
-  #deck .tree-detail{background:#f5f5f7;border-color:#d2d2d7}#deck .maptools button.on{background:var(--ink);border-color:var(--ink)}
+  #deck .tree-detail{background:#f5f5f7;border-color:#d2d2d7}
   #pview .pband{background:var(--ink);border-radius:16px}#pview .psum{background:#f5f5f7;border-left-color:var(--ink)}
-  #pview .pkpi,#pview .pcard{border-color:#d2d2d7}#pview .pwho{background:#eeeef0;color:var(--ink);border-color:#d2d2d7}
+  #pview .pkpi{border-color:#d2d2d7}#pview .pwho{background:#eeeef0;color:var(--ink);border-color:#d2d2d7}
 </style>
 </head>
 <body>
@@ -576,47 +711,40 @@
 </svg>
 <header>
   <span class="logo" role="img" aria-label="LiveMTG"></span>
-  <span class="dot idle" id="dot"></span>
-  <h1>議事ライブ整理</h1>
+  <nav class="phasetabs" id="phasetabs">
+    <button data-ph="prep">準備</button>
+    <button data-ph="live" class="on">ライブ</button>
+    <button data-ph="review">振り返り</button>
+  </nav>
   <div class="controls">
-    <select class="sess" id="sess" title="会議を切り替え"></select>
-    <button class="btn rec" id="rec">録音開始</button>
-    <span class="vsep"></span>
-    <div class="viewseg" id="viewseg" title="ライブ表示の切替（リスト／マインドマップ）">
-      <button data-v="list" class="on">リスト</button>
-      <button data-v="slide">マインドマップ</button>
+    <div class="sesswrap">
+      <select class="sess" id="sess" title="会議を切り替え"></select>
+      <button class="sessbtn" id="sessbtn" type="button" title="会議を切り替え"><span id="sesslabel">—</span><span class="sess-caret">▾</span></button>
+      <div class="sessmenu" id="sessmenu"></div>
     </div>
+    <button class="btn rec" id="rec">録音開始</button>
     <div class="menuwrap">
       <button class="btn ghost" id="menubtn" title="操作メニュー">メニュー</button>
+      <!-- メニューは設定・会議管理のみ。成果物操作は振り返りタブ、目標設定は準備タブへ移設済み -->
       <div class="menu" id="menu">
-        <button class="menu-item" id="full"><svg class="menu-icon"><use href="#i-file"/></svg><span class="menu-label">会話全文を見る</span></button>
-        <button class="menu-item" id="goalbtn" title="目標と背景フォルダを設定すると、次の質問提案・相手の発言解析が常時更新される"><svg class="menu-icon"><use href="#i-target"/></svg><span class="menu-label">目標・ガイド設定</span></button>
-        <details class="menu-group">
-          <summary><svg class="menu-icon"><use href="#i-box"/></svg><span>会議後の成果物・振り返り</span></summary>
-          <div class="menu-items">
-            <button class="menu-item" id="final" title="会議後：保存した全音声を1本にまとめ、分断なしで高精度に議事録を作り直す"><svg class="menu-icon"><use href="#i-clipboard"/></svg><span class="menu-label">高精度に清書</span></button>
-            <button class="menu-item" id="slides"><svg class="menu-icon"><use href="#i-map"/></svg><span class="menu-label">マインドマップ化</span></button>
-            <button class="menu-item" id="regen" style="display:none"><svg class="menu-icon"><use href="#i-refresh"/></svg><span class="menu-label">マインドマップを作り直す</span></button>
-            <button class="menu-item" id="deckbtn" title="この会議を経営者向けスライドデッキに変換"><svg class="menu-icon"><use href="#i-screen"/></svg><span class="menu-label">スライド化</span></button>
-            <button class="menu-item" id="deckregen" style="display:none"><svg class="menu-icon"><use href="#i-refresh"/></svg><span class="menu-label">スライドを作り直す</span></button>
-            <button class="menu-item" id="pdf" title="いまのリストをPDFに保存"><svg class="menu-icon"><use href="#i-print"/></svg><span class="menu-label">1ページPDF保存</span></button>
-            <button class="menu-item" id="learnbtn" title="この会議からの学びを用途別プレイブックに蓄積"><svg class="menu-icon"><use href="#i-book"/></svg><span class="menu-label">学びを抽出</span></button>
-          </div>
-        </details>
-        <details class="menu-group">
-          <summary><svg class="menu-icon"><use href="#i-settings"/></svg><span>設定・会議管理</span></summary>
-          <div class="menu-items">
-            <button class="menu-item" id="new"><svg class="menu-icon"><use href="#i-plus"/></svg><span class="menu-label">新規会議</span></button>
-            <button class="menu-item" id="profbtn" title="あなたが誰かをAIに教える"><svg class="menu-icon"><use href="#i-user"/></svg><span class="menu-label">プロフィール</span></button>
-            <button class="menu-item" id="runtimebtn" title="AI・文字起こし・音声変換の接続状態を確認"><svg class="menu-icon"><use href="#i-settings"/></svg><span class="menu-label">AI・音声の接続診断</span></button>
-            <button class="menu-item" id="language"><svg class="menu-icon"><use href="#i-globe"/></svg><span class="menu-label">言語：日本語</span></button>
-            <button class="menu-item danger" id="delete" title="表示中の会議のデータと同期コピーを削除"><svg class="menu-icon"><use href="#i-trash"/></svg><span class="menu-label">この会議を削除</span></button>
-          </div>
-        </details>
+        <button class="menu-item" id="new"><svg class="menu-icon"><use href="#i-plus"/></svg><span class="menu-label">新規会議</span></button>
+        <button class="menu-item" id="profbtn" title="あなたが誰かをAIに教える"><svg class="menu-icon"><use href="#i-user"/></svg><span class="menu-label">プロフィール</span></button>
+        <button class="menu-item" id="runtimebtn" title="AI・文字起こし・音声変換の接続状態を確認"><svg class="menu-icon"><use href="#i-settings"/></svg><span class="menu-label">AI・音声の接続診断</span></button>
+        <button class="menu-item" id="language"><svg class="menu-icon"><use href="#i-globe"/></svg><span class="menu-label">言語：日本語</span></button>
+        <div class="menu-sep"></div>
+        <button class="menu-item danger" id="delete" title="表示中の会議のデータと同期コピーを削除"><svg class="menu-icon"><use href="#i-trash"/></svg><span class="menu-label">この会議を削除</span></button>
+      </div>
+      <!-- 成果物アクションの実体（振り返りカードの data-proxy が代理クリックする。表示はしない） -->
+      <div id="hiddenactions" style="display:none" aria-hidden="true">
+        <button id="final"></button>
+        <button id="slides"></button><button id="regen"></button>
+        <button id="deckbtn"></button><button id="deckregen"></button>
+        <button id="pdf"></button><button id="learnbtn"></button>
       </div>
     </div>
-    <div class="status" id="statuscluster">
-      <span class="status-recording" id="st">接続中</span><span class="lastupdate" id="lastupdate">更新 --:--</span>
+    <div class="pillwrap">
+      <button class="statuspill" id="statuspill" type="button" title="状態の詳細"><span class="sp-dot"></span><span class="sp-label" id="splabel">接続中…</span></button>
+      <div class="statuspop" id="statuspop"></div>
     </div>
   </div>
 </header>
@@ -629,28 +757,21 @@
 <div class="whobar" id="who"></div>
 <div class="live-speakers" id="livespeakers"></div>
 
+<!-- メイン表示＋ライブ支援レールの2カラム。レールはどの表示モードでも同じ内容を保つ -->
+<div class="workspace" id="workspace">
+<main class="mainpane">
+
+<!-- 表示モード5タブ（同列）＋会話全文。旧「リスト/マインドマップ」二段構造を廃止 -->
+<div class="viewtabs" id="viewtabs">
+  <button data-vt="list" class="on">リスト</button>
+  <button data-vt="tree">論点マップ</button>
+  <button data-vt="radial">放射マップ</button>
+  <button data-vt="relation">会話の関係</button>
+  <button data-vt="timeline">時系列</button>
+  <button class="vt-full" id="full" title="会話全文を見る">全文</button>
+</div>
+
 <div class="summary" id="summary">音声を待っています…</div>
-
-<div class="nextwrap" id="nextwrap">
-  <div class="nexthead"><span class="pulse"></span>今、次にするべき質問 <span class="nextsub">タップで意図を表示</span></div>
-  <div class="nextchips" id="nextchips"></div>
-</div>
-
-<!-- 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
-<div class="gwrap" id="gwrap">
-  <div class="ghead" id="ghead">
-    <span class="gtitle"><svg class="inline-icon"><use href="#i-target"/></svg>ガイド</span>
-    <span class="gprog" id="gprog">—</span>
-    <span class="gcaret" id="gcaret">▾</span>
-  </div>
-  <div class="gbody" id="gbody"></div>
-</div>
-
-<div class="assist" id="assist">
-  <div class="ahead"><svg class="inline-icon"><use href="#i-bulb"/></svg>AIサポート <span class="sub">タップで回答（参考情報・要確認）</span></div>
-  <div class="achips" id="achips"></div>
-  <div class="apanel" id="apanel"></div>
-</div>
 
 <div class="grid">
   <div class="col">
@@ -666,6 +787,128 @@
 
 <div id="deck"></div>
 
+</main>
+<aside class="siderail" id="siderail">
+<div class="railinner">
+
+<!-- レールは2タブ：質問・参考回答（会話中に即使う）／会議の狙い（目標への進捗を俯瞰） -->
+<div class="railtabs" id="railtabs">
+  <button data-rt="ask" class="on">質問・参考回答<span class="rdot"></span></button>
+  <button data-rt="goal">会議の狙い<span class="rdot"></span></button>
+</div>
+
+<div class="railpane on" id="rail-ask">
+  <div class="nextwrap" id="nextwrap">
+    <div class="nexthead">次に聞く質問</div>
+    <div class="nextchips" id="nextchips"></div>
+  </div>
+  <div class="assist" id="assist">
+    <div class="ahead">疑問への参考回答</div>
+    <div class="achips" id="achips"></div>
+  </div>
+  <!-- AIが自信のない解釈を一問一答で差し出し、合ってる/違うで即修正する（清書前確認のライブ版） -->
+  <div class="confirmwrap" id="confirmwrap">
+    <div class="ahead">解釈の確認</div>
+    <div class="cflist" id="cflist"></div>
+  </div>
+  <div class="railhint">録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。</div>
+</div>
+
+<div class="railpane" id="rail-goal">
+  <!-- 商談ガイド（畳んだバー＋展開パネル。困った時に開く） -->
+  <div class="gwrap open" id="gwrap">
+    <div class="ghead" id="ghead">
+      <span class="gtitle">会議の狙い</span>
+      <span class="gprog" id="gprog">—</span>
+    </div>
+    <div class="gbody" id="gbody"></div>
+  </div>
+  <div class="railhint">「準備」タブで目標を設定すると、狙いへの進捗・相手の回答の読み・調査結果がここに表示されます。</div>
+</div>
+
+<!-- 補足・訂正：旧コパイロットバブルのライブ版（§5.3-4）。どちらのタブからも使えるようレール最下部に常駐。
+     送った内容は /api/live-notes 経由で次の解析に最優先で反映される -->
+<div class="railfix" id="railfix">
+  <div class="fixhead">補足・訂正</div>
+  <div class="fixquick">
+    <button data-fix="訂正：" data-fix-en="Correction: ">勘違いを訂正</button>
+    <button data-fix="補足：" data-fix-en="Context: ">背景を補足</button>
+  </div>
+  <div class="fixrow">
+    <input id="fixinput" placeholder="例：相手はA社ではなくB社。次の解析から最優先で反映">
+    <button id="fixsend">送信</button>
+  </div>
+  <div class="fixlog" id="fixlog"></div>
+</div>
+
+</div>
+</aside>
+</div>
+<button class="railtoggle" id="railtoggle" title="支援レールを開閉">⟩</button>
+
+<!-- 準備フェーズ：ライブと同じ構造言語。左＝ページ地の上のチャット作業面、右＝端まで伸びるブリーフのサイドバー面 -->
+<section class="phaseview" id="prepview">
+  <div class="prep-layout">
+    <main class="prep-main">
+      <div class="chathead">AIと準備する <button class="prep-rec" id="preprec"><svg class="inline-icon"><use href="#i-mic"/></svg><span>準備会話を録音</span></button></div>
+      <div class="strategy-log" id="slog"></div>
+      <div class="prep-quick">
+        <button data-prep="今回の会議の着地点を整理したい。">着地点</button>
+        <button data-prep="相手について分かっていることを共有する。">相手情報</button>
+        <button data-prep="この前提は間違い。正しい情報に訂正したい。">勘違いを訂正</button>
+        <button data-prep="このURLを調べて、会議に必要な要点を反映してほしい：">URLを調べる</button>
+        <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">質問を作る</button>
+      </div>
+      <div class="strategy-send">
+        <textarea id="sinput" rows="2" placeholder="例：相手はA社ではなくB社。このURLも調べて"></textarea>
+        <button class="send-btn" id="ssend">送信 →</button>
+      </div>
+    </main>
+    <aside class="prep-brief">
+      <div class="briefinner">
+      <div class="bhead">会議ブリーフ <span class="pc-status" id="prepGoalStatus">—</span></div>
+      <label class="flabel">この会議の目標</label>
+      <textarea id="ggoal" rows="2" placeholder="例：見積もりAI化の導入合意を取る。予算感と決裁者を聞き出す。"></textarea>
+      <div class="brief-row">
+        <div><label class="flabel">用途</label>
+          <div class="combo"><input id="gtype" placeholder="商談 / 1on1 …" autocomplete="off"><button type="button" class="combo-caret" tabindex="-1">▾</button><div class="combo-menu"></div></div>
+        </div>
+        <div><label class="flabel">あなたの立場</label>
+          <div class="combo"><input id="gstance" placeholder="提案する側 …" autocomplete="off"><button type="button" class="combo-caret" tabindex="-1">▾</button><div class="combo-menu"></div></div>
+        </div>
+      </div>
+      <label class="flabel">背景フォルダ</label>
+      <div class="pickrow">
+        <input id="gproj" list="projdl" placeholder="選択または過去の候補・パス入力" autocomplete="off">
+        <button type="button" class="pickbtn" id="gpick"><svg class="inline-icon"><use href="#i-folder"/></svg>選択</button>
+      </div>
+      <div class="gprojhint" id="gprojhint"></div>
+      <datalist id="projdl"></datalist>
+      <label class="flabel">事前メモの取り込み — Claude Code等で残した背景メモをブリーフへ反映</label>
+      <div class="brief-import">
+        <button class="linklike" id="importfile">ファイルを取り込む</button>
+        <button class="linklike" id="importdir">フォルダごと取り込む</button>
+      </div>
+      <div class="brief-board" id="sboard"></div>
+      <div class="prep-save" id="spath"></div>
+      <button class="linklike" data-proxy="runtimebtn">マイク・AIの接続診断を開く</button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- 振り返りフェーズ：状態連動カード。生成中の進捗とキャンセルは共通トースト（スピナー＋キャンセル）が担う -->
+<section class="phaseview" id="reviewview">
+  <h2>会議の振り返り・成果物</h2>
+  <p class="pv-sub">推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 成果物の生成 → 学びと次の一手。生成中は画面下のトーストから中断できます。</p>
+  <div class="phasecards">
+    <div class="phasecard"><h3>高精度清書 <span class="pc-status" id="rvst-final">—</span></h3><p>保存した全音声をまとめて、分断のない議事録を作り直します。開始前に話者名と固有名詞を確認します。</p><button class="pcbtn" id="rvbtn-final" data-proxy="final">清書する</button></div>
+    <div class="phasecard"><h3>放射マップ（成果物） <span class="pc-status" id="rvst-map">—</span></h3><p>会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。</p><button class="pcbtn" id="rvbtn-map" data-proxy="slides">作成する</button><button class="pcbtn sub" id="rvbtn-map-regen" data-proxy="regen" style="display:none">作り直す</button></div>
+    <div class="phasecard"><h3>議事録PDF</h3><p>要約・議題・決定・ToDo・論点・未解決を項目ごとにページを分け、省略なしの全文で書き出します。</p><button class="pcbtn" data-proxy="pdf">PDF保存</button></div>
+    <div class="phasecard"><h3>学びと次の一手</h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。プレイブックへの蓄積は任意。</p><button class="pcbtn" data-proxy="learnbtn">レポートを作る</button></div>
+  </div>
+</section>
+
 
 <script src="/mermaid.min.js"></script>
 
@@ -680,28 +923,8 @@
 <div class="modal-bg" id="mbg">
   <div class="modal">
     <h3>新しい会議を始める</h3>
-    <p>いま録音中なら停止し、新しい会議として整理を始めます。</p>
+    <p>いま録音中なら停止し、新しい会議として整理を始めます。用途・目標・背景フォルダは作成後の「準備」で設定できます。</p>
     <input id="mtitle" placeholder="会議名（例：DX部 定例 7/9）" autocomplete="off">
-    <label class="flabel">背景フォルダ（任意）— 指定するとAIが中の資料を読んで文脈に使う</label>
-    <div class="pickrow">
-      <input id="mproj" list="projdl" placeholder="選択または過去の候補・パス入力" autocomplete="off">
-      <button type="button" class="pickbtn" id="mpick"><svg class="inline-icon"><use href="#i-folder"/></svg>選択</button>
-    </div>
-    <datalist id="projdl"></datalist>
-    <label class="flabel">用途（任意）— 選ぶとその用途のプレイブック（蓄積ノウハウ）をAIが参照</label>
-    <input id="mtype" list="mtypedl" placeholder="商談 / 採用面接 / ヒアリング / 社内定例 …（自由入力可）" autocomplete="off">
-    <datalist id="mtypedl">
-      <option value="商談"><option value="採用面接"><option value="ヒアリング">
-      <option value="社内定例"><option value="1on1"><option value="経営会議">
-    </datalist>
-    <label class="flabel">この会議でのあなたの立場（任意）— ガイド・議事の視点がこの立場になる</label>
-    <input id="mstance" list="stancedl" placeholder="提案する側 / 面接官 / ヒアリングする側 …（自由入力可）" autocomplete="off">
-    <datalist id="stancedl">
-      <option value="提案する側"><option value="ヒアリングする側"><option value="面接官">
-      <option value="司会・進行"><option value="報告する側"><option value="参加者">
-    </datalist>
-    <label class="flabel">目標（任意）— 設定すると商談ガイド（質問提案・発言解析）がON</label>
-    <textarea id="mgoal" rows="2" placeholder="例：見積もりAI導入の合意を取る。予算感と決裁者を聞き出す。"></textarea>
     <div class="row">
       <button class="cancel" id="mcancel">キャンセル</button>
       <button class="ok" id="mok">開始</button>
@@ -725,57 +948,8 @@
   </div>
 </div>
 
-<!-- 商談ガイド設定モーダル -->
-<div class="modal-bg" id="gbg">
-  <div class="modal">
-    <h3><svg class="inline-icon"><use href="#i-target"/></svg>商談ガイド設定</h3>
-    <p>目標を設定すると、会話の流れと背景資料を踏まえた<b>次の質問の提案（意図つき）・相手の発言解析</b>が常時更新されます。必要な資料はAIが自動で調べに行きます。</p>
-    <label class="flabel">用途 — その用途のプレイブック（蓄積ノウハウ）を参照</label>
-    <input id="gtype" list="mtypedl" placeholder="商談 / 採用面接 / ヒアリング …" autocomplete="off">
-    <label class="flabel">この会議でのあなたの立場</label>
-    <input id="gstance" list="stancedl" placeholder="提案する側 / 面接官 / ヒアリングする側 …（自由入力可）" autocomplete="off">
-    <label class="flabel">この会議の目標</label>
-    <textarea id="ggoal" rows="3" placeholder="例：見積もりAI化の導入合意を取る。予算感と決裁者を聞き出す。"></textarea>
-    <label class="flabel">背景フォルダ</label>
-    <div class="pickrow">
-      <input id="gproj" list="projdl" placeholder="選択または過去の候補・パス入力" autocomplete="off">
-      <button type="button" class="pickbtn" id="gpick"><svg class="inline-icon"><use href="#i-folder"/></svg>選択</button>
-    </div>
-    <div class="row">
-      <button class="cancel" id="gcancel">キャンセル</button>
-      <button class="ok" id="gok">保存</button>
-    </div>
-  </div>
-</div>
+<!-- 旧・商談ガイド設定モーダル（#gbg）と会議コパイロットのバブル・モーダルは準備フェーズ画面へ統合済み（2026-07-16） -->
 
-<button class="copilot-bubble" id="copilotbubble" title="事前準備・補足・訂正をAIと話す"><svg class="menu-icon"><use href="#i-chat"/></svg><span>会議コパイロット</span></button>
-
-<!-- 会議前からライブ中まで続く会議コパイロット -->
-<div class="modal-bg" id="sbg">
-  <div class="modal strategy-modal">
-    <div class="copilot-head"><svg class="inline-icon"><use href="#i-chat"/></svg><h3>会議コパイロット</h3><button class="prep-rec" id="preprec"><svg class="inline-icon"><use href="#i-mic"/></svg><span>準備会話を録音</span></button><button class="x" id="sclose" aria-label="閉じる">×</button></div>
-    <p class="copilot-intro">事前準備も、会議中の訂正もここへ。URLを送れば調べ、選択中の背景フォルダとライブ解析へ反映します。</p>
-    <div class="copilot-body">
-      <div class="prep-quick">
-        <button data-prep="今回の会議の着地点を整理したい。">着地点</button>
-        <button data-prep="相手について分かっていることを共有する。">相手情報</button>
-        <button data-prep="この前提は間違い。正しい情報に訂正したい。">勘違いを訂正</button>
-        <button data-prep="このURLを調べて、会議に必要な要点を反映してほしい：">URLを調べる</button>
-        <button data-prep="目標達成のために会議で聞くべき質問を整理してほしい。">質問を作る</button>
-      </div>
-      <div class="strategy-workspace">
-        <div class="strategy-chatcol">
-          <div class="strategy-log" id="slog"></div>
-          <div class="strategy-send">
-            <textarea id="sinput" rows="2" placeholder="例：相手はA社ではなくB社。このURLも調べて"></textarea>
-            <button class="send-btn" id="ssend">送信 →</button>
-          </div>
-        </div>
-        <section class="prep-details"><div class="prep-summary">準備ボード・反映先</div><div class="prep-board" id="sboard"></div><div class="prep-save" id="spath"></div></section>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- プロフィール（私は誰か。一問一答で答えるだけ・全会議共通でAIに注入） -->
 <div class="modal-bg" id="profbg">
@@ -796,15 +970,18 @@
   </div>
 </div>
 
-<!-- 学びの確認モーダル（承認制。編集してから追記できる） -->
+<!-- 学びモーダル：主役は依頼主個人への気づきレポート。プレイブック蓄積は任意の脇役 -->
 <div class="modal-bg" id="lbg">
   <div class="modal fmodal">
-    <h3><svg class="inline-icon"><use href="#i-book"/></svg>この会議からの学び</h3>
-    <p>AIが抽出した学びです。<b>編集して「プレイブックに追記」</b>を押すと、用途別プレイブックに蓄積され、次回以降のガイドが賢くなります。不要な行は消してください。</p>
-    <textarea id="llearn" rows="12" style="font-size:14px;line-height:1.7"></textarea>
+    <h3><svg class="inline-icon"><use href="#i-book"/></svg>あなたの学びと次の一手</h3>
+    <div class="learn-insights" id="linsights"></div>
+    <div id="lpbsec">
+      <label class="flabel">プレイブックへの追記案（任意）— 一般化した学びを蓄積すると、次回の同じ用途の会議でAIのガイドが賢くなります。編集可</label>
+      <textarea id="llearn" rows="5" style="font-size:13px;line-height:1.7"></textarea>
+    </div>
     <div class="row">
-      <button class="cancel" id="lcancel">破棄</button>
-      <button class="ok" id="lok">プレイブックに追記</button>
+      <button class="cancel" id="lcancel">閉じる</button>
+      <button class="ok" id="lok">プレイブックに追記して閉じる</button>
     </div>
   </div>
 </div>
@@ -850,6 +1027,53 @@ const tr=(ja,en)=>uiLanguage==='en'?en:ja;
 const EN_TEXT=new Map([
   ['録音開始','Start recording'],['録音停止','Stop recording'],['メニュー','Menu'],
   ['ガイド','Guide'],['AIサポート','AI support'],['選択','Choose'],['質問を作り直す','Regenerate questions'],
+  ['次に聞く質問','Next questions to ask'],['会議の狙い','Goal & progress'],['疑問への参考回答','Reference answers'],
+  ['会話中の疑問をAIが調査・要確認','AI researches questions raised in the conversation — verify before use'],
+  ['質問・参考回答','Questions & answers'],['論点マップ','Topic map'],['放射マップ','Radial map'],
+  ['会話の関係','Relationships'],['時系列','Timeline'],['全文','Transcript'],
+  ['準備','Prep'],['ライブ','Live'],['振り返り','Review'],
+  ['会議の準備','Meeting preparation'],
+  ['目標と背景を設定し、AIと事前に整理してから録音を始めると、ライブ中の質問提案・解析の質が上がります。','Set a goal and context, organize with AI beforehand, and live suggestions get sharper.'],
+  ['目標・背景の設定','Goal & context'],
+  ['用途・立場・目標・背景フォルダを設定すると、次に聞く質問と発言解析が常時更新されます。','Set the type, role, goal, and context folder to keep questions and analysis updated.'],
+  ['設定を開く','Open settings'],['事前準備チャット','Prep chat'],
+  ['相手情報の共有・URL調査・質問の整理をAIと行えます。内容はライブ解析へ反映されます。','Share counterpart info, research URLs, and draft questions with AI. Results feed the live analysis.'],
+  ['コパイロットを開く','Open copilot'],['マイク・AIの動作確認','Mic & AI check'],
+  ['文字起こし・AI応答・音声変換の接続状態を確認できます。','Check transcription, AI, and audio conversion status.'],
+  ['接続診断を開く','Open diagnostics'],['準備ができたら','When ready'],
+  ['ヘッダーの「録音開始」で会議を開始します。画面は自動でライブに切り替わります。','Press "Start recording" in the header. The screen switches to Live automatically.'],
+  ['会議の振り返り・成果物','Review & outputs'],
+  ['推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 成果物の生成 → 学びの抽出。','Suggested order: polished minutes (with speaker check) → outputs → learnings.'],
+  ['保存した全音声をまとめて、分断のない議事録を作り直します。開始前に話者名と固有名詞を確認します。','Rebuild seamless minutes from all saved audio. Speaker names and terms are confirmed first.'],
+  ['清書する','Create minutes'],['マインドマップ（成果物）','Mind map (output)'],
+  ['会議全体を1画面のマインドマップに変換します。','Turn the whole meeting into a one-page mind map.'],
+  ['作成・開く','Create / open'],['経営者向けのスライドデッキに変換します。','Turn it into an executive slide deck.'],
+  ['いまのリスト表示を1枚のPDFに保存します。','Save the current list view as a one-page PDF.'],
+  ['PDF保存','Save PDF'],['この会議の学びを用途別プレイブックに蓄積し、次回のガイドを賢くします。','Store learnings in the playbook to sharpen future guidance.'],
+  ['抽出する','Extract'],['スライド','Slides'],['作り直す','Regenerate'],['作成する','Create'],
+  ['用途 — その用途のプレイブック（蓄積ノウハウ）を参照','Meeting type — uses the matching playbook'],
+  ['この会議の目標 — 設定すると質問提案・発言解析がON','Goal — enables question suggestions and analysis'],
+  ['背景フォルダ — AIが中の資料を読んで文脈に使う','Context folder — AI reads its files for context'],
+  ['保存する','Save'],['会議ブリーフ','Meeting brief'],['AIと準備する','Prepare with AI'],
+  ['用途','Type'],['あなたの立場','Your role'],['マイク・AIの接続診断を開く','Open mic & AI diagnostics'],
+  ['事前メモの取り込み — Claude Code等で残した背景メモをブリーフへ反映','Import notes — feed memos from Claude Code etc. into the brief'],
+  ['ファイルを取り込む','Import a file'],['フォルダごと取り込む','Import a folder'],
+  ['解釈の確認','Check my understanding'],
+  ['放射マップ（成果物）','Radial map (output)'],
+  ['会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。','Turn the whole meeting into a radial map (switchable to tree, relationships, and timeline).'],
+  ['議事録PDF','Minutes PDF'],
+  ['あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をその場で表示します。プレイブックへの蓄積は任意。','Shows insights, missed angles, and lessons for you based on your role and goal. Playbook storage is optional.'],
+  ['プレイブックへの追記案（任意）— 一般化した学びを蓄積すると、次回の同じ用途の会議でAIのガイドが賢くなります。編集可','Playbook additions (optional) — generalized learnings that sharpen future guidance. Editable.'],
+  ['プレイブックに追記して閉じる','Add to playbook & close'],['閉じる','Close'],
+  ['学びと次の一手','Learnings & next moves'],['レポートを作る','Create report'],
+  ['あなたの学びと次の一手','Your learnings & next moves'],
+  ['あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。プレイブックへの蓄積は任意。','Summarizes insights, missed angles, and lessons for you based on your role and goal. Playbook storage is optional.'],
+  ['推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 成果物の生成 → 学びと次の一手。生成中は画面下のトーストから中断できます。','Suggested order: polished minutes (with speaker check), outputs, then learnings & next moves. Cancel from the toast while generating.'],
+  ['要約・議題・決定・ToDo・論点・未解決を項目ごとにページを分け、省略なしの全文で書き出します。','Exports summary, agenda, decisions, todos, points, and open items as full-text pages, one section per page.'],
+  ['頭にあることをそのまま話してください。URLを送れば調べ、内容は背景フォルダとライブ解析へ反映されます。','Say whatever is on your mind. URLs get researched; everything feeds the context folder and live analysis.'],
+  ['いま録音中なら停止し、新しい会議として整理を始めます。用途・目標・背景フォルダは作成後の「準備」で設定できます。','If recording, it stops and a new meeting begins. Set the type, goal, and context folder in Prep afterwards.'],
+  ['録音が進むと、次に聞く質問と、会話に出た疑問への参考回答がここに表示されます。','Suggested questions and reference answers will appear here as the conversation progresses.'],
+  ['目標を設定すると、狙いへの進捗・相手の回答の読み・調査結果がここに表示されます（メニュー → 目標・ガイド設定）。','Set a goal to see progress, answer analysis, and research here (Menu → Goal & guide settings).'],
   ['商談ガイド設定','Meeting guide settings'],['着地点','Outcome'],['相手情報','Counterpart'],
   ['仮説を広げる','Expand hypotheses'],['懸念を洗う','Explore risks'],['質問を作る','Draft questions'],
   ['プロフィール（私は誰か）','Profile'],['この会議からの学び','Learnings from this meeting'],
@@ -860,7 +1084,7 @@ const EN_TEXT=new Map([
   ['高精度に清書','Create polished minutes'],['マインドマップ化','Create mind map'],['マインドマップを作り直す','Regenerate mind map'],
   ['スライド化','Create slides'],['スライドを作り直す','Regenerate slides'],['1ページPDF保存','Save one-page PDF'],['学びを抽出','Extract learnings'],
   ['設定・会議管理','Settings & meetings'],['新規会議','New meeting'],['プロフィール','Profile'],['言語：日本語','Language: Japanese'],
-  ['デザイン：ブルー','Design: Blue'],['この会議を削除','Delete this meeting'],['接続中…','Connecting…'],['最終解析：確認中…','Last analysis: checking…'],
+  ['デザイン：ブルー','Design: Blue'],['この会議を削除','Delete this meeting'],['接続中…','Connecting…'],['最終解析：確認中…','Last analysis: checking…'],['状態の詳細','Status details'],
   ['音声を待っています…','Waiting for audio…'],['今、次にするべき質問','Best next questions'],['タップで意図を表示','Tap to show intent'],
   ['タップで回答（参考情報・要確認）','Tap for an answer'],
   ['議題','Agenda'],['論点・意見','Discussion points'],['決定事項','Decisions'],['未解決・要確認','Open questions'],['会話全文','Full transcript'],
@@ -873,6 +1097,7 @@ const EN_TEXT=new Map([
   ['この内容で清書','Create polished minutes'],['この会議の目標','Meeting goal'],['背景フォルダ','Context folder'],
   ['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
   ['補足・訂正','Context / correction'],['反映','Apply'],['AIと確認','Ask AI'],
+  ['勘違いを訂正','Correct AI'],['背景を補足','Add context'],['送信','Send'],
   ['Q1. お名前は？（呼ばれ方も）','Q1. What is your name?'],['Q2. 会社・役職は？','Q2. Company and role?'],
   ['Q3. 補足があれば（よく出る関係者など・任意）','Q3. Anything else? (optional)'],
   ['破棄','Discard'],['プレイブックに追記','Add to playbook'],['録音を開始','Start recording'],['使用するマイク','Microphone'],
@@ -897,6 +1122,7 @@ const EN_ATTR=new Map([
   ['例：山田 太郎（山田さん）','Example: Alex Smith'],['例：〇〇株式会社 AX支援担当','Example: Acme Inc., Product Lead'],
   ['例：佐藤部長＝顧客側の決裁者。社内では「山田さん」と呼ばれる','Example: Taylor is the customer decision maker.']
   ,['例：相手はA社ではなくB社 / 参考URL','Example: The company is B, not A / reference URL']
+  ,['例：相手はA社ではなくB社。次の解析から最優先で反映','Example: The company is B, not A. Applied from the next analysis']
 ]);
 const EN_MESSAGES=new Map([
   ['タブ音声が共有されませんでした（マイクのみで継続）','Tab audio was not shared; continuing with microphone only.'],
@@ -926,8 +1152,6 @@ function translateStatic(){
   const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
   nodes.forEach(n=>{if(n.parentElement&&['SCRIPT','STYLE'].includes(n.parentElement.tagName))return;const raw=n.nodeValue,trim=raw.trim(),value=EN_TEXT.get(trim);if(value)n.nodeValue=raw.replace(trim,value);});
   document.querySelectorAll('[title],[placeholder]').forEach(el=>['title','placeholder'].forEach(a=>{const v=el.getAttribute(a),x=EN_ATTR.get(v)||EN_TEXT.get(v);if(x)el.setAttribute(a,x);}));
-  $('mtypedl').innerHTML='<option value="Sales"><option value="Interview"><option value="Research"><option value="Internal sync"><option value="1-on-1"><option value="Leadership meeting">';
-  $('stancedl').innerHTML='<option value="Presenter"><option value="Researcher"><option value="Interviewer"><option value="Facilitator"><option value="Reporter"><option value="Participant">';
   const prep=['Clarify the desired outcome for this meeting.','Share what is known about the other party.','This assumption is wrong. I want to provide the correct information.','Research this URL and apply the relevant findings to the meeting:','Draft the questions needed to achieve the meeting goal.'];
   document.querySelectorAll('[data-prep]').forEach((el,i)=>{if(prep[i])el.dataset.prep=prep[i];});
   document.title='LiveMTG | Live meeting copilot';
@@ -998,16 +1222,68 @@ function renderCaptureProof(note=''){
 }
 let startupPending=true; // 初回表示で前回の別会議を勝手に表示しない
 function setMenuLabel(id,text){const b=$(id),label=b&&b.querySelector('.menu-label');if(label)label.textContent=text;}
+// ===== 状態ピル（固定幅・4状態のみ。状態が変わった時だけDOMを書き換える） =====
+const PILL_LABELS={ok:['準備OK','Ready'],rec:['録音中','Recording'],proc:['処理中','Processing'],warn:['要確認','Attention']};
+let pillMode='', lastStateSnap=null, staleNow=false, recStale=false, recStaleWhy='';
+function setPill(mode){
+  if(pillMode===mode)return;
+  pillMode=mode;
+  $('statuspill').className='statuspill '+mode;
+  $('splabel').textContent=tr(PILL_LABELS[mode][0],PILL_LABELS[mode][1]);
+}
+function pillJobText(){
+  const s=lastStateSnap;
+  if(serverDown)return tr('サーバに接続できません','Cannot reach the server');
+  if(!s)return tr('接続中…','Connecting…');
+  return s.queue>0?tr(`文字起こし中（残り${s.queue}）`,`Transcribing (${s.queue} left)`)
+    :s.analyzing?tr('即時解析中','Analyzing')
+    :s.detailing?tr('詳細整理中','Structuring')
+    :s.researching>0?tr('資料調査中','Researching')
+    :s.exploring?tr('背景読込中','Reading context')
+    :recording?(captureKind==='prep'?tr('準備会話を録音中','Recording prep conversation'):tr('録音中','Recording'))
+    :s.recording?tr('別タブで録音中','Recording in another tab')
+    :tr('待機中','Idle');
+}
+// 優先順位：サーバ断 > 録音中 > 処理中 > 更新停滞（非録音時のみ）> 準備OK
+function renderPill(){
+  const s=lastStateSnap;
+  const busy=!!(s&&(s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
+  setPill(serverDown?'warn':(recording||(s&&s.recording))?'rec':busy?'proc':staleNow?'warn':'ok');
+  $('statuspill').classList.toggle('stall', pillMode==='rec'&&recStale);
+  if($('statuspop').classList.contains('show'))renderPop();
+}
+function renderPop(){
+  const s=lastStateSnap||{};
+  const provider=s.aiProvider==='codex'?'Codex':'Claude Code';
+  let last=tr('まだありません','None yet');
+  if(dataUpdatedAt){
+    const d=new Date(dataUpdatedAt*1000), hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
+    const sec=Math.max(0,Math.floor(Date.now()/1000-dataUpdatedAt));
+    const ago=sec<20?tr('たった今','just now'):sec<60?tr(`${sec}秒前`,`${sec}s ago`):sec<3600?tr(`${Math.floor(sec/60)}分前`,`${Math.floor(sec/60)}m ago`):tr(`${Math.floor(sec/3600)}時間前`,`${Math.floor(sec/3600)}h ago`);
+    last=`${hh}:${mm}（${ago}）`;
+  }
+  let h=`<div class="sp-row"><b>${tr('処理状況','Status')}</b><span>${esc(pillJobText())}</span></div>`
+    +`<div class="sp-row"><b>${tr('最終解析','Last analysis')}</b><span>${esc(last)}${staleNow?` <em class="sp-stale">${tr('更新待ち','pending')}</em>`:''}</span></div>`
+    +(recStale?`<div class="sp-row"><b>${tr('注意','Notice')}</b><span class="sp-stale">${esc(recStaleWhy)}</span></div>`:'')
+    +`<div class="sp-row"><b>AI</b><span>${esc(provider)}</span></div>`;
+  if(capturing){
+    const step=(ok,label)=>`<span class="${ok?'ok':'wait'}">${ok?'✓':'○'} ${esc(label)}</span>`;
+    h+=`<div class="sp-note">${step(captureProof.mic,tr('マイク入力','Microphone'))}${step(captureProof.server,tr('サーバー保存','Server save'))}${step(captureProof.transcript,tr('文字起こし','Transcription'))}</div>`;
+  }
+  $('statuspop').innerHTML=h;
+}
 function renderLastUpdate(){
-  const el=$('lastupdate'); if(!el)return;
-  if(!dataUpdatedAt){el.textContent=tr('更新 --:--','Updated --:--');el.title=tr('最終解析はまだありません','No analysis yet');el.classList.remove('stale');return;}
-  const d=new Date(dataUpdatedAt*1000), hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0');
-  const sec=Math.max(0,Math.floor(Date.now()/1000-dataUpdatedAt));
-  const ago=sec<20?tr('たった今','just now'):sec<60?tr(`${sec}秒前`,`${sec}s ago`):sec<3600?tr(`${Math.floor(sec/60)}分前`,`${Math.floor(sec/60)}m ago`):tr(`${Math.floor(sec/3600)}時間前`,`${Math.floor(sec/3600)}h ago`);
-  const stale=transcriptUpdatedAt>dataUpdatedAt+5&&!stateAnalyzing;
-  el.textContent=tr(`${stale?'更新待ち ': '更新 '}${hh}:${mm}`,`${stale?'Pending ': 'Updated '}${hh}:${mm}`);
-  el.title=tr(`最終解析 ${hh}:${mm}（${ago}）`,`Last analysis ${hh}:${mm} (${ago})`);
-  el.classList.toggle('stale',stale);
+  staleNow=transcriptUpdatedAt>dataUpdatedAt+5&&!stateAnalyzing;
+  // 録音中の停滞検知：録音中はピルが「録音中」を出し続けるため、解析・文字起こしが完全に
+  // 止まっても気づけない。正常なラグと区別するため3分閾値で「!」バッジを出す（表示は録音中のまま）
+  const s=lastStateSnap, nowSec=Date.now()/1000, recOn=recording||!!(s&&s.recording), wasStale=recStale;
+  recStaleWhy = !recOn ? ''
+    : (s&&s.queue>0&&transcriptUpdatedAt>0&&nowSec-transcriptUpdatedAt>180)?tr('文字起こしが3分以上止まっています','Transcription has been stalled for over 3 minutes')
+    : (transcriptUpdatedAt>dataUpdatedAt+180&&!stateAnalyzing)?tr('新しい発言が3分以上解析に反映されていません','New speech has not been analyzed for over 3 minutes')
+    : '';
+  recStale=!!recStaleWhy;
+  if(recStale&&!wasStale)toast(tr('解析が止まっている可能性があります（状態ピルで詳細を確認）','Analysis may be stalled — check the status pill.'));
+  renderPill();
 }
 function applyState(s){
   if(s.language&&s.language!==uiLanguage){localStorage.setItem('livemtg_language',s.language);location.reload();return;}
@@ -1015,30 +1291,21 @@ function applyState(s){
   // 「録音停止」は、このタブ自身のMediaRecorderが動いている時だけ表示する。
   // 別タブの録音は状態文で区別し、録れているふりをしない。
   recording = serverRecording && capturing;
+  lastStateSnap=s;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
   if(capturing&&transcriptUpdatedAt>captureProof.baseline){captureProof.transcript=true;renderCaptureProof(tr('録音パイプラインは正常です','Recording pipeline is healthy'));}
-  $('dot').className = 'dot ' + (recording?'live':'idle');
   $('rec').textContent = recording ? tr('録音停止','Stop recording') : tr('録音開始','Start recording');
   $('rec').classList.toggle('on', recording);
   if($('preprec')){
     $('preprec').querySelector('span').textContent=recording?tr('録音を停止','Stop recording'):tr('準備会話を録音','Record prep conversation');
     $('preprec').classList.toggle('on',recording);
   }
-  const provider=s.aiProvider==='codex'?'Codex':'Claude Code';
-  const job=s.queue>0?tr(`起こし中 ${s.queue}` ,`Transcribing ${s.queue}`)
-    :s.analyzing?tr('即時解析中','Analyzing')
-    :s.detailing?tr('詳細整理中','Structuring')
-    :s.researching>0?tr('資料調査中','Researching')
-    :s.exploring?tr('背景読込中','Reading context')
-    :recording?tr('録音中','Recording')
-    :serverRecording?tr('別タブ録音','Other tab')
-    :tr('待機','Ready');
-  $('st').textContent=job;
-  $('st').classList.toggle('active',!!(recording||serverRecording||s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
-  $('statuscluster').title=tr(`AI: ${provider}。処理状況と最終解析時刻`,`AI: ${provider}. Processing state and last analysis time`);
   const ld=s.liveDiarization||{}, ls=$('livespeakers'), liveSpeakerRows=Array.isArray(ld.speakers)?ld.speakers:[];
   if(ld.status==='ready'&&liveSpeakerRows.length){
+    const lag=Number(ld.latencySeconds||0),windowSec=Number(ld.windowSeconds||90);
+    ls.dataset.rolling=`${windowSec}|${lag}`;
     ls.innerHTML=`<b>${tr('音声からの暫定話者','Provisional audio speakers')}</b>`+liveSpeakerRows.map((x,i)=>`<span class="ls-chip">${tr('話者','Speaker')} ${String.fromCharCode(65+i)}</span>`).join('')+`<span class="ls-state">${tr('清書前に名前を確定','Confirm names before polishing')}</span>`;
+    ls.innerHTML=`<b>${tr('\u97f3\u58f0\u304b\u3089\u306e\u66ab\u5b9a\u8a71\u8005','Provisional audio speakers')}</b>`+liveSpeakerRows.map(x=>{const m=String(x.id||'').match(/(\d+)$/),letter=m?String.fromCharCode(65+Number(m[1])):'?';return `<span class="ls-chip">${tr('\u8a71\u8005','Speaker')} ${letter}</span>`}).join('')+`<span class="ls-state">${tr(`\u76f4\u8fd1${windowSec}\u79d2\u30fb\u51e6\u7406${lag.toFixed(1)}\u79d2 \uff0f \u6e05\u66f8\u524d\u306b\u540d\u524d\u3092\u78ba\u5b9a`,`Last ${windowSec}s · processed in ${lag.toFixed(1)}s / confirm names before polishing`)}</span>`;
     ls.classList.add('show');ls.title='';
   }else if(ld.status==='processing'&&serverRecording){
     ls.innerHTML=`<b>${tr('話者を識別中','Identifying speakers')}</b><span class="ls-state">${tr('録音・文字起こしとは並列処理','Runs alongside recording and transcription')}</span>`;
@@ -1051,8 +1318,8 @@ function applyState(s){
   }
   // 商談ガイドの設定値と、プロジェクト候補（datalist）を反映
   curGoal = s.goal || ''; curProj = s.projectDir || ''; curType = s.mtype || ''; curStance = s.stance || '';
-  setMenuLabel('goalbtn',curGoal ? tr('目標・ガイド設定（ON）','Goal & guide settings (ON)') : tr('目標・ガイド設定','Goal & guide settings'));
-  setMenuLabel('strategybtn',s.hasStrategy ? tr('この会議の事前準備室（準備済み）','Meeting prep room (ready)') : tr('この会議の事前準備室','Meeting prep room'));
+  const pgs=$('prepGoalStatus');
+  if(pgs){ pgs.textContent=curGoal?tr('ガイドON','Guide ON'):tr('未設定','Not set'); pgs.classList.toggle('done',!!curGoal); }
   const pj = (s.recentProjects||[]);
   const psig = pj.join(',');
   if($('projdl').dataset.sig !== psig){
@@ -1062,6 +1329,12 @@ function applyState(s){
   // 会議セレクタ
   const sel=$('sess'); const cur=s.current&&s.current.id;
   currentSessionId=cur||'';
+  // 会議が切り替わったら、その会議で最後にいたフェーズを復元（録音中なら常にライブ）
+  if(phaseSessionId!==currentSessionId){
+    phaseSessionId=currentSessionId;
+    setPhase(serverRecording?'live':(localStorage.getItem(phaseKey())||'live'),false);
+    loadFixLog();   // 補足・訂正の送信済み表示は会議ごと
+  }
   const sig = s.sessions.map(x=>x.id+'|'+x.title+'|'+(x.hasSlides?'1':'0')).join(',')+'::'+cur;
   if(sel.dataset.sig!==sig){
     sel.dataset.sig=sig;
@@ -1069,7 +1342,10 @@ function applyState(s){
       const t=(x.created?x.created.slice(5)+' ':'')+x.title+(x.hasSlides?tr(' · マップあり',' · Mind map ready'):'');
       return `<option value="${esc(x.id)}"${x.id===cur?' selected':''}>${esc(t)}</option>`;
     }).join('');
+    renderSessMenu();
   }
+  const selOpt=sel.selectedOptions&&sel.selectedOptions[0];
+  if($('sesslabel'))$('sesslabel').textContent=selOpt?selOpt.textContent:tr('会議を選択','Select meeting');
   hasSlides = !!s.hasSlides;
   setMenuLabel('slides',hasSlides ? tr('マインドマップを開く','Open mind map') : tr('マインドマップ化','Create mind map'));
   $('slides').title = hasSlides ? tr('生成済みマインドマップをすぐ開く','Open the generated mind map') : tr('この会議を1画面のマインドマップに変換','Turn this meeting into a one-page mind map');
@@ -1080,6 +1356,7 @@ function applyState(s){
   $('deckregen').style.display = hasDeck ? '' : 'none';
   // 清書ボタン：保存音声があれば押せる。清書済みなら表示を変える
   $('final').disabled = !s.hasAudio;
+  updateReviewCards(s);
   $('delete').disabled = serverRecording || !currentSessionId;
   setMenuLabel('final',s.hasFinal ? tr('清書済み（再清書）','Polished (regenerate)') : tr('高精度に清書','Create polished minutes'));
   $('final').title = s.hasAudio ? tr('会議後：保存した全音声を1本にまとめ、分断なしで高精度に議事録を作り直す（数分）','After the meeting, rebuild accurate minutes from all saved audio. This may take a few minutes.')
@@ -1092,11 +1369,11 @@ async function pollState(){
   try{
     // サーバーの録音表示は、実際にこのタブのMediaRecorderが生きている間だけ維持する。
     const state=capturing ? await api('/api/recording-heartbeat',{}) : await api('/api/state');
-    applyState(state);
     if(serverDown){ serverDown=false; $('down').classList.remove('show'); }
+    applyState(state);
   }catch(e){
     serverDown=true; $('down').classList.add('show');
-    $('st').textContent=tr('接続待ち','Reconnecting'); $('st').classList.add('active'); $('dot').className='dot idle';
+    renderPill();
   }
 }
 let runtimeHealth=null;
@@ -1136,7 +1413,7 @@ async function pollData(){
     const d=await r.json();
     lastData=d;
     const receipt=d.liveReceipt&&typeof d.liveReceipt==='object'?d.liveReceipt:null;
-    if(capturing&&receipt){const heard=String(receipt.text||'').replace(/\s+/g,' ').slice(-90);renderCaptureProof((heard?`「${heard}」 · `:'')+(receipt.analyzed?tr('AI整理済み','Analyzed'):tr('AI整理中','AI organizing')));}
+    if(capturing&&receipt){const heard=String(receipt.text||'').replace(/\s+/g,' ').slice(-90),who=String(receipt.who||'').trim();renderCaptureProof((heard?`${who?who+'：':''}「${heard}」 · `:'')+(receipt.analyzed?tr('AI整理済み','Analyzed'):tr('AI整理中','AI organizing')));}
     $('summary').textContent=itemText(d.summary)||'—';
     fill('agenda', d.agenda, x=>`<li>${esc(itemText(x))}</li>`);
     fill('points', d.points, x=>`<li>${esc(itemText(x))}</li>`);
@@ -1147,15 +1424,16 @@ async function pollData(){
     $('who').innerHTML = sp.length ? `<b>${tr('参加者','Participants')}</b>`+sp.map(itemText).filter(Boolean).map(x=>`<span class="wc">${esc(x)}</span>`).join('') : '';
     $('who').classList.toggle('show', sp.length>0);
     renderAssist(d.assist||[]);
+    renderConfirm(d.confirm||[]);
     renderGuide(d.guide);
-    const sig=JSON.stringify(d);
+    const sig=deckSignature(d);
     if(view==='slide' && sig!==deckSig){ deckSig=sig; buildDeck(d); }
-  }catch(e){ $('st').textContent = serverDown ? tr('サーバ停止','Server stopped') : tr('待機中…','Waiting…'); }
+  }catch(e){ /* 取得失敗時の状態表示はpollState側の状態ピルが担う */ }
 }
 
 // ===== 商談ガイド：畳んだバー＋展開パネル（困った時に開く）=====
 let guideSig='';
-$('ghead').onclick = ()=>{ $('gwrap').classList.toggle('open'); $('gcaret').textContent = $('gwrap').classList.contains('open') ? '▴' : '▾'; };
+// 会議の狙いは専用タブになったため常時展開（開閉トグル廃止・2026-07-16）
 let nextQuestions=[];
 function guideBrief(v,max=46){const t=String(v||'').replace(/\s+/g,' ').trim();return t.length<=max?t:t.slice(0,max).replace(/[、,][^、,]*$/,'')+'…';}
 function researchDigest(v){
@@ -1169,18 +1447,17 @@ function researchDigest(v){
   if(!lines.length)lines=t.replace(/\*\*/g,'').split(/[。！？]\s*/).filter(Boolean);
   return lines.slice(0,2).map(x=>{const clean=x.replace(/\[([^\]]+)\]\([^\)]+\)/g,'$1').replace(/\s*（[^）]*(?:\.md|\.html)[^）]*）/g,'').trim();return clean.length<=58?clean:clean.slice(0,58)+'…'});
 }
+let nextQSig='';
 function renderNextQuestions(qs){
   nextQuestions=qs||[];
+  const nsig=JSON.stringify(nextQuestions);
+  if(nsig!==nextQSig){ const first=!nextQSig; nextQSig=nsig; if(!first&&nextQuestions.length)railNotify('ask'); }
   $('nextwrap').classList.toggle('show',nextQuestions.length>0||!!curGoal);
   $('nextchips').innerHTML=nextQuestions.length
-    ? nextQuestions.map((x,i)=>{const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();return `<div class="nextitem" data-i="${i}"><button class="nextchip" onclick="showNextIntent(${i})"><span class="nextq">${esc(question)}</span></button><div class="nextinlineintent"><b>${tr('質問の意図','Intent')}</b><span class="nextintenttext">${esc(intent)}</span></div></div>`}).join('')
+    ? nextQuestions.map(x=>{const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();return `<div class="railitem"><div class="ri-q">${esc(question)}</div><div class="ri-body">${esc(intent)}</div></div>`}).join('')
     : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問がここに出ます。','Suggested questions will appear here once the conversation begins.')}</span>`;
 }
-function showNextIntent(i){
-  const item=document.querySelector(`.nextitem[data-i="${i}"]`);if(!item)return;
-  const panel=item.querySelector('.nextinlineintent'),button=item.querySelector('.nextchip'),opening=!panel.classList.contains('show');
-  panel.classList.toggle('show',opening);button.classList.toggle('active',opening);
-}
+// 質問の意図は常時表示（タップ展開廃止・2026-07-16）
 async function renderGuide(g){
   const has = g && (g.progress || (g.questions||[]).length || (g.insights||[]).length);
   if(!has && !curGoal){ $('gwrap').classList.remove('show'); return; }
@@ -1190,7 +1467,9 @@ async function renderGuide(g){
   try{ researchCache = await (await fetch('/research.json?t='+Date.now(),{cache:'no-store'})).json(); }catch(e){}
   const sig = JSON.stringify([g, researchCache.length]);
   if(sig === guideSig) return;   // 変化が無ければ再描画しない（開いたパネルのちらつき防止）
+  const guideFirst=!guideSig;
   guideSig = sig;
+  if(!guideFirst)railNotify('goal');   // 初回表示（ページ読込直後）は「更新」ではないので赤ポチを出さない
   const row=(label,value,max=46)=>{const raw=String(value||'').trim();if(!raw)return '';const short=guideBrief(raw,max),more=raw!==short?`<details class="gmore"><summary></summary><div>${esc(raw)}</div></details>`:'';return `<div class="grow"><b>${esc(label)}</b><span>${esc(short)}${more}</span></div>`;};
   let blocks=[];
   const qs=(g&&g.questions)||[];
@@ -1216,28 +1495,21 @@ async function renderGuide(g){
 // v2(Web検索裏取り): server.pyが morning-routine.sh と同じ叩き方
 // （script(1)でpty経由＋--permission-mode bypassPermissions）でclaudeを起動しWebSearchさせる。
 const VERIFY_ENABLED = true;
-let assistData=[], assistSig='', assistOpen=-1;
+let assistData=[], assistSig='';
 function renderAssist(ast){
-  if(!ast.length){ $('assist').classList.remove('show'); $('achips').innerHTML=''; $('apanel').className='apanel'; $('apanel').innerHTML=''; assistSig=''; assistOpen=-1; return; }
+  if(!ast.length){ $('assist').classList.remove('show'); $('achips').innerHTML=''; assistSig=''; return; }
   $('assist').classList.add('show');
   const sig=JSON.stringify(ast);
-  if(sig===assistSig) return;   // 内容が変わっていなければ再描画しない（開いているパネルを保つ）
+  if(sig===assistSig) return;   // 内容が変わっていなければ再描画しない（Web確認結果のちらつき防止）
+  const assistFirst=!assistSig;
   assistSig=sig; assistData=ast;
+  if(!assistFirst)railNotify('ask');
+  // 疑問と回答は常時全表示（タップ展開廃止・2026-07-16）
   $('achips').innerHTML = ast.map((x,i)=>
-    `<button class="achip" data-i="${i}"><span class="qt">${esc(x.q||'')}</span><span class="caret">▾</span></button>`).join('');
-  [...$('achips').children].forEach(b=> b.onclick=()=> toggleAssist(+b.dataset.i));
-  assistOpen=-1; $('apanel').className='apanel'; $('apanel').innerHTML='';   // 更新時は一旦閉じる（indexずれ防止）
-}
-function toggleAssist(i){
-  if(assistOpen===i){ assistOpen=-1; $('apanel').className='apanel';
-    [...$('achips').children].forEach(c=>c.classList.remove('active')); return; }
-  assistOpen=i;
-  [...$('achips').children].forEach((c,j)=>c.classList.toggle('active', j===i));
-  const x=assistData[i]||{};
-  $('apanel').innerHTML = `<div class="aq">Q. ${esc(x.q||'')}</div><div class="aa">${esc(x.a||'')}</div>`
-    + (x.check?`<div class="acheck">${tr('要確認','Verify')}：${esc(x.check)}</div>`:'')
-    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" onclick="verifyAssist(${i})"><svg class="inline-icon"><use href="#i-globe"/></svg>${tr('Web検索で確認','Verify on the web')}</button><div class="vresult" id="vres"></div></div>` : '');
-  $('apanel').className='apanel show';
+    `<div class="railitem"><div class="ri-q">${esc(x.q||'')}</div><div class="ri-body">${esc(x.a||'')}</div>`
+    + (x.check?`<div class="ri-check">${tr('要確認','Verify')}：${esc(x.check)}</div>`:'')
+    + (VERIFY_ENABLED ? `<div class="averify"><button class="vbtn" data-i="${i}" onclick="verifyAssist(${i})"><svg class="inline-icon"><use href="#i-globe"/></svg>${tr('Web検索で確認','Verify on the web')}</button><div class="vresult" id="vres-${i}"></div></div>` : '')
+    + `</div>`).join('');
 }
 // Markdownの[リンク](url)・**太字**・改行を最小限HTML化（出典リンク表示用）
 function mdToHtml(s){
@@ -1247,9 +1519,62 @@ function mdToHtml(s){
     .replace(/\n/g,'<br>');
 }
 // v2/v3：疑問をWeb検索で裏取り（出典付き）
+// ===== 解釈の確認：AIが自信のない解釈を一問一答で差し出す（清書前確認のライブ版）。回答はライブ補足・訂正として次の解析に最優先で反映 =====
+let confirmData=[], confirmSig='';
+function confirmDoneKey(){ return 'livemtg_confirm_done_'+(currentSessionId||'default'); }
+function confirmDone(){ try{ return new Set(JSON.parse(localStorage.getItem(confirmDoneKey())||'[]')); }catch(e){ return new Set(); } }
+function markConfirmDone(point){
+  const s=confirmDone(); s.add(point);
+  localStorage.setItem(confirmDoneKey(), JSON.stringify([...s].slice(-50)));
+}
+function renderConfirmList(){
+  const done=confirmDone();
+  const items=confirmData.map((x,i)=>({x,i})).filter(({x})=>!done.has(String(x.point||'')));
+  $('confirmwrap').classList.toggle('show', items.length>0);
+  $('cflist').innerHTML=items.map(({x,i})=>
+    `<div class="railitem"><div class="ri-q">${esc(x.point||'')}</div>`
+    +(x.basis?`<div class="ri-body">${tr('根拠','Basis')}：${esc(x.basis)}</div>`:'')
+    +`<div class="cf-actions"><button class="cf-btn ok" onclick="answerConfirm(${i})">✓ ${tr('合ってる','Correct')}</button>`
+    +`<button class="cf-btn no" onclick="toggleConfirmFix(${i})">✗ ${tr('違う','Wrong')}</button></div>`
+    +`<div class="cf-fix" data-i="${i}"><input placeholder="${tr('正しくは…','Actually…')}" onkeydown="if(event.key==='Enter')fixConfirm(${i})"><button onclick="fixConfirm(${i})">${tr('反映','Apply')}</button></div></div>`).join('');
+}
+function renderConfirm(list){
+  confirmData=Array.isArray(list)?list:[];
+  const sig=JSON.stringify(confirmData)+'|'+(currentSessionId||'');
+  if(sig===confirmSig)return;   // 変化なしなら再描画しない（訂正入力中のテキストを守る）
+  const confirmFirst=!confirmSig;
+  confirmSig=sig;
+  const done=confirmDone();
+  if(!confirmFirst&&confirmData.some(x=>!done.has(String(x.point||''))))railNotify('ask');
+  renderConfirmList();
+}
+async function answerConfirm(i){
+  const x=confirmData[i]; if(!x)return;
+  const point=String(x.point||'');
+  markConfirmDone(point); renderConfirmList();
+  try{ await api('/api/live-notes',{text:`確認済み：「${point}」という解釈で合っています`}); }catch(e){}
+  toast(tr('確認を反映しました','Confirmed.'));
+}
+function toggleConfirmFix(i){
+  const el=document.querySelector(`#cflist .cf-fix[data-i="${i}"]`);
+  if(!el)return;
+  el.classList.toggle('show');
+  const inp=el.querySelector('input');
+  if(el.classList.contains('show')&&inp)inp.focus();
+}
+async function fixConfirm(i){
+  const x=confirmData[i]; if(!x)return;
+  const el=document.querySelector(`#cflist .cf-fix[data-i="${i}"] input`);
+  const val=(el&&el.value.trim())||'';
+  if(!val){ toast(tr('正しい内容を入力してください','Type the correction first.')); return; }
+  const point=String(x.point||'');
+  markConfirmDone(point); renderConfirmList();
+  try{ await api('/api/live-notes',{text:`訂正：「${point}」は違う。正しくは：${val}`}); }catch(e){}
+  toast(tr('訂正を反映しました（次の解析から適用）','Correction applies from the next analysis.'));
+}
 async function verifyAssist(i){
   const x=assistData[i]||{}; const q=x.q||''; if(!q) return;
-  const res=$('vres'), btn=document.querySelector('.vbtn');
+  const res=$('vres-'+i), btn=document.querySelector(`.vbtn[data-i="${i}"]`);
   if(btn) btn.disabled=true;
   res.innerHTML=`<span class="spin"></span> ${tr('Web検索で確認中…（30〜40秒ほど）','Searching the web… (about 30–40 seconds)')}`;
   try{
@@ -1276,8 +1601,32 @@ if(!['timeline','tree','radial','relation'].includes(mindmapMode))mindmapMode='t
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
-function deckHeight(){ const h=document.querySelector('header').offsetHeight;
-  $('deck').style.height=(window.innerHeight-h)+'px'; }
+function activeView(){return view==='list'?'list':mindmapMode;}
+function deckSignature(d){
+  if(view!=='slide')return '';
+  const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
+  if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
+  if(key==='timeline')return JSON.stringify([key,d&&d.timeline,d&&d.log]);
+  return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
+}
+function deckHeight(){
+  // 質問・AIサポートはレール（右カラム）に移動済みのため、メイン列の高さ計算には含めない
+  const header=document.querySelector('header'),tabs=$('viewtabs');
+  const used=(header?header.offsetHeight:0)+(tabs?tabs.offsetHeight+28:0)+24;
+  $('deck').style.height=Math.max(460,window.innerHeight-used)+'px';
+}
+const viewClientId=sessionStorage.getItem('livemtg_view_client')||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())+Math.random());
+sessionStorage.setItem('livemtg_view_client',viewClientId);
+let viewFocusTimer=0;
+async function sendViewFocus(changed=false){
+  if(startupPending)return; // 前回の会議を開くか選ぶまで、古い会議のAIを動かさない
+  clearTimeout(viewFocusTimer);
+  viewFocusTimer=setTimeout(async()=>{
+    const av=activeView(),labels={list:tr('リスト','List'),tree:tr('論点マップ','Topic map'),radial:tr('放射マップ','Radial map'),relation:tr('会話の関係','Relationships'),timeline:tr('時系列','Timeline')};
+    if($('viewtabs'))$('viewtabs').title=(labels[av]||av)+tr('を優先更新中',' is being updated first');
+    try{await fetch('/api/view-focus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:viewClientId,view:av,visible:document.visibilityState==='visible',changed})});}catch(e){}
+  },changed?0:80);
+}
 function ds(cls, inner){ return `<section class="ds ${cls||''}">${inner}</section>`; }
 function captureMindmapUi(){
   const stage=$('deck').querySelector('.dstage'),tree=$('deck').querySelector('[data-tree]');
@@ -1291,11 +1640,13 @@ function captureMindmapUi(){
 function applyMindmapMode(mode,remember=true){
   if(!['timeline','tree','radial','relation'].includes(mode))mode='tree';
   mindmapMode=mode;if(remember)localStorage.setItem('livemtg_mindmap_mode',mode);
+  if(typeof updateViewTabs==='function')updateViewTabs();
+  applyDeckZoom(); // 切替先タブが記憶している倍率を適用
   const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map');
   if(!timeline||!tree||!radial||!relation)return;
   timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');
-  deck.querySelectorAll('[data-mapview]').forEach(x=>x.classList.toggle('on',x.dataset.mapview===mode));
   if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
+  if(remember){deckSig='';if(lastData){deckSig=deckSignature(lastData);buildDeck(lastData);}sendViewFocus(true);}
 }
 function restoreMindmapUi(state){
   const stage=$('deck').querySelector('.dstage'),tree=$('deck').querySelector('[data-tree]');if(!stage||!tree)return;
@@ -1329,27 +1680,24 @@ function buildDeck(d){
   const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>${tr('根拠：','Source: ')}${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
-  const timeline=(Array.isArray(d.log)?d.log:[]).slice(-30).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
+  const timeline=(Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[])).slice(-60).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
   const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
   branches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,4).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,5).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
-  $('deck').innerHTML=ds('mindmap-slide', `<div class="dhead"><div class="dkick">MEETING MIND MAP</div><h2>${esc(meetingTitle||tr('会議','Meeting'))}</h2>
-    <div class="maptools"><button data-mapview="tree">${tr('マインドマップ','Mind map')}</button><button data-mapview="radial">${tr('放射マップ','Radial map')}</button><button data-mapview="relation" title="${tr('会話の関係','Conversation relationships')}">Mermaid</button><button data-mapview="timeline">${tr('時系列','Timeline')}</button></div></div>
-    <div class="dstage"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
+  $('deck').innerHTML=ds('mindmap-slide', `<div class="dstage"><div class="zoomwrap"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
       <div class="radial-map"><div class="mermaid">${esc(radial.join('\n'))}</div></div>
-      <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div>`);
+      <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div></div>`);
+  applyDeckZoom();
   bindLiveTree();
-  $('deck').querySelectorAll('[data-mapview]').forEach(btn=>btn.onclick=()=>{
-    applyMindmapMode(btn.dataset.mapview);
-  });
   restoreMindmapUi(preservedUi);
 }
 function drawLiveTree(){
   const tree=$('deck').querySelector('[data-tree]'); if(!tree)return;
   const svg=tree.querySelector('.tree-lines'),tr=tree.getBoundingClientRect(); svg.innerHTML='';
-  const pt=(el,left)=>{const r=el.getBoundingClientRect();return{x:(left?r.left:r.right)-tr.left,y:r.top-tr.top+r.height/2};};
+  const zt=deckZooms.tree||1;
+  const pt=(el,left)=>{const r=el.getBoundingClientRect();return{x:((left?r.left:r.right)-tr.left)/zt,y:(r.top-tr.top+r.height/2)/zt};};
   const link=(a,b)=>{const p=pt(a),q=pt(b,true),bend=Math.max(24,(q.x-p.x)*.48),path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',`M${p.x} ${p.y} C${p.x+bend} ${p.y} ${q.x-bend} ${q.y} ${q.x} ${q.y}`);svg.appendChild(path);};
   if(tree.classList.contains('root-collapsed'))return;
   tree.querySelectorAll('[data-parent]').forEach(el=>{if(el.offsetParent===null||(el.closest('.tree-branch.collapsed')&&!el.classList.contains('branch'))||(el.closest('.tree-subbranch.group-collapsed')&&!el.classList.contains('group'))||(el.classList.contains('tree-detail')&&!el.classList.contains('show')))return;const p=tree.querySelector(`[data-node-id="${el.dataset.parent}"]`);if(p)link(p,el);});
@@ -1359,6 +1707,26 @@ function bindMapPan(scroller){let down=false,x=0,y=0,left=0,top=0;
   scroller.onpointerdown=e=>{if(e.button!==0||e.target.closest('button,.tree-node'))return;down=true;x=e.clientX;y=e.clientY;left=scroller.scrollLeft;top=scroller.scrollTop;scroller.classList.add('dragging');scroller.setPointerCapture(e.pointerId)};
   scroller.onpointermove=e=>{if(!down)return;scroller.scrollLeft=left-(e.clientX-x);scroller.scrollTop=top-(e.clientY-y)};
   scroller.onpointerup=scroller.onpointercancel=e=>{down=false;scroller.classList.remove('dragging');try{scroller.releasePointerCapture(e.pointerId)}catch(_){}};
+  // ズーム：Ctrl/⌘＋ホイール（トラックパッドのピンチも ctrlKey 付き wheel として届く）。カーソル位置を基準に拡縮
+  scroller.addEventListener('wheel',e=>{
+    if(!(e.ctrlKey||e.metaKey))return;
+    e.preventDefault();
+    const rect=scroller.getBoundingClientRect();
+    const cx=e.clientX-rect.left+scroller.scrollLeft, cy=e.clientY-rect.top+scroller.scrollTop;
+    const z0=deckZooms[mindmapMode]||1, z1=Math.min(2.5,Math.max(0.4,z0*Math.exp(-e.deltaY*0.0015)));
+    if(z1===z0)return;
+    deckZooms[mindmapMode]=z1; applyDeckZoom();
+    scroller.scrollLeft=cx*z1/z0-(e.clientX-rect.left);
+    scroller.scrollTop=cy*z1/z0-(e.clientY-rect.top);
+  },{passive:false});
+}
+// ズーム倍率は表示モードごとに独立して記憶する（タブを切り替えても他タブの倍率を引き継がない）
+const deckZooms={tree:1,radial:1,relation:1,timeline:1};
+function applyDeckZoom(){
+  const w=$('deck').querySelector('.zoomwrap'); if(!w)return;
+  const z=deckZooms[mindmapMode]||1;
+  w.style.transform=z===1?'':'scale('+z+')';
+  requestAnimationFrame(drawLiveTree);
 }
 function bindLiveTree(){
   const tree=$('deck').querySelector('[data-tree]'); if(!tree)return;
@@ -1394,11 +1762,23 @@ async function renderLiveMermaid(){
 function setView(v){
   view=v; localStorage.setItem('livemtg_view', v);
   document.body.classList.toggle('slidemode', v==='slide');
-  [...$('viewseg').children].forEach(b=>b.classList.toggle('on', b.dataset.v===v));
-  if(v==='slide'){ deckHeight(); if(lastData){ deckSig=JSON.stringify(lastData); buildDeck(lastData); } }
+  updateViewTabs();
+  if(v==='slide'){ deckHeight(); if(lastData){ deckSig=deckSignature(lastData); buildDeck(lastData); } }
+  sendViewFocus(true);
 }
-[...$('viewseg').children].forEach(b=> b.onclick=()=>setView(b.dataset.v));
+// 5タブ同列：リストは view='list'、4種のマップは view='slide'＋mindmapMode
+function updateViewTabs(){
+  const av=activeView();
+  $('viewtabs').querySelectorAll('button[data-vt]').forEach(b=>b.classList.toggle('on', b.dataset.vt===av));
+}
+function setViewTab(t){
+  if(t==='list'){ setView('list'); return; }
+  if(mindmapMode!==t) applyMindmapMode(t,true);
+  if(view!=='slide') setView('slide'); else updateViewTabs();
+}
+$('viewtabs').querySelectorAll('button[data-vt]').forEach(b=> b.onclick=()=>setViewTab(b.dataset.vt));
 window.addEventListener('resize', ()=>{ if(view==='slide') deckHeight(); });
+document.addEventListener('visibilitychange',()=>sendViewFocus(true));
 
 // ===== 録音（ブラウザでマイク＋会議タブ音声を録り、発話の切れ目ごとに /api/chunk へ送信）=====
 // 可変長チャンク(VAD): 固定秒ではなく「無音を検知したら区切る」。文の途中で切らないので文字起こし精度が上がる。
@@ -1460,7 +1840,7 @@ function cycle(stream){
   monTimer=setInterval(()=>{
     if(!capturing || rec.state==='inactive') return;
     const now=performance.now(), elapsed=now-t0, db=currentDb();
-    if(db>=VAD.silDb){ spoke=true; silentSince=0; captureProof.mic=true;renderCaptureProof(tr('音声を検知しました','Voice detected'));$('st').textContent=tr('マイク入力あり · 録音中','Microphone active · Recording'); } // 発話あり
+    if(db>=VAD.silDb){ spoke=true; silentSince=0; captureProof.mic=true;renderCaptureProof(tr('音声を検知しました','Voice detected')); } // 発話あり
     else if(!silentSince){ silentSince=now; }                  // 無音の開始
     const silentFor = silentSince ? now-silentSince : 0;
     // 発話の切れ目（無音が続いた）で区切る。最小長を満たす場合のみ。喋り続けは最大長で強制区切り
@@ -1474,9 +1854,7 @@ async function sendChunk(blob){
     const r=await fetch('/api/chunk?kind='+encodeURIComponent(captureKind),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:blob}),d=await r.json();
     if(!d.ok)throw new Error();
     captureProof.server=true;renderCaptureProof(tr('音声をサーバーへ保存しました','Audio saved to server'));
-    $('st').textContent=tr(`音声送信済み · 文字起こし待ち ${d.queue||1}件`,`Audio sent · ${d.queue||1} awaiting transcription`);
   }catch(e){
-    $('st').textContent=tr('音声送信に失敗','Audio upload failed');
     toast(tr('音声をサーバーへ送信できませんでした','Could not send audio to the server'));
   }
 }
@@ -1527,16 +1905,20 @@ async function doStart(withTab,kind='meeting'){
   await acquireWakeLock();   // 録音中は画面を消させない
   recording=true; $('rec').disabled=false;
   $('rec').textContent=tr('録音停止','Stop recording'); $('rec').classList.add('on');
-  $('dot').className='dot live'; $('st').textContent=captureKind==='prep'?tr('準備会話を録音中','Recording prep conversation'):tr('録音中','Recording');
+  setPill('rec');
+  if(captureKind!=='prep')setPhase('live'); // 会議録音の開始でライブへ（準備会話の録音では切り替えない）
 }
 async function doStop(){
+  const wasPrep=captureKind==='prep';
   $('rec').disabled=true; stopCapture(); releaseWakeLock();
   try{ applyState(await api('/api/stop',{})); }catch(e){}
   recording=false; $('rec').disabled=false;
   $('recordhealth').innerHTML=`<span class="rh-step ok">✓ ${tr('録音を保存しました','Recording saved')}</span>`;$('recordhealth').classList.add('show');setTimeout(()=>{if(!capturing)$('recordhealth').classList.remove('show');},3500);
   captureKind='meeting';
   $('rec').textContent=tr('録音開始','Start recording'); $('rec').classList.remove('on');
-  $('dot').className='dot idle'; $('st').textContent=tr('停止中','Stopped');
+  setPill('proc'); // 停止直後は音声の送信・文字起こしが続くことが多い。3秒以内のポーリングで実状態に補正される
+  // フェーズは自動で変えない（雑談から本題が再開することがある）。振り返りへの移動は提案だけにとどめる
+  if(!wasPrep)toast(tr('録音を保存しました。清書・成果物は「振り返り」タブから作成できます','Saved. Open the Review tab for polished minutes and outputs.'));
   await pollData();
 }
 // マイク一覧をモーダルに表示（前回の選択を記憶。ラベルは一度マイク許可すると表示される）
@@ -1559,7 +1941,7 @@ $('rbg').onclick = e=>{ if(e.target===$('rbg')) $('rbg').classList.remove('show'
 $('rmic').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(false,requestedCaptureKind); };
 $('rtab').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(true,requestedCaptureKind); };
 // 新規会議（カスタムモーダル）
-$('new').onclick = ()=>{ $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mbg').classList.add('show'); setTimeout(()=>$('mtitle').focus(),50); };
+$('new').onclick = ()=>{ $('mtitle').value=''; $('mbg').classList.add('show'); setTimeout(()=>$('mtitle').focus(),50); };
 // 表示中の会議を、ローカル本体・Drive同期・案件フォルダ書き出しまで会議ID限定で削除
 $('delete').onclick=async()=>{
   if(recording){ toast(tr('録音を停止してから削除してください','Stop recording before deleting the meeting.')); return; }
@@ -1573,16 +1955,19 @@ $('delete').onclick=async()=>{
   }catch(e){ hideToast(); toast(tr('削除に失敗しました','Deletion failed.')); }
   $('delete').disabled=recording||!currentSessionId;
 };
-// 学びの抽出 → 承認 → プレイブック追記
+// 学びの抽出：依頼主個人への気づきレポートを表示（プレイブック蓄積は任意の脇役として承認制で継続）
 $('learnbtn').onclick = async ()=>{
-  if(!curType){ toast(tr('先に商談ガイド設定でこの会議の用途（商談/面接等）を設定してください','Set the meeting type in Goal & guide settings first.')); return; }
   $('learnbtn').disabled=true;
   toast(tr('学びを抽出中…（30〜60秒。会議の記録を読み直しています）','Extracting learnings… This may take 30–60 seconds.'), true);
   try{
     const r = await api('/api/learn', {});
     hideToast(); $('learnbtn').disabled=false;
     if(!r.ok){ toast(tr('抽出に失敗：','Extraction failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error'))); return; }
-    $('llearn').value = r.text||'';
+    $('linsights').innerHTML = mdToHtml(r.insights||tr('（特筆する気づきはありませんでした）','(No notable insights this time)'));
+    const hasPb = !!(r.mtype && (r.playbook||'').trim());
+    $('lpbsec').style.display = hasPb ? '' : 'none';
+    $('lok').style.display = hasPb ? '' : 'none';
+    $('llearn').value = r.playbook||'';
     $('lbg').classList.add('show');
   }catch(e){ hideToast(); $('learnbtn').disabled=false; toast(tr('抽出に失敗しました','Extraction failed.')); }
 };
@@ -1606,10 +1991,10 @@ $('mok').onclick = async ()=>{
   startupPending=false;
   $('mbg').classList.remove('show');
   if(capturing) stopCapture();
-  const pd = $('mproj').value.trim(), gl = $('mgoal').value.trim(), mt = $('mtype').value.trim(), st = $('mstance').value.trim();
-  applyState(await api('/api/new', {title:$('mtitle').value, project_dir:pd, goal:gl, mtype:mt, stance:st, language:uiLanguage}));
+  applyState(await api('/api/new', {title:$('mtitle').value, project_dir:'', goal:'', mtype:'', stance:'', language:uiLanguage}));
+  setPhase('prep'); // 新規会議は準備フェーズから始める（用途・目標・背景はここで設定）
   await pollData();
-  toast((gl?tr('ガイドを有効にしました。','Guide enabled. '):'') + (pd ? tr('新しい会議を作成。背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）','New meeting created. Reading the context folder…') : tr('新しい会議を作成しました','New meeting created.')));
+  toast(tr('新しい会議を作成しました。準備で目標・背景を設定できます','New meeting created. Set the goal and context in Prep.'));
 };
 // フォルダ選択（macOSネイティブダイアログをサーバ経由で開く）
 async function pickDir(input){
@@ -1620,22 +2005,55 @@ async function pickDir(input){
     if(r.ok && r.path) input.value = r.path;
   }catch(e){ hideToast(); }
 }
-$('mpick').onclick = ()=> pickDir($('mproj'));
-$('gpick').onclick = ()=> pickDir($('gproj'));
+$('gpick').onclick = async ()=>{ await pickDir($('gproj')); saveBrief(); };
+// 事前メモの取り込み：ファイル/フォルダを選ぶ → サーバが読み → 準備チャットへ注入 → ブリーフ・ボードが更新される
+async function importNotes(kind){
+  const b1=$('importfile'), b2=$('importdir');
+  b1.disabled=b2.disabled=true;
+  toast(tr('事前メモを取り込み中…（選択後、AIが読んで反映するまで1分ほど）','Importing notes… (about a minute after you choose)'), true);
+  try{
+    const r=await api('/api/import_notes',{kind});
+    hideToast();
+    if(r.ok){
+      drawStrategy(r.messages||[], r.board||{}, r.exportPath, r.folderMode);
+      toast(tr('事前メモをブリーフへ反映しました','Notes imported into the brief.'));
+      await pollState();
+    }else if(r.msg && r.msg!=='キャンセル'){
+      toast(tr('取り込みに失敗：','Import failed: ')+localizeMessage(r.msg));
+    }
+  }catch(e){ hideToast(); toast(tr('取り込みに失敗しました','Import failed.')); }
+  b1.disabled=b2.disabled=false;
+}
+$('importfile').onclick=()=>importNotes('file');
+$('importdir').onclick=()=>importNotes('folder');
 // 商談ガイド設定
-$('goalbtn').onclick = ()=>{ $('ggoal').value=curGoal; $('gproj').value=curProj; $('gtype').value=curType; $('gstance').value=curStance; $('gbg').classList.add('show'); setTimeout(()=>$('ggoal').focus(),50); };
-$('gcancel').onclick = ()=> $('gbg').classList.remove('show');
-$('gok').onclick = async ()=>{
-  const r = await api('/api/goal', {goal:$('ggoal').value.trim(), project_dir:$('gproj').value.trim(), mtype:$('gtype').value.trim(), stance:$('gstance').value.trim()});
-  $('gbg').classList.remove('show');
-  if(r.ok){ toast(r.exploring ? tr('ガイドON。背景フォルダを読み込み中…','Guide enabled. Reading the context folder…') : tr('商談ガイドを設定しました','Goal and guide settings saved.')); await pollState(); }
-  else toast(tr('設定に失敗：','Could not save settings: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
-};
+// 会議ブリーフは保存ボタンなし：項目を変更したら自動保存（値が変わった時だけAPIを呼ぶ）
+let briefSaveTimer=0;
+async function saveBrief(){
+  const goal=$('ggoal').value.trim(), proj=$('gproj').value.trim(), mtype=$('gtype').value.trim(), stance=$('gstance').value.trim();
+  if(goal===curGoal && proj===curProj && mtype===curType && stance===curStance) return;
+  const pgs=$('prepGoalStatus'); if(pgs){ pgs.textContent=tr('保存中…','Saving…'); pgs.classList.remove('done'); }
+  const r = await api('/api/goal', {goal, project_dir:proj, mtype, stance});
+  if(r.ok){ if(r.exploring) toast(tr('背景フォルダを読み込み中…（1〜2分でAIの文脈に反映）','Reading the context folder…')); await pollState(); }
+  else toast(tr('設定の保存に失敗：','Could not save settings: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
+}
+['ggoal','gtype','gstance','gproj'].forEach(id=>$(id).addEventListener('change',()=>{ clearTimeout(briefSaveTimer); briefSaveTimer=setTimeout(saveBrief,300); }));
+// 背景フォルダは長い絶対パスでは場所が分からないため、末尾2階層を読みやすく表示（フルパスはツールチップ）
+function renderProjHint(){
+  const el=$('gprojhint'); if(!el)return;
+  const v=$('gproj').value.trim();
+  if(!v){ el.textContent=tr('未設定 — 指定するとAIが中の資料を読んで文脈に使う','Not set — AI reads files here for context'); el.title=''; return; }
+  const parts=v.split('/').filter(Boolean);
+  el.textContent=parts.slice(-2).join(' › ');
+  el.title=v;
+}
+$('gproj').addEventListener('input',renderProjHint);
+$('gproj').addEventListener('change',renderProjHint);
 // 会議事前準備室：壁打ちと準備ボードを同時更新し、選択フォルダ＋ライブAIに反映
 let strategyExportPath='',strategyFolderMode=false;
 function drawPrepBoard(board){
   const b=board||{}, list=(title,a)=>a&&a.length?`<div class="pbcard"><div class="pbt">${title}</div><ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
-  let h=`<h4>${tr('準備ボード','Preparation board')}</h4>`;
+  let h='';
   if(b.outcome) h+=`<div class="pbcard"><div class="pbt">${tr('今回の着地点','Desired outcome')}</div><div class="pbv">${esc(b.outcome)}</div></div>`;
   if(b.counterpart) h+=`<div class="pbcard"><div class="pbt">${tr('相手の状況','Counterpart context')}</div><div class="pbv">${esc(b.counterpart)}</div></div>`;
   h+=list(tr('仮説','Hypotheses'),b.hypotheses)+list(tr('会議で聞くこと','Questions to ask'),b.questions)+list(tr('懸念・見落とし','Risks and blind spots'),b.risks)+list(tr('避けること','Things to avoid'),b.avoid);
@@ -1666,14 +2084,12 @@ function drawStrategy(msgs,board,exportPath,folderMode){
 async function openStrategyFolder(){
   const r=await api('/api/strategy_open',{}); toast(r.ok?tr('保存先をFinderで開きました','Opened the save location.'):tr('開けません：','Could not open it: ')+localizeMessage(r.msg||''));
 }
-function openGoalFromPrep(){ $('sbg').classList.remove('show'); $('goalbtn').click(); }
-async function openCopilot(){
-  $('sbg').classList.add('show'); $('sinput').value=''; drawStrategy([],{},'',false);
+function openGoalFromPrep(){ setPhase('prep'); setTimeout(()=>$('ggoal').focus(),80); }
+// 準備フェーズに入るたびにチャット履歴と準備ボードを読み込む（旧コパイロットモーダルの中身）
+async function loadCopilot(){
+  drawStrategy([],{},'',false);
   try{ const r=await api('/api/strategy'); if(r.ok) drawStrategy(r.messages||[],r.board||{},r.exportPath||'',r.folderMode); }catch(e){}
-  setTimeout(()=>$('sinput').focus(),50);
 }
-if($('strategybtn'))$('strategybtn').onclick=openCopilot;
-$('copilotbubble').onclick=openCopilot;
 [...document.querySelectorAll('[data-prep]')].forEach(b=>b.onclick=()=>{ $('sinput').value=b.dataset.prep; $('sinput').focus(); });
 $('ssend').onclick=async()=>{
   const message=$('sinput').value.trim(); if(!message)return;
@@ -1693,8 +2109,6 @@ $('ssend').onclick=async()=>{
   $('ssend').disabled=false; $('sinput').disabled=false; $('sinput').focus();
 };
 $('sinput').onkeydown=e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter') $('ssend').click(); };
-$('sclose').onclick=()=> $('sbg').classList.remove('show');
-$('sbg').onclick=e=>{if(e.target===$('sbg'))$('sbg').classList.remove('show');};
 $('preprec').onclick=()=>{if(capturing)doStop();else openRecordingSetup('prep');};
 // プロフィール（私は誰か・一問一答）
 const PROF_KEYS = ['name','org','notes'];
@@ -1719,6 +2133,37 @@ $('sess').onchange = async ()=>{
   applyState(await api('/api/switch', {id:$('sess').value}));
   await pollData();
 };
+// 会議切替のカスタムドロップダウン（選択のみ）。隠したネイティブselectと同期する
+function renderSessMenu(){
+  const sel=$('sess'), menu=$('sessmenu'); if(!menu)return;
+  menu.innerHTML=[...sel.options].map(o=>`<button type="button" class="sess-item${o.value===sel.value?' on':''}" data-id="${esc(o.value)}">${esc(o.textContent)}</button>`).join('');
+  [...menu.children].forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); menu.classList.remove('show');
+    if(b.dataset.id===sel.value)return;
+    sel.value=b.dataset.id;
+    sel.onchange();
+  });
+}
+$('sessbtn').onclick=e=>{ e.stopPropagation(); $('sessmenu').classList.toggle('show'); };
+document.addEventListener('click',e=>{ const m=$('sessmenu'); if(m.classList.contains('show')&&!m.contains(e.target))m.classList.remove('show'); });
+// コンボ：入力欄＋選択メニューの両対応（用途・立場）。選択時はchangeを発火して自動保存につなげる
+function makeCombo(inputId, options){
+  const input=$(inputId), wrap=input.closest('.combo'), menu=wrap.querySelector('.combo-menu'), caret=wrap.querySelector('.combo-caret');
+  menu.innerHTML=options.map(o=>`<button type="button" class="combo-item">${esc(o)}</button>`).join('');
+  [...menu.children].forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); wrap.classList.remove('open');
+    if(input.value!==b.textContent){ input.value=b.textContent; input.dispatchEvent(new Event('change')); }
+  });
+  caret.onclick=e=>{ e.stopPropagation(); wrap.classList.toggle('open'); };
+  input.addEventListener('keydown',e=>{ if(e.key==='Escape')wrap.classList.remove('open'); });
+  document.addEventListener('click',e=>{ if(!wrap.contains(e.target))wrap.classList.remove('open'); });
+}
+makeCombo('gtype', uiLanguage==='en'
+  ? ['Sales','Interview','Research','Internal sync','1-on-1','Leadership meeting']
+  : ['商談','採用面接','ヒアリング','社内定例','1on1','経営会議']);
+makeCombo('gstance', uiLanguage==='en'
+  ? ['Presenter','Researcher','Interviewer','Facilitator','Reporter','Participant']
+  : ['提案する側','ヒアリングする側','面接官','司会・進行','報告する側','参加者']);
 // 全文ドロワー
 let drawerOpen=false, drawerTimer=null;
 async function loadTranscript(){
@@ -1845,50 +2290,36 @@ $('fok').onclick = async ()=>{
 };
 // リストをPDF保存：PDF専用の1枚デザイン(#pview)を組み立て→実測で自動縮小→必ずA4横1枚に収める
 $('pdf').onclick = ()=>{
+  // 各項目を独立ページに分け、内容は一切切り詰めずに全文を書き出す（旧・1枚圧縮レイアウトは廃止）
   const d=lastData||{};
-  const cut=(s,n)=>{s=itemText(s).trim();return s.length>n?s.slice(0,n-1)+'…':s};   // コンテンツ圧縮
   const A=a=>a||[];
-  const total=A(d.agenda).length+A(d.points).length+A(d.decisions).length+A(d.todos).length+A(d.open).length;
-  const lim = total>26 ? 46 : 72;   // 項目が多い会議ほど1項目を短く圧縮
-  const ul=(arr,cls,fmt)=>'<ul class="'+cls+'">'+(arr&&arr.length?arr.map(fmt).join(''):'<li class="pempty">—</li>')+'</ul>';
-  const card=(t,color,arr,inner)=>'<div class="pcard" style="--sc:'+color+'"><h3>'+t+'<span class="c">'+A(arr).length+'</span></h3>'+inner+'</div>';
-  const kpi=(l,v,color)=>'<div class="pkpi" style="--kc:'+color+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+  const full=x=>esc(itemText(x).trim());
   const sp=(d.speakers||[]).filter(x=>x&&x!==tr('不明','Unknown'));
-  // 要約は「…」でぶつ切りにせず、文の区切り（。）で収まる分だけ採用して短くまとめる
-  const sumFull=String(d.summary||'').trim();
-  let sum=''; for(const s of sumFull.split(/(?<=。)/)){ if((sum+s).length>150) break; sum+=s; }
-  if(!sum) sum=cut(sumFull,120);
   const cs=getComputedStyle(document.body);
   const C={blue:cs.getPropertyValue('--blue').trim(),green:cs.getPropertyValue('--green').trim(),
            amber:cs.getPropertyValue('--amber').trim(),red:cs.getPropertyValue('--red').trim()};
+  const kpi=(l,v,color)=>'<div class="pkpi" style="--kc:'+color+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';
+  const sec=(t,color,arr,fmt)=>!A(arr).length?'' :
+    '<section class="psec" style="--sc:'+color+'"><h2 class="psec-t">'+t+'<span class="c">'+A(arr).length+tr('件',' items')+'</span></h2>'
+    +'<ul class="plist">'+A(arr).map(fmt).join('')+'</ul></section>';
   $('pview').innerHTML='<div id="pwrap">'
-    +'<div class="pband"><div class="t">'+esc(cut(meetingTitle||tr('会議','Meeting'),28))+`<small>${tr('議事録','MINUTES')}</small></div>`
-      +'<div class="m">'+new Date().toLocaleDateString(uiLanguage==='en'?'en-US':'ja-JP',{year:'numeric',month:'long',day:'numeric'})
-      +(sp.length?`<br>${tr('参加者：','Participants: ')}`+esc(sp.slice(0,5).join(uiLanguage==='en'?', ':'・')):'')+'</div></div>'
-    +'<div class="phero">'
-      +'<div class="psum">'+esc(sum||'—')+'</div>'
-      +'<div class="pkpis">'+kpi(tr('決定','Decisions'),A(d.decisions).length,C.green)+kpi('ToDo',A(d.todos).length,C.amber)+kpi(tr('未解決','Open'),A(d.open).length,C.red)+'</div>'
-    +'</div>'
-    +'<div class="pcols">'
-    + card(tr('議題','Agenda'), C.blue, d.agenda, ul(d.agenda,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card(tr('決定事項','Decisions'), C.green, d.decisions, ul(d.decisions,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card('ToDo', C.amber, d.todos, ul(d.todos,'ptd',x=>'<li><span class="pwho">'+esc(x.who||tr('未定','Unassigned'))+'</span>'+esc(cut(x.what,lim))+'</li>'))
-    + card(tr('論点・意見','Discussion points'), C.blue, d.points, ul(d.points,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    + card(tr('未解決・要確認','Open questions'), C.red, d.open, ul(d.open,'',x=>'<li>'+esc(cut(x,lim))+'</li>'))
-    +'</div>'
-    +'<div class="pfoot"><span class="pbrand" aria-label="LiveMTG"></span><span>'+esc(tr('議事ライブ整理システムで自動生成','Generated by LiveMTG'))+'</span></div>'
+    +'<section class="psec">'
+      +'<div class="pband"><div class="t">'+esc(itemText(meetingTitle)||tr('会議','Meeting'))+`<small>${tr('議事録','MINUTES')}</small></div>`
+        +'<div class="m">'+new Date().toLocaleDateString(uiLanguage==='en'?'en-US':'ja-JP',{year:'numeric',month:'long',day:'numeric'})
+        +(sp.length?`<br>${tr('参加者：','Participants: ')}`+esc(sp.join(uiLanguage==='en'?', ':'・')):'')+'</div></div>'
+      +'<div class="psum-full">'+esc(String(d.summary||'').trim()||'—')+'</div>'
+      +'<div class="pkpis">'+kpi(tr('議題','Agenda'),A(d.agenda).length,C.blue)+kpi(tr('決定','Decisions'),A(d.decisions).length,C.green)+kpi('ToDo',A(d.todos).length,C.amber)+kpi(tr('未解決','Open'),A(d.open).length,C.red)+'</div>'
+      +'<div class="pfoot"><span class="pbrand" aria-label="LiveMTG"></span><span>'+esc(tr('議事ライブ整理システムで自動生成','Generated by LiveMTG'))+'</span></div>'
+    +'</section>'
+    + sec(tr('議題','Agenda'), C.blue, d.agenda, x=>'<li>'+full(x)+'</li>')
+    + sec(tr('決定事項','Decisions'), C.green, d.decisions, x=>'<li>'+full(x)+'</li>')
+    + sec('ToDo', C.amber, d.todos, x=>'<li><span class="pwho">'+esc(itemText(x&&x.who)||tr('未定','Unassigned'))+'</span>'+full(x&&x.what)+'</li>')
+    + sec(tr('論点・意見','Discussion points'), C.blue, d.points, x=>'<li>'+full(x)+'</li>')
+    + sec(tr('未解決・要確認','Open questions'), C.red, d.open, x=>'<li>'+full(x)+'</li>')
     +'</div>';
-  // A4横1枚（余白「既定」でも収まる安全寸: 1000×680px）に実測で収める。超えるなら全体を等倍縮小＝必ず1枚
-  const pv=$('pview'), pw=document.getElementById('pwrap');
+  const pv=$('pview');
   pv.classList.add('measuring');
-  pv.style.width='1000px'; pv.style.height='680px'; pv.style.overflow='hidden';
-  pw.style.transform=''; pw.style.width='1000px';
-  const availH=680, h=pw.scrollHeight;
-  if(h>availH){
-    const s=availH/h;
-    pw.style.width=(1000/s)+'px';                    // 縮小分だけ横に広げ、紙面幅ピッタリに
-    pw.style.transform='scale('+s+')'; pw.style.transformOrigin='top left';
-  }
+  pv.style.width='1000px'; pv.style.height=''; pv.style.overflow='visible';
   // 印刷時の document.title がブラウザのPDF既定ファイル名になる。
   const oldTitle=document.title;
   const safeTitle=String(meetingTitle||tr('会議','Meeting')).replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim();
@@ -1925,6 +2356,94 @@ $('aitest').onclick=async()=>{
 // ドロップダウンメニュー：開閉と、項目クリックで自動で閉じる
 $('menubtn').onclick = e=>{ e.stopPropagation(); $('menu').classList.toggle('show'); };
 document.addEventListener('click', e=>{ if(!$('menu').contains(e.target) && e.target!==$('menubtn')) $('menu').classList.remove('show'); });
+$('statuspill').onclick = e=>{ e.stopPropagation(); const p=$('statuspop'), show=!p.classList.contains('show'); p.classList.toggle('show',show); if(show)renderPop(); };
+document.addEventListener('click', e=>{ const p=$('statuspop'); if(p.classList.contains('show') && !p.contains(e.target)) p.classList.remove('show'); });
+// ===== ライブ支援レール：全体開閉＋セクション個別折りたたみ（状態は保持） =====
+function updateRailToggle(){
+  const closed=document.body.classList.contains('railclosed');
+  $('railtoggle').textContent=closed?'⟨':'⟩';
+  $('railtoggle').title=closed?tr('支援レールを開く','Open the support rail'):tr('支援レールを畳む','Collapse the support rail');
+}
+document.body.classList.toggle('railclosed', localStorage.getItem('livemtg_rail_closed')==='1');
+$('railtoggle').onclick=()=>{
+  const closed=document.body.classList.toggle('railclosed');
+  localStorage.setItem('livemtg_rail_closed', closed?'1':'0');
+  if(!closed)$('railtoggle').classList.remove('hasnew');
+  updateRailToggle();
+};
+updateRailToggle();
+// 狭幅時のオーバーレイレールはヘッダーの実高（折返しで58pxを超える）の直下から始める
+function syncHeaderH(){ document.documentElement.style.setProperty('--hdrh', document.querySelector('header').offsetHeight+'px'); }
+addEventListener('resize', syncHeaderH); syncHeaderH();
+// レール内タブ：質問・参考回答（ask）／会議の狙い（goal）。選択は保持、裏タブの更新は赤ドット
+function setRailTab(t){
+  ['ask','goal'].forEach(k=>$('rail-'+k).classList.toggle('on',k===t));
+  [...$('railtabs').children].forEach(b=>{ b.classList.toggle('on',b.dataset.rt===t); if(b.dataset.rt===t)b.classList.remove('hasnew'); });
+  localStorage.setItem('livemtg_rail_tab',t);
+}
+function railNotify(t){
+  const b=[...$('railtabs').children].find(x=>x.dataset.rt===t);
+  if(b && !b.classList.contains('on')) b.classList.add('hasnew');
+  if(document.body.classList.contains('railclosed')) $('railtoggle').classList.add('hasnew');
+}
+[...$('railtabs').children].forEach(b=> b.onclick=()=>setRailTab(b.dataset.rt));
+setRailTab(localStorage.getItem('livemtg_rail_tab')==='goal'?'goal':'ask');
+// ===== 補足・訂正（レール最下部・§5.3-4）：ライブ中の勘違い訂正・背景補足を /api/live-notes へ =====
+function drawFixLog(notes){
+  const el=$('fixlog'); if(!el)return;
+  el.innerHTML=(notes||[]).slice(-2).map(n=>`<div class="fixitem">${esc(n.text||'')}</div>`).join('');
+}
+async function loadFixLog(){ try{ const r=await api('/api/live-notes'); drawFixLog(r.ok?r.notes:[]); }catch(e){ drawFixLog([]); } }
+$('fixsend').onclick=async()=>{
+  const v=$('fixinput').value.trim(); if(!v)return;
+  $('fixsend').disabled=true;
+  try{
+    const r=await api('/api/live-notes',{text:v});
+    if(r.ok){ $('fixinput').value=''; drawFixLog(r.notes); toast(tr('伝えました。次の解析から反映されます','Noted — applies from the next analysis.')); }
+    else toast(tr('送信に失敗：','Could not send: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
+  }catch(e){ toast(tr('送信に失敗しました','Could not send the message.')); }
+  $('fixsend').disabled=false; $('fixinput').focus();
+};
+$('fixinput').onkeydown=e=>{ if(e.key==='Enter'&&!e.isComposing)$('fixsend').click(); };
+[...document.querySelectorAll('#railfix .fixquick button')].forEach(b=>b.onclick=()=>{
+  const p=tr(b.dataset.fix,b.dataset.fixEn||b.dataset.fix), i=$('fixinput');
+  if(!i.value.startsWith(p))i.value=p+i.value;
+  i.focus();
+});
+// 振り返りカード：サーバ状態に連動して状態チップとボタン表記を更新
+function updateReviewCards(s){
+  const chip=(id,txt,done)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle('done',!!done);};
+  chip('rvst-final', !s.hasAudio?tr('録音音声なし','No audio'):s.hasFinal?tr('清書済み','Done'):tr('未作成','Not yet'), s.hasFinal);
+  const bf=$('rvbtn-final'); if(bf)bf.textContent=s.hasFinal?tr('再清書する','Regenerate'):tr('清書する','Create minutes');
+  chip('rvst-map', hasSlides?tr('生成済み','Done'):tr('未作成','Not yet'), hasSlides);
+  const bm=$('rvbtn-map'); if(bm)bm.textContent=hasSlides?tr('開く','Open'):tr('作成する','Create');
+  const bmr=$('rvbtn-map-regen'); if(bmr)bmr.style.display=hasSlides?'':'none';
+}
+// ===== 3フェーズナビ：準備／ライブ／振り返り。行き来自由・会議ごとに最後のフェーズを記憶 =====
+let phase='live', phaseSessionId=null;
+function phaseKey(){return 'livemtg_phase_'+(currentSessionId||'default');}
+function setPhase(p,save=true){
+  if(!['prep','live','review'].includes(p))p='live';
+  phase=p;
+  document.body.classList.toggle('phase-prep',p==='prep');
+  document.body.classList.toggle('phase-review',p==='review');
+  [...$('phasetabs').children].forEach(b=>b.classList.toggle('on',b.dataset.ph===p));
+  if(save)localStorage.setItem(phaseKey(),p);
+  if(p==='live'&&view==='slide')deckHeight();
+  if(p==='prep'){
+    // 現在の設定値をフォームへ反映し、チャット履歴・準備ボードを読み込む
+    $('gtype').value=curType; $('gstance').value=curStance; $('ggoal').value=curGoal; $('gproj').value=curProj;
+    if(typeof renderProjHint==='function')renderProjHint();
+    loadCopilot();
+  }
+}
+[...$('phasetabs').children].forEach(b=>b.onclick=()=>setPhase(b.dataset.ph));
+// 暫定：準備・振り返り画面のボタンは既存のメニュー項目を代理クリックする（ステップ5・6で本実装に置換）
+document.querySelectorAll('[data-proxy]').forEach(b=>b.onclick=()=>{
+  const t=$(b.dataset.proxy); if(!t)return;
+  if(t.disabled){toast(tr('まだ実行できません（対象の音声・データがありません）','Not available yet: no audio or data for this action.'));return;}
+  t.click();
+});
 [...document.querySelectorAll('.menu-item')].forEach(b=> b.addEventListener('click', ()=> $('menu').classList.remove('show')));
 
 translateStatic();
@@ -1935,13 +2454,14 @@ setView(view);
   refreshDiagnostics(false); // 診断待ちで初期画面を止めない
   if(recording){ startupPending=false; await pollData(); return; }
   // 前回会議の内容を初期画面に混ぜず、新規開始か明示的な再開かを選ぶ。
-  $('mtitle').value=''; $('mproj').value=curProj; $('mgoal').value=''; $('mtype').value=curType; $('mstance').value=curStance;
+  $('mtitle').value='';
   $('mcancel').textContent=tr('前回の会議を開く','Open previous meeting');
   $('mbg').classList.add('show');
   setTimeout(()=>$('mtitle').focus(),50);
 })();
 setInterval(pollState, 3000);
 setInterval(pollData, 4000);
+setInterval(()=>sendViewFocus(false), 5000);
 setInterval(renderLastUpdate, 10000);
 </script>
 </body>

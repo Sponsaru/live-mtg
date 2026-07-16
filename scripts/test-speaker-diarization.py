@@ -91,5 +91,55 @@ with tempfile.TemporaryDirectory() as tmp:
     assert second_turns[0]["speaker"] == "SPEAKER_00"
     assert second_turns[1]["speaker"] == "SPEAKER_01"
     assert [x["id"] for x in second_speakers] == ["SPEAKER_00", "SPEAKER_01"]
+    # 重なりの無い新規声を、その場にいない既存話者IDへ誤帰属しない。
+    Path(server._live_diarization_path(sid)).write_text(__import__("json").dumps({
+        "turns": first_turns, "speakers": first_speakers,
+    }), encoding="utf-8")
+    _, unseen_turns = server._stable_live_speakers(sid, [
+        {"speaker": "new_voice", "start": 100, "end": 104},
+    ])
+    assert unseen_turns[0]["speaker"] == "SPEAKER_02"
+
+    # ライブは全音声ではなく直近90秒＋境界1チャンクだけを処理する。
+    audio_dir = Path(server.sdir(sid)) / "audio"; audio_dir.mkdir()
+    audio_files = []
+    for i in range(5):
+        path = audio_dir / ("inc_%02d.webm" % i); path.write_bytes(b"audio"); audio_files.append(str(path))
+    original_duration, original_concat = server._audio_duration, server._concat_audio_files
+    selected = []
+    server._audio_duration = lambda _path: 30.0
+    server._concat_audio_files = lambda files, _sid, _stem: (selected.extend(files) or ("window.wav", "window.txt"))
+    try:
+        wav, _listf, start, spans, through = server._rolling_diarization_audio(sid, 90)
+    finally:
+        server._audio_duration, server._concat_audio_files = original_duration, original_concat
+    assert wav == "window.wav" and start == 30 and through == 150
+    assert [Path(x).name for x in selected] == ["inc_01.webm", "inc_02.webm", "inc_03.webm", "inc_04.webm"]
+    assert [x["name"] for x in spans] == [Path(x).name for x in selected]
+
+    # 一つのチャンクに二人が拮抗しているときは誤って1人に帰属しない。
+    span = {"start": 0, "end": 10}
+    assert server._dominant_speaker(span, [
+        {"speaker": "SPEAKER_00", "start": 0, "end": 7},
+        {"speaker": "SPEAKER_01", "start": 7, "end": 10},
+    ])[0] == "SPEAKER_00"
+    assert server._dominant_speaker(span, [
+        {"speaker": "SPEAKER_00", "start": 0, "end": 5},
+        {"speaker": "SPEAKER_01", "start": 5, "end": 10},
+    ])[0] == ""
+
+    # 既に判明した音声チャンクは、文字起こし受領時から暂定話者付きで表示する。
+    Path(server._live_diarization_path(sid)).write_text(__import__("json").dumps({
+        "audioSpeakers": {"inc_04.webm": "SPEAKER_00"}, "turns": [], "speakers": [],
+    }), encoding="utf-8")
+    (Path(server.sdir(sid)) / "data.json").write_text(server.EMPTY_DATA, encoding="utf-8")
+    server._write_live_receipt(sid, "最新の発話", 20, "inc_04.webm")
+    live_data = __import__("json").loads((Path(server.sdir(sid)) / "data.json").read_text(encoding="utf-8"))
+    assert live_data["liveReceipt"]["speaker"] == "SPEAKER_00"
+    assert live_data["timeline"][-1]["who"] == "話者A"
+
+worker_source = (ROOT / "scripts" / "live-diarize-worker.py").read_text(encoding="utf-8")
+assert "def wav_tensor" in worker_source and "pipeline(wav_tensor(wav)" in worker_source
+assert "pyannote\\.audio\\.core\\.io" in worker_source
 
 print("Anonymous speakers remain stable until user-confirmed mapping")

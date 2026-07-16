@@ -7,11 +7,14 @@ the request, command line, meeting data, or logs.
 """
 
 import getpass
+from array import array
 import json
 import os
 import platform
 import subprocess
 import sys
+import wave
+import warnings
 from pathlib import Path
 
 
@@ -50,6 +53,9 @@ def load_pipeline():
     token = credential_token()
     if not token:
         raise RuntimeError("Hugging Face credential is not configured")
+    # We provide an in-memory waveform and intentionally do not use pyannote's
+    # optional torchcodec decoder.  Hide its import-time compatibility warning.
+    warnings.filterwarnings("ignore", category=UserWarning, module=r"pyannote\.audio\.core\.io")
     import torch
     from pyannote.audio import Pipeline
 
@@ -59,6 +65,27 @@ def load_pipeline():
     if torch.backends.mps.is_available():
         pipeline.to(torch.device("mps"))
     return pipeline
+
+
+def wav_tensor(path):
+    """Read the PCM WAV produced by LiveMTG without torchcodec/FFmpeg bindings."""
+    import torch
+    with wave.open(path, "rb") as reader:
+        channels, width, rate = reader.getnchannels(), reader.getsampwidth(), reader.getframerate()
+        frames = reader.readframes(reader.getnframes())
+    if width == 1:
+        values = [(value - 128) / 128.0 for value in frames]
+    elif width in (2, 4):
+        kind, scale = ("h", 32768.0) if width == 2 else ("i", 2147483648.0)
+        samples = array(kind); samples.frombytes(frames)
+        if sys.byteorder != "little": samples.byteswap()
+        values = [value / scale for value in samples]
+    else:
+        raise RuntimeError("Unsupported WAV sample width: %d" % width)
+    waveform = torch.tensor(values, dtype=torch.float32).reshape(-1, channels).transpose(0, 1).contiguous()
+    if channels > 1:
+        waveform = waveform.mean(dim=0, keepdim=True)
+    return {"waveform": waveform, "sample_rate": rate}
 
 
 def diarize(pipeline, request):
@@ -72,7 +99,9 @@ def diarize(pipeline, request):
         kwargs["min_speakers"] = minimum
     if maximum > 0:
         kwargs["max_speakers"] = maximum
-    output = pipeline(wav, **kwargs)
+    # pyannote 4 delegates file decoding to torchcodec.  Homebrew FFmpeg and the
+    # bundled torch/torchcodec versions can diverge, so pass decoded PCM memory.
+    output = pipeline(wav_tensor(wav), **kwargs)
     annotation = getattr(output, "speaker_diarization", output)
     turns = []
     for turn, _, speaker in annotation.itertracks(yield_label=True):

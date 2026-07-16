@@ -75,6 +75,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     server._write_live_receipt(sid, "いま届いた発話", 12)
     receipt = json.loads((meeting / "data.json").read_text(encoding="utf-8"))["liveReceipt"]
     assert receipt["text"] == "いま届いた発話" and receipt["analyzed"] is False
+    timeline = json.loads((meeting / "data.json").read_text(encoding="utf-8"))["timeline"]
+    assert timeline[-1]["text"] == "いま届いた発話"  # 時系列はAI待ちしない
     server._mark_live_receipt_analyzed(sid, 12)
     assert json.loads((meeting / "data.json").read_text(encoding="utf-8"))["liveReceipt"]["analyzed"] is True
 
@@ -118,6 +120,13 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     server.request_detail(sid)
     assert sid in server.detail_deferred and server.detail_q.qsize() == queued_before
     server.recording = False
+
+    # 表示中ビューだけを優先キューへ。tree/radialは同じmapデータを共有する。
+    server.view_clients["tab-a"] = {"sid": sid, "view": "radial", "visible": True, "updated": time.time()}
+    assert server.active_view(sid) == "radial" and server._canonical_view("radial") == "map"
+    before_view = server.view_q.qsize()
+    server.request_active_view_update(sid, force=True)
+    assert (sid, "map") in server.view_pending and server.view_q.qsize() == before_view + 1
 
     # A background CLI already running at record-start is preemptible.
     class FakeProcess:
