@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -20,8 +20,35 @@ function hasMeetings(dir) {
 
 // 初期配布版は ~/mtg-live を使っていた。新保存先に会議がまだ無く、
 // 旧保存先に会議がある場合だけ旧側を採用し、「更新したら消えた」を防ぐ。
-const autoLegacyHome = !process.env.LIVE_MTG_HOME
+// ただし新側にツール（モデル/whisper/設定）が既にあるのに旧側を選ぶと、
+// 「会議はあるがモデルが見つからない」home分裂になる（2026-07-17 Windows実機レポートの壁③）。
+// その場合は旧会議を新側へ自動移設して一本化する。
+function hasTools(dir) {
+  return existsSync(join(dir, "config.json")) || existsSync(join(dir, "models")) || existsSync(join(dir, "tools"));
+}
+function migrateLegacyMeetings() {
+  const src = join(legacyHome, "meetings"), dst = join(defaultHome, "meetings");
+  try {
+    mkdirSync(dst, { recursive: true });
+    let moved = 0;
+    for (const name of readdirSync(src)) {
+      if (name.startsWith(".")) continue;
+      const from = join(src, name), to = join(dst, name);
+      if (existsSync(to)) continue;   // 新側にもある会議は上書きしない
+      try { renameSync(from, to); moved++; }
+      catch { try { cpSync(from, to, { recursive: true }); rmSync(from, { recursive: true, force: true }); moved++; } catch {} }
+    }
+    if (moved) console.log(t(`旧保存先の会議 ${moved} 件を ${defaultHome} へ移設しました（保存先を一本化）`,
+                             `Moved ${moved} meetings from the legacy folder into ${defaultHome}.`));
+    return true;
+  } catch { return false; }
+}
+let autoLegacyHome = !process.env.LIVE_MTG_HOME
   && !hasMeetings(defaultHome) && hasMeetings(legacyHome);
+if (autoLegacyHome && hasTools(defaultHome) && !hasTools(legacyHome)) {
+  // 分裂状態：道具は新側・会議は旧側 → 会議を新側へ寄せて新側を使う
+  if (migrateLegacyMeetings()) autoLegacyHome = false;
+}
 const home = process.env.LIVE_MTG_HOME || (autoLegacyHome ? legacyHome : defaultHome);
 const port = process.env.PORT || "8777";
 const server = join(root, "server.py");
@@ -232,6 +259,28 @@ async function prepareRuntime(assumeYes) {
       if (!installed) console.log(t("whispermlxのインストールに失敗しました。従来の文字起こしはそのまま利用できます。", "whispermlx installation failed. Standard transcription remains available."));
     }
   }
+  if (isMac && commandExists("mlx_whisper") && commandExists("ffmpeg")) {
+    // モデル（約3GB）を初会議の最初のチャンクで落とし始めると数分沈黙する（2026-07-17 棚卸しで発覚。
+    // Windowsは以前からonboardで先に落とす設計）。無音0.4秒を1回文字起こし＝DL＋ロードを済ませる
+    const asrChoice = String(readConfig().asrModel || "accurate");
+    const mlxModel = asrChoice === "fast" ? "mlx-community/whisper-large-v3-turbo" : "mlx-community/whisper-large-v3-mlx";
+    if (await confirmStep(t("文字起こしモデルを事前ダウンロードしますか？（約3GB・初回のみ。ここで済ませると最初の会議で待ちません）",
+                            "Pre-download the transcription model (about 3 GB, first time only)?"), assumeYes)) {
+      console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…",
+                    "Downloading the transcription model. This may take several minutes…"));
+      const warmWav = join(home, ".livemtg-warmup.wav");
+      const okWav = runInteractive("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono", "-t", "0.4", warmWav]);
+      const okWarm = okWav && runInteractive("mlx_whisper", [warmWav, "--model", mlxModel,
+        "--language", "ja", "-f", "txt", "--output-name", ".livemtg-warmup", "-o", home]);
+      for (const f of [warmWav, join(home, ".livemtg-warmup.txt")]) {
+        try { rmSync(f, { force: true }); } catch {}
+      }
+      console.log(okWarm ? t("モデルの準備が完了しました。", "Model is ready.")
+                         : t("モデルの事前取得に失敗しました（最初の録音時に自動で再取得されます）。",
+                             "Pre-download failed; it will retry on the first recording."));
+    }
+  }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
     if (await confirmStep(t("Windows用whisper.cppをダウンロードしますか？（約8MB）", "Download whisper.cpp for Windows (about 8 MB)?"), assumeYes)) {
       installWindowsWhisper();
@@ -280,8 +329,23 @@ function downloadWindowsModel() {
   return true;
 }
 
+function pythonWorks(name) {
+  // Microsoft Storeの0バイトスタブは実行しても何も出さずに終了する
+  // （2026-07-17 Windows実機レポートの壁②）。--versionの出力有無で本物か判定する
+  try {
+    const r = spawnSync(name, name === "py" ? ["-3", "--version"] : ["--version"],
+                        { encoding: "utf8", timeout: 8000 });
+    return r.status === 0 && /Python 3/.test((r.stdout || "") + (r.stderr || ""));
+  } catch { return false; }
+}
 function pythonCommand() {
-  for (const name of isWindows ? ["python", "py"] : ["python3", "python"]) {
+  if (isWindows) {
+    for (const name of ["py", "python", "python3"]) {   // pyランチャーはStoreスタブに乗っ取られない
+      if (pythonWorks(name)) return name;
+    }
+    return "";
+  }
+  for (const name of ["python3", "python"]) {
     if (commandExists(name)) return name;
   }
   return null;
@@ -291,6 +355,9 @@ function runtimeEnv() {
   return {
     ...process.env,
     LIVE_MTG_DESKTOP: "1",
+    // 日本語Windows（cp932）でも表示・子プロセス読取をUTF-8に統一（2026-07-17 実機レポートの壁①④）
+    PYTHONUTF8: "1",
+    PYTHONIOENCODING: "utf-8",
     RUN: home,
     MEETINGS_DIR: join(home, "meetings"),
     DRIVE_SYNC_DIR: join(home, "meetings"),

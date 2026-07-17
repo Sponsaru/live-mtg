@@ -57,7 +57,7 @@ def case(name, group):
 @case("fast: JSONスキーマと必須キー", "fast")
 def _(run):
     d = run(fast_prompt("では次回は金曜15時で。議事録は私がまとめます。"))
-    assert isinstance(d, dict) and "summary" in d and "arc" in d, "summary/arcが無い"
+    assert isinstance(d, dict) and "summary" in d, "summaryが無い"
 
 
 @case("fast: 曖昧な人名 → confirmが発火する", "fast")
@@ -83,14 +83,17 @@ def _(run):
 @case("fast: 目標なしでも質問が出る（雑談以外）", "fast")
 def _(run):
     d = run(fast_prompt("新サービスの価格をどうするかが今日の本題です。原価はだいたい月3万円くらい。"))
-    q = (d.get("question") or {}).get("q") or ""
-    assert q.strip(), "前進余地のある会話なのにquestionが空"
+    qs = (d or {}).get("questions") or []
+    assert any(str(q.get("q") or "").strip() for q in qs), "前進余地のある会話なのにquestionsが空"
 
 
-@case("fast: ToDo拾い（レーン統合の回帰）", "fast")
+@case("list: ToDo拾い（リストレーン）", "fast")
 def _(run):
-    d = run(fast_prompt("じゃあ見積書のドラフトは佐藤さんが金曜までに作ってください。承知しました。"))
-    todos = d.get("todos_add") or []
+    prompt = srv.ACTIVE_LIST_PROMPT.format(title="評価用会議",
+        index='{"agenda":[],"points":[],"decisions":[],"todos":[],"open":[]}',
+        delta="じゃあ見積書のドラフトは佐藤さんが金曜までに作ってください。承知しました。")
+    d = run(prompt)
+    todos = (d or {}).get("todos_add") or []
     assert any("佐藤" in str(t.get("who") or "") for t in todos if isinstance(t, dict)), "明示のToDoを拾えていない: %r" % todos
 
 
@@ -122,6 +125,45 @@ def _(run):
     t = str(r.get("type") or "")
     assert str(r.get("from") or "").strip() and t.strip(), "relationが空: %r" % r
     assert len(t) >= 4 and t != "関連", "typeが論理を語っていない: %r" % t
+
+
+@case("fast: 行き詰まり発話 → stuckが立つ", "counsel")
+def _(run):
+    d = run(fast_prompt("うーん、どっちの案も決め手がないんだよなあ。さっきから同じ話をぐるぐるしてる気がする。難しいね。どうしようか。"))
+    assert str((d or {}).get("stuck") or "").strip(), "明確な停滞なのにstuckが無い"
+
+
+@case("fast: 普通の進行 → stuckは立たない", "counsel")
+def _(run):
+    d = run(fast_prompt("では次回は金曜15時で確定にしましょう。はい、確定で。議事録は私がまとめます。"))
+    assert not str((d or {}).get("stuck") or "").strip(), "順調な進行でstuckが立った: %r" % d.get("stuck")
+
+
+@case("counsel: 2案＋推し＋根拠の構造", "counsel")
+def _(run):
+    prompt = srv.COUNSEL_PROMPT.format(stuck="単価設定の決め手がない", bg="【背景】過去案件では30万円開始→実績後に100万円へ引き上げた成功例がある",
+                                       arc="新サービスの価格設定を議論中。低価格案と高価格案で膠着", delta="30万だと安すぎる気もするし、100万だと最初は売れない気もする。うーん。")
+    d = run(prompt, timeout=120)
+    assert str((d or {}).get("situation") or "").strip(), "situationが無い"
+    opts = (d or {}).get("options") or []
+    assert len(opts) == 2, "2案でない: %d案" % len(opts)
+    assert str((d or {}).get("pick") or "").strip() and str((d or {}).get("reason") or "").strip(), "推し/根拠が無い"
+
+
+@case("vet: 一般語は棄却・固有名詞は通過", "vet")
+def _(run):
+    terms = "- 「エージェント」（発話: AIエージェントの導入支援というところ）\n- 「ワットライン」（発話: 会社に対してワットラインされたりする）"
+    d = run(srv.CONFIRM_VET_PROMPT.format(terms=terms))
+    keep = [str(k.get("term") or "") for k in ((d or {}).get("keep") or [])]
+    assert not any("エージェント" in t for t in keep), "一般語が通過した: %r" % keep
+    assert any("ワットライン" in t for t in keep), "聞き間違い疑いが棄却された: %r" % keep
+
+
+@case("fast: 質問は複数候補で返せる", "fast")
+def _(run):
+    d = run(fast_prompt("新サービスの価格の議論です。原価は月3万円。競合Aは月15万円で提供。うちは機能面で優位があります。", goal="価格戦略を決める"))
+    qs = (d or {}).get("questions") or []
+    assert len(qs) >= 1 and all(str(q.get("q") or "").strip() for q in qs), "質問候補が返らない: %r" % qs
 
 
 @case("retro: 訂正 → 置換ペア抽出", "retro")

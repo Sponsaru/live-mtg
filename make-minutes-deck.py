@@ -150,6 +150,19 @@ def mermaid_label(value):
 live = load_json("data.json")   # mindmap/diagramはライブ版が最新のことがある（final.jsonはdiagramのみ持つ）
 mm_topics = [t for t in ((data.get("mindmap") or live.get("mindmap")) or [])
              if isinstance(t, dict) and t.get("topic")]
+if not mm_topics:
+    # 解析遅延等でmindmapが無くても放射マップページは必ず入れる（2026-07-17 依頼者指示）。
+    # ライブ表示と同じ発想で、確定済みのリスト系データから枝を合成する
+    def synth(name, items, limit=5):
+        rows = [item_text(x) for x in (items or [])[:limit]]
+        rows = [r for r in rows if r]
+        if rows:
+            mm_topics.append({"topic": name, "groups": [{"label": tr("内容", "Details"),
+                              "items": [{"label": r[:42]} for r in rows]}]})
+    synth(tr("主要論点", "Key points"), data.get("points"))
+    synth(tr("決定事項", "Decisions"), data.get("decisions"))
+    synth("ToDo", [todo_text(x) for x in (data.get("todos") or [])])
+    synth(tr("未解決", "Open questions"), data.get("open"))
 need_mermaid = False
 if mm_topics:
     lines = ["mindmap", "  root((%s))" % mermaid_label(TITLE)]

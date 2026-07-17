@@ -274,6 +274,24 @@
   .railpane{display:none;flex-direction:column;gap:14px;min-width:0}
   .railpane.on{display:flex}
   .railhint{font-size:13px;color:var(--sub);background:#fff;border:1px dashed #c9ccd3;border-radius:12px;padding:14px;line-height:1.7}
+  /* 質問候補：×で却下（再提案しない）、3分でグレー（少し前の提案） */
+  .railitem{position:relative}
+  .ri-x{position:absolute;top:8px;right:10px;border:none;background:transparent;color:#b0b3ba;font-size:14px;
+    font-weight:800;cursor:pointer;padding:2px 5px;line-height:1}
+  .ri-x:hover{color:#b0453c}
+  .railitem.stale{opacity:.55}
+  .ri-stale{font-size:10.5px;color:var(--sub);font-weight:700;margin-bottom:3px}
+  /* 行き詰まりへの提案（参謀の意見）カード */
+  .counselcard{background:#fff;border:1.5px solid var(--blue);border-radius:14px;padding:13px 14px;box-shadow:0 2px 10px rgba(0,113,227,.10)}
+  .cs-head{font-size:11.5px;font-weight:800;color:var(--blue-d);letter-spacing:.06em;margin-bottom:6px}
+  .cs-sit{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:8px;line-height:1.5}
+  .cs-opt{font-size:12.5px;color:var(--ink);padding:7px 9px;border:1px solid var(--line);border-radius:9px;margin:5px 0;line-height:1.55}
+  .cs-opt b{display:block;font-size:12px;margin-bottom:2px}
+  .cs-opt.pick{border-color:var(--blue);background:#f3f8fe}
+  .cs-opt.pick b::after{content:" ← 推し";color:var(--blue-d)}
+  .cs-reason{font-size:12.5px;color:var(--ink2);margin-top:7px;line-height:1.65}
+  .cs-close{margin-top:8px;font-family:inherit;font-size:11.5px;font-weight:700;border:none;background:transparent;color:var(--sub);cursor:pointer;padding:0}
+  .cs-close:hover{text-decoration:underline}
   #rail-ask:has(.nextwrap.show) .railhint,#rail-ask:has(.assist.show) .railhint{display:none}
   #rail-goal:has(.gwrap.show) .railhint{display:none}
   .summary{
@@ -834,6 +852,7 @@
 </div>
 
 <div class="railpane on" id="rail-ask">
+  <div id="counselwrap" style="display:none"></div>
   <div class="nextwrap" id="nextwrap">
     <div class="nexthead">次に聞く質問</div>
     <div class="nextchips" id="nextchips"></div>
@@ -1533,6 +1552,7 @@ async function pollData(){
     $('who').classList.toggle('show', sp.length>0);
     renderAssist(d.assist||[]);
     renderConfirm(d.confirm||[]);
+    renderCounsel(d.counsel||null);
     renderGuide(d.guide);
     const sig=deckSignature(d);
     if(view==='slide' && sig!==deckSig){ deckSig=sig; buildDeck(d); }
@@ -1562,8 +1582,48 @@ function renderNextQuestions(qs){
   if(nsig!==nextQSig){ const first=!nextQSig; nextQSig=nsig; if(!first&&nextQuestions.length)railNotify('ask'); }
   $('nextwrap').classList.toggle('show',nextQuestions.length>0||!!curGoal);
   $('nextchips').innerHTML=nextQuestions.length
-    ? nextQuestions.map(x=>{const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();return `<div class="railitem"><div class="ri-q">${esc(question)}</div><div class="ri-body">${esc(intent)}</div></div>`}).join('')
+    ? nextQuestions.map((x,i)=>{
+        const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();
+        const age=x.at?Math.floor(Date.now()/1000-x.at):0, stale=age>180;
+        return `<div class="railitem${stale?' stale':''}" data-at="${x.at||''}">`
+          +(stale?`<div class="ri-stale">${tr('少し前の提案','Earlier suggestion')}</div>`:'')
+          +`<button class="ri-x" title="${tr('この質問を消す（再提案しません）','Dismiss (won\'t suggest again)')}" onclick="dismissQuestion(${i})">×</button>`
+          +`<div class="ri-q">${esc(question)}</div><div class="ri-body">${esc(intent)}</div></div>`}).join('')
     : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問がここに出ます。','Suggested questions will appear here once the conversation begins.')}</span>`;
+}
+async function dismissQuestion(i){
+  const x=nextQuestions[i]; if(!x)return;
+  nextQuestions.splice(i,1); nextQSig=''; renderNextQuestions(nextQuestions.slice());
+  try{ await api('/api/dismiss-question',{q:String(x.q||'')}); }catch(e){}
+}
+// 3分経過の質問を定期的にグレー化（データ変化が無くても鮮度表示だけ進める）
+setInterval(()=>{
+  document.querySelectorAll('#nextchips .railitem[data-at]').forEach(el=>{
+    const at=Number(el.dataset.at||0); if(!at)return;
+    const stale=(Date.now()/1000-at)>180;
+    if(stale&&!el.classList.contains('stale')){ nextQSig=''; renderNextQuestions(nextQuestions.slice()); }
+  });
+},20000);
+// 行き詰まりへの提案（参謀の意見）：2案＋推し＋根拠。畳んだら同じ提案は再表示しない
+let counselShownAt=0;
+function counselDismissKey(){ return 'livemtg_counsel_done_'+(currentSessionId||'default'); }
+function renderCounsel(c){
+  const w=$('counselwrap');
+  if(!c||!c.situation){ w.style.display='none'; w.innerHTML=''; return; }
+  let done=[]; try{ done=JSON.parse(localStorage.getItem(counselDismissKey())||'[]'); }catch(e){}
+  if(done.includes(String(c.at||''))){ w.style.display='none'; return; }
+  if(String(c.at||'')!==String(counselShownAt)){ counselShownAt=String(c.at||''); railNotify('ask'); }
+  w.style.display='';
+  w.innerHTML=`<div class="counselcard"><div class="cs-head">${tr('行き詰まりへの提案','A way forward')}</div>`
+    +`<div class="cs-sit">${esc(c.situation)}</div>`
+    +(c.options||[]).map(o=>`<div class="cs-opt${o.label===c.pick?' pick':''}"><b>${esc(o.label)}</b>${esc(o.body||'')}</div>`).join('')
+    +(c.reason?`<div class="cs-reason">${esc(c.reason)}</div>`:'')
+    +`<button class="cs-close" onclick="dismissCounsel('${esc(String(c.at||''))}')">${tr('畳む（この提案は再表示しない）','Dismiss')}</button></div>`;
+}
+function dismissCounsel(at){
+  let done=[]; try{ done=JSON.parse(localStorage.getItem(counselDismissKey())||'[]'); }catch(e){}
+  done.push(String(at)); localStorage.setItem(counselDismissKey(), JSON.stringify(done.slice(-10)));
+  $('counselwrap').style.display='none';
 }
 // 質問の意図は常時表示（タップ展開廃止・2026-07-16）
 async function renderGuide(g){
