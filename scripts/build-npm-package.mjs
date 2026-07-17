@@ -9,7 +9,7 @@ mkdirSync(out, { recursive: true });
 
 for (const path of [
   "cli", "defaults", "server.py", "index.html", "brand-logo.png", "app-icon.png", "mermaid.min.js",
-  "make-mindmap.py", "make-slides.sh", "make-learn-slides.sh", "make-minutes-deck.py", "make-map-slide.py", "slides-template.html",
+  "make-mindmap.py", "make-slides.sh", "make-learn-slides.sh", "make-minutes-deck.py", "make-map-slide.py", "radial-map.js", "slides-template.html",
   "slide-work-template.html", "slide-work-pattern-examples.html", "slide-work-guide.md", "install.sh",
   "install.ps1", "scripts/live-diarize-worker.py", "LICENSE", "VERSION"
 ]) {

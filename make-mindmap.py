@@ -126,6 +126,7 @@ def mermaid_label(value):
     value = re.sub(r'[\r\n\[\](){}"#]+', ' ', str(value or ""))
     return re.sub(r"\s+", " ", value).strip()[:42] or tr("未整理", "Unsorted")
 
+# 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目）
 radial_lines = ["mindmap", "  root((%s))" % mermaid_label(title)]
 for i, (heading, groups) in enumerate(branches[:8]):
     radial_lines.append('    b%d["%s"]' % (i, mermaid_label(heading)))
@@ -134,13 +135,21 @@ for i, (heading, groups) in enumerate(branches[:8]):
         for k, item in enumerate((group.get("items") or [])[:5]):
             radial_lines.append('        b%dg%di%d["%s"]' % (i, j, k, mermaid_label(item.get("label") if isinstance(item, dict) else item)))
 radial_diagram = "\n".join(radial_lines)
+# 論点整理（カード表示・radial-map.jsのcardsレイアウト）用モデルJSON
+radial_model = json.dumps({"title": title, "topics": [
+    {"topic": heading, "groups": [
+        {"label": g.get("label"), "items": [
+            (i.get("label") if isinstance(i, dict) else str(i)) for i in (g.get("items") or [])[:5]]}
+        for g in groups[:4]]}
+    for heading, groups in branches[:8]]}, ensure_ascii=False)
 
 body = '''<div class="slide mindmap-page">
   <div class="head"><div class="kick">MEETING MIND MAP</div><h1>%s</h1><div class="hsub">%s</div>
-    <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="radial">%s</button><button data-generated-map="relation">%s</button><button data-generated-map="timeline">%s</button></div>
+    <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="radial">%s</button><button data-generated-map="cards">%s</button><button data-generated-map="relation">%s</button><button data-generated-map="timeline">%s</button></div>
   </div>
   <div class="stage">
     <div class="generated-map-view generated-radial" data-generated-view="radial"><div class="mermaid">%s</div></div>
+    <div class="generated-map-view generated-cards" data-generated-view="cards"><div class="radial-host" data-radial-host></div></div>
     <div class="generated-map-view generated-relation" data-generated-view="relation"><div class="mermaid">%s</div></div>
     <div class="generated-map-view generated-topics" data-generated-view="topics"><div class="tree-map" data-tree>
     <svg class="tree-lines" aria-hidden="true"></svg>
@@ -150,9 +159,10 @@ body = '''<div class="slide mindmap-page">
     <div class="generated-map-view generated-timeline" data-generated-view="timeline">%s</div>
   </div>
 </div>''' % (html.escape(title), tr("マインドマップ・放射マップ・会話の関係・時系列", "Mind map, radial map, relationships, and timeline"),
-             tr("マインドマップ", "Mind map"), tr("放射マップ", "Radial map"), tr("会話の関係", "Conversation relationships"), tr("時系列", "Timeline"),
+             tr("マインドマップ", "Mind map"), tr("放射マップ", "Radial map"), tr("論点整理", "Topic cards"), tr("会話の関係", "Conversation relationships"), tr("時系列", "Timeline"),
              html.escape(radial_diagram), html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
              "".join(timeline_rows) or '<div class="generated-empty">%s</div>' % tr("発言を整理中です", "Organizing the conversation"))
+body += '<script id="radial-model" type="application/json">%s</script>' % radial_model.replace("</", "<\\/")
 
 with open(os.path.join(script_dir, "slides-template.html"), encoding="utf-8") as f:
     template = f.read()

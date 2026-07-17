@@ -217,6 +217,9 @@
   .statuspop .sp-note{font-size:12px;margin-top:6px;border-top:1px solid var(--line);padding-top:8px;display:flex;gap:10px;flex-wrap:wrap}
   .statuspop .sp-note .ok{color:#1d9e63;font-weight:700}
   .statuspop .sp-note .wait{color:var(--sub)}
+  .sp-stopbtn{font-family:inherit;font-size:12px;font-weight:700;border:1px solid #e0b4af;background:#fdf4f3;
+    color:#b0453c;border-radius:999px;padding:6px 14px;cursor:pointer}
+  .sp-stopbtn:hover{background:#fbe9e7}
   @media(max-width:1180px){
     .sessbtn{max-width:180px}
   }
@@ -631,8 +634,10 @@
   #deck .tree-map:not(.root-collapsed) .tree-node.root::after,#deck .tree-branch:not(.collapsed)>.branch-head .tree-node.branch::after,#deck .tree-subbranch:not(.group-collapsed)>.tree-node.group::after{transform:rotate(90deg)}
   #deck .tree-map.root-collapsed .tree-branches{display:none}
   /* デッキ内のマップ切替は5タブ（#viewtabs）に統合済み */
-  #deck .relation-map,#deck .radial-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
-  #deck .relation-map.on,#deck .radial-map.on{display:flex} #deck .tree-map.off{display:none}
+  #deck .relation-map,#deck .radial-map,#deck .cards-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
+  #deck .relation-map.on,#deck .radial-map.on,#deck .cards-map.on{display:flex} #deck .tree-map.off{display:none}
+  /* 論点整理（カード）：キャンバスが広い時はdstageのスクロール（ドラッグでパン）が効くようサイズを内容に合わせる */
+  #deck .cards-map.on{width:max-content;height:max-content;min-width:100%;min-height:100%}
   #deck .timeline-map{width:min(920px,calc(100% - 48px));min-width:620px;margin:0 auto;padding:42px 36px 80px;display:flex;flex-direction:column;gap:0}
   #deck .timeline-map.off{display:none}
   #deck .timeline-item{position:relative;margin-left:84px;padding:0 0 28px 34px;border-left:2px solid #d2d2d7}
@@ -789,6 +794,7 @@
   <button data-vt="list" class="on">リスト</button>
   <button data-vt="tree">論点マップ</button>
   <button data-vt="radial">放射マップ</button>
+  <button data-vt="cards">論点整理</button>
   <button data-vt="relation">会話の関係</button>
   <button data-vt="timeline">時系列</button>
   <button class="vt-full" id="full" title="会話全文を見る">全文</button>
@@ -907,10 +913,9 @@
       </div>
       <div class="gprojhint" id="gprojhint"></div>
       <datalist id="projdl"></datalist>
-      <label class="flabel">事前メモの取り込み — Claude Code等で残した背景メモをブリーフへ反映</label>
       <div class="brief-import">
-        <button class="linklike" id="importfile">ファイルを取り込む</button>
-        <button class="linklike" id="importdir">フォルダごと取り込む</button>
+        <button class="linklike" id="importdir">背景フォルダを読んでブリーフに反映</button>
+        <button class="linklike" id="importfile">別のファイルを取り込む</button>
       </div>
       <div class="brief-board" id="sboard"></div>
       <div class="prep-save" id="spath"></div>
@@ -935,6 +940,7 @@
 
 
 <script src="/mermaid.min.js"></script>
+<script src="/radial-map.js"></script>
 
 <!-- 全文ドロワー -->
 <div class="drawer-bg" id="drbg"></div>
@@ -1023,6 +1029,16 @@
 </div>
 
 <!-- 録音開始の選択モーダル -->
+<div class="modal-bg" id="tabfixbg">
+  <div class="modal">
+    <h3>相手の声が録れない設定です</h3>
+    <p id="tabfixmsg" style="white-space:pre-line"></p>
+    <div class="row">
+      <button class="cancel" id="tabfixmic">マイクのみで続行</button>
+      <button class="ok" id="tabfixretry">選び直す</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="rbg">
   <div class="modal">
     <h3>録音を開始</h3>
@@ -1100,7 +1116,7 @@ const EN_TEXT=new Map([
   ['保存する','Save'],['会議ブリーフ','Meeting brief'],['AIと準備する','Prepare with AI'],
   ['用途','Type'],['あなたの立場','Your role'],['マイク・AIの接続診断を開く','Open mic & AI diagnostics'],
   ['事前メモの取り込み — Claude Code等で残した背景メモをブリーフへ反映','Import notes — feed memos from Claude Code etc. into the brief'],
-  ['ファイルを取り込む','Import a file'],['フォルダごと取り込む','Import a folder'],
+  ['背景フォルダを読んでブリーフに反映','Read the context folder into the brief'],['別のファイルを取り込む','Import another file'],
   ['解釈の確認','Check my understanding'],
   ['放射マップ（成果物）','Radial map (output)'],
   ['会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。','Turn the whole meeting into a radial map (switchable to tree, relationships, and timeline).'],
@@ -1144,6 +1160,8 @@ const EN_TEXT=new Map([
   ['要点を見る','View highlights'],['スライドを作る','Create slides'],['スライドを見る','Open slides'],
   ['PDF保存','Save PDF'],['開く','Open'],
   ['人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。','See how people, topics, and causes connect. A view of the map artifact, exportable as PDF.'],
+  ['論点整理','Topic cards'],
+  ['相手の声が録れない設定です','This setup will not capture the other side'],['マイクのみで続行','Continue with microphone only'],['選び直す','Choose again'],
   ['文字起こしモデル','Transcription model'],
   ['高精度（large-v3・録音中は重い）','Accurate (large-v3, heavy while recording)'],
   ['高速・低発熱（large-v3-turbo）','Fast and cool (large-v3-turbo)'],
@@ -1258,7 +1276,7 @@ async function cancelCurrentOperation(){
 }
 
 let recording=false, serverDown=false, hasSlides=false, hasDeck=false, curGoal='', curProj='', curType='', curStance='', researchCache=[], currentSessionId='', dataUpdatedAt=0, transcriptUpdatedAt=0, stateAnalyzing=false;
-let captureProof={mic:false,server:false,transcript:false,baseline:0,started:0};
+let captureProof={mic:false,server:false,transcript:false,tab:false,baseline:0,started:0};
 function renderCaptureProof(note=''){
   const el=$('recordhealth');if(!capturing){el.classList.remove('show');el.innerHTML='';return;}
   const step=(ok,label,waiting)=>`<span class="rh-step ${ok?'ok':'wait'}">${ok?'✓':'○'} ${esc(ok?label:waiting)}</span>`;
@@ -1266,6 +1284,7 @@ function renderCaptureProof(note=''){
     +step(captureProof.mic,tr('マイク入力OK','Microphone OK'),tr('声を確認中','Waiting for voice'))
     +step(captureProof.server,tr('サーバー保存OK','Server save OK'),tr('最初の音声待ち','Waiting for first audio'))
     +step(captureProof.transcript,tr('文字起こしOK','Transcription OK'),tr('文字起こし確認中','Checking transcription'))
+    +(tabExpected?step(captureProof.tab,tr('相手の声OK','Meeting audio OK'),tr('相手の声を待機中','Waiting for meeting audio')):'')
     +`<span class="rh-note">${esc(note)}</span>`;
   el.classList.add('show');
 }
@@ -1284,6 +1303,8 @@ function pillJobText(){
   const s=lastStateSnap;
   if(serverDown)return tr('サーバに接続できません','Cannot reach the server');
   if(!s)return tr('接続中…','Connecting…');
+  const warm=s.asrWarmup&&s.asrWarmup.status;
+  if(warm==='preparing')return tr('文字起こしモデルを準備中（ダウンロード/ロード）','Preparing the transcription model');
   return s.queue>0?tr(`文字起こし中（残り${s.queue}）`,`Transcribing (${s.queue} left)`)
     :s.analyzing?tr('即時解析中','Analyzing')
     :s.detailing?tr('詳細整理中','Structuring')
@@ -1296,7 +1317,7 @@ function pillJobText(){
 // 優先順位：サーバ断 > 録音中 > 処理中 > 更新停滞（非録音時のみ）> 準備OK
 function renderPill(){
   const s=lastStateSnap;
-  const busy=!!(s&&(s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring));
+  const busy=!!(s&&(s.queue>0||s.analyzing||s.detailing||s.researching>0||s.exploring||(s.asrWarmup&&s.asrWarmup.status==='preparing')));
   setPill(serverDown?'warn':(recording||(s&&s.recording))?'rec':busy?'proc':staleNow?'warn':'ok');
   $('statuspill').classList.toggle('stall', pillMode==='rec'&&recStale);
   if($('statuspop').classList.contains('show'))renderPop();
@@ -1319,7 +1340,19 @@ function renderPop(){
     const step=(ok,label)=>`<span class="${ok?'ok':'wait'}">${ok?'✓':'○'} ${esc(label)}</span>`;
     h+=`<div class="sp-note">${step(captureProof.mic,tr('マイク入力','Microphone'))}${step(captureProof.server,tr('サーバー保存','Server save'))}${step(captureProof.transcript,tr('文字起こし','Transcription'))}</div>`;
   }
+  // 別タブ（閉じ忘れ・リロード前のタブ）が録音を続けている時は、このタブから止められるようにする
+  // （2026-07-17 実障害：前夜のタブが朝まで録音を継続。入口が無く止められなかった）
+  if(s.recording&&!capturing){
+    h+=`<div class="sp-note"><button class="sp-stopbtn" id="spstop">${tr('この録音を停止する','Stop this recording')}</button></div>`;
+  }
   $('statuspop').innerHTML=h;
+  const sb=$('spstop');
+  if(sb)sb.onclick=async e=>{
+    e.stopPropagation(); sb.disabled=true;
+    try{ await api('/api/stop',{}); toast(tr('録音を停止しました','Recording stopped.')); await pollState(); }
+    catch(err){ toast(tr('停止できませんでした','Could not stop.')); }
+    $('statuspop').classList.remove('show');
+  };
 }
 function renderLastUpdate(){
   staleNow=transcriptUpdatedAt>dataUpdatedAt+5&&!stateAnalyzing;
@@ -1340,6 +1373,10 @@ function applyState(s){
   // 「録音停止」は、このタブ自身のMediaRecorderが動いている時だけ表示する。
   // 別タブの録音は状態文で区別し、録れているふりをしない。
   recording = serverRecording && capturing;
+  const prevWarm=lastStateSnap&&lastStateSnap.asrWarmup&&lastStateSnap.asrWarmup.status;
+  const curWarm=s.asrWarmup&&s.asrWarmup.status;
+  if(prevWarm==='preparing'&&curWarm==='ready')toast(tr('文字起こしモデルの準備が完了しました','Transcription model is ready.'));
+  if(prevWarm==='preparing'&&curWarm==='error')toast(tr('モデルの準備に失敗しました（接続診断を確認）','Model preparation failed — check diagnostics.'));
   lastStateSnap=s;
   dataUpdatedAt=Number(s.dataUpdatedAt||0); transcriptUpdatedAt=Number(s.transcriptUpdatedAt||0); stateAnalyzing=!!s.analyzing; renderLastUpdate();
   if(capturing&&transcriptUpdatedAt>captureProof.baseline){captureProof.transcript=true;renderCaptureProof(tr('録音パイプラインは正常です','Recording pipeline is healthy'));}
@@ -1647,14 +1684,14 @@ if(localStorage.getItem('livemtg_mindmap_default')!==mindmapDefaultVersion){
   localStorage.setItem('livemtg_mindmap_mode',mindmapMode);
   localStorage.setItem('livemtg_mindmap_default',mindmapDefaultVersion);
 }
-if(!['timeline','tree','radial','relation'].includes(mindmapMode))mindmapMode='tree';
+if(!['timeline','tree','radial','relation','cards'].includes(mindmapMode))mindmapMode='tree';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
 function activeView(){return view==='list'?'list':mindmapMode;}
 function deckSignature(d){
   if(view!=='slide')return '';
-  const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
+  const key=mindmapMode==='tree'||mindmapMode==='radial'||mindmapMode==='cards'?'map':mindmapMode;
   if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
   if(key==='timeline')return JSON.stringify([key,d&&d.timeline,d&&d.log]);
   return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
@@ -1672,7 +1709,7 @@ async function sendViewFocus(changed=false){
   if(startupPending)return; // 前回の会議を開くか選ぶまで、古い会議のAIを動かさない
   clearTimeout(viewFocusTimer);
   viewFocusTimer=setTimeout(async()=>{
-    const av=activeView(),labels={list:tr('リスト','List'),tree:tr('論点マップ','Topic map'),radial:tr('放射マップ','Radial map'),relation:tr('会話の関係','Relationships'),timeline:tr('時系列','Timeline')};
+    const av=activeView(),labels={list:tr('リスト','List'),tree:tr('論点マップ','Topic map'),radial:tr('放射マップ','Radial map'),cards:tr('論点整理','Topic cards'),relation:tr('会話の関係','Relationships'),timeline:tr('時系列','Timeline')};
     if($('viewtabs'))$('viewtabs').title=(labels[av]||av)+tr('を優先更新中',' is being updated first');
     try{await fetch('/api/view-focus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:viewClientId,view:av,visible:document.visibilityState==='visible',changed})});}catch(e){}
   },changed?0:80);
@@ -1688,14 +1725,14 @@ function captureMindmapUi(){
   return{left:stage.scrollLeft,top:stage.scrollTop,root:tree.classList.contains('root-collapsed'),branch,group,detail};
 }
 function applyMindmapMode(mode,remember=true){
-  if(!['timeline','tree','radial','relation'].includes(mode))mode='tree';
+  if(!['timeline','tree','radial','relation','cards'].includes(mode))mode='tree';
   mindmapMode=mode;if(remember)localStorage.setItem('livemtg_mindmap_mode',mode);
   if(typeof updateViewTabs==='function')updateViewTabs();
   applyDeckZoom(); // 切替先タブが記憶している倍率を適用
-  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map');
+  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map'),cards=deck.querySelector('.cards-map');
   if(!timeline||!tree||!radial||!relation)return;
-  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');
-  if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
+  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');if(cards)cards.classList.toggle('on',mode==='cards');
+  if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='cards')requestAnimationFrame(renderLiveCards);else if(mode==='tree')requestAnimationFrame(drawLiveTree);
   if(remember){deckSig='';if(lastData){deckSig=deckSignature(lastData);buildDeck(lastData);}sendViewFocus(true);}
 }
 function restoreMindmapUi(state){
@@ -1731,13 +1768,18 @@ function buildDeck(d){
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
   const timeline=(Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[])).slice(-60).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
+  // 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目に戻す）
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
   const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
   branches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,4).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,5).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
+  // 論点整理（カード表示）用モデル
+  lastRadialModel={title:meetingTitle||tr('会議','Meeting'),
+    topics:branches.slice(0,8).map(([name,groups])=>({topic:name,groups:(groups||[]).slice(0,4)}))};
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dstage"><div class="zoomwrap"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
       <div class="radial-map"><div class="mermaid">${esc(radial.join('\n'))}</div></div>
+      <div class="cards-map"></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div></div>`);
   applyDeckZoom();
   bindLiveTree();
@@ -1754,7 +1796,7 @@ function drawLiveTree(){
 }
 function animateLiveTree(){const started=performance.now();const frame=now=>{drawLiveTree();if(now-started<430)requestAnimationFrame(frame)};requestAnimationFrame(frame);}
 function bindMapPan(scroller){let down=false,x=0,y=0,left=0,top=0;
-  scroller.onpointerdown=e=>{if(e.button!==0||e.target.closest('button,.tree-node'))return;down=true;x=e.clientX;y=e.clientY;left=scroller.scrollLeft;top=scroller.scrollTop;scroller.classList.add('dragging');scroller.setPointerCapture(e.pointerId)};
+  scroller.onpointerdown=e=>{if(e.button!==0||e.target.closest('button,.tree-node,.rd-node,.rd-crow'))return;down=true;x=e.clientX;y=e.clientY;left=scroller.scrollLeft;top=scroller.scrollTop;scroller.classList.add('dragging');scroller.setPointerCapture(e.pointerId)};
   scroller.onpointermove=e=>{if(!down)return;scroller.scrollLeft=left-(e.clientX-x);scroller.scrollTop=top-(e.clientY-y)};
   scroller.onpointerup=scroller.onpointercancel=e=>{down=false;scroller.classList.remove('dragging');try{scroller.releasePointerCapture(e.pointerId)}catch(_){}};
   // ズーム：Ctrl/⌘＋ホイール（トラックパッドのピンチも ctrlKey 付き wheel として届く）。カーソル位置を基準に拡縮
@@ -1771,7 +1813,7 @@ function bindMapPan(scroller){let down=false,x=0,y=0,left=0,top=0;
   },{passive:false});
 }
 // ズーム倍率は表示モードごとに独立して記憶する（タブを切り替えても他タブの倍率を引き継がない）
-const deckZooms={tree:1,radial:1,relation:1,timeline:1};
+const deckZooms={tree:1,radial:1,relation:1,timeline:1,cards:1};
 function applyDeckZoom(){
   const w=$('deck').querySelector('.zoomwrap'); if(!w)return;
   const z=deckZooms[mindmapMode]||1;
@@ -1799,6 +1841,13 @@ function initMermaid(){
       primaryColor:'#f5f5f7', primaryBorderColor:'#a1a1a6', primaryTextColor:'#1d1d1f',
       lineColor:'#86868b', secondaryColor:'#ffffff', tertiaryColor:'#f0f0f2'}});
     mermaidReady=true; }catch(e){}
+}
+// 論点整理（カード表示）：radial-map.jsのcardsレイアウト。展開状態はページ内で保持され、再構築後も引き継ぐ
+let lastRadialModel=null; const radialExpanded=new Set();
+function renderLiveCards(){
+  const host=$('deck').querySelector('.cards-map');
+  if(!host||!lastRadialModel||typeof LiveMTGRadial==='undefined')return;
+  LiveMTGRadial.render(host,lastRadialModel,{expanded:radialExpanded,interactive:true,layout:'cards',switchable:false});
 }
 async function renderLiveMermaid(){
   initMermaid(); if(typeof mermaid==='undefined') return;
@@ -1834,10 +1883,26 @@ document.addEventListener('visibilitychange',()=>sendViewFocus(true));
 // 可変長チャンク(VAD): 固定秒ではなく「無音を検知したら区切る」。文の途中で切らないので文字起こし精度が上がる。
 //   区切り条件: (無音が silHold ms 継続 かつ 経過 minMs 以上) または 経過 maxMs 以上（喋り続けでも更新が止まらない保険）
 let capturing=false, mediaRec=null, capCtx=null, capStreams=[], capAnalyser=null, monTimer=null, chunkMs=30000, captureKind='meeting', requestedCaptureKind='meeting';
+let tabAnalyser=null, tabExpected=false;   // 会議タブ音声（相手の声）の実証用
+function askTabRedo(msg){
+  return new Promise(res=>{
+    $('tabfixmsg').textContent=msg;
+    $('tabfixbg').classList.add('show');
+    $('tabfixretry').onclick=()=>{$('tabfixbg').classList.remove('show');res('retry');};
+    $('tabfixmic').onclick=()=>{$('tabfixbg').classList.remove('show');res('mic');};
+  });
+}
+function tabDb(){
+  if(!tabAnalyser) return -100;
+  const n=tabAnalyser.fftSize, buf=new Uint8Array(n); tabAnalyser.getByteTimeDomainData(buf);
+  let sum=0; for(let i=0;i<n;i++){ const v=(buf[i]-128)/128; sum+=v*v; }
+  const rms=Math.sqrt(sum/n);
+  return rms>0 ? 20*Math.log10(rms) : -100;
+}
 const VAD={ silDb:-50, silHold:550, softMs:12000, hardMs:15000, softSilHold:260, minMs:2500 };
 // 通常は550msの無音で文末分割。15秒以降は260msの息継ぎを待ち、20秒のみ強制分割。
 async function startCapture(withTab){
-  capStreams=[];
+  capStreams=[]; tabAnalyser=null; tabExpected=false;
   // 選択したマイクを使用（未選択なら既定）。選択は記憶して次回の初期値に
   const micId = ($('micsel')&&$('micsel').value) || '';
   localStorage.setItem('livemtg_mic', micId);
@@ -1850,16 +1915,35 @@ async function startCapture(withTab){
   capAnalyser = capCtx.createAnalyser(); capAnalyser.fftSize=1024;
   const micSrc = capCtx.createMediaStreamSource(mic); micSrc.connect(dest); micSrc.connect(capAnalyser);
   if(withTab){
-    let disp=null;
-    try{ disp = await navigator.mediaDevices.getDisplayMedia({video:true, audio:true}); }catch(e){}
-    if(disp){
+    // 間違った共有（ウィンドウ/画面全体・音声トグルOFF）は相手の声が丸ごと消える事故になる。
+    // 黙って続行せず、検知して選び直しを促す（2026-07-17 依頼者承認の改修）
+    for(let attempt=0;attempt<4;attempt++){
+      let disp=null;
+      try{ disp = await navigator.mediaDevices.getDisplayMedia({video:true, audio:true}); }catch(e){}
+      if(!disp){
+        const act=await askTabRedo(tr('共有がキャンセルされました。相手の声を録るには、共有画面で「Chromeタブ」→会議のタブを選んでください。','Sharing was cancelled. To capture the other side, choose the meeting tab under "Chrome Tab".'));
+        if(act==='retry')continue; else break;
+      }
+      const vt=disp.getVideoTracks()[0];
+      const surface=vt&&vt.getSettings?vt.getSettings().displaySurface:'';
+      const at=disp.getAudioTracks()[0];
+      let problem='';
+      if(surface&&surface!=='browser')problem=tr('「ウィンドウ／画面全体」が選ばれました。この方法では相手の声（音声）を取れません。','A window or the entire screen was selected — audio cannot be captured that way.');
+      else if(!at)problem=tr('「タブの音声も共有する」がオフのまま共有されました。相手の声は録れません。','"Share tab audio" was off, so the other side will not be recorded.');
+      if(problem){
+        disp.getTracks().forEach(t=>t.stop());
+        const act=await askTabRedo(problem+tr('\n共有画面で会議のタブを選び、左下の「タブの音声も共有する」をオンにしてください。','\nPick the meeting tab and enable "Share tab audio".'));
+        if(act==='retry')continue; else break;
+      }
       capStreams.push(disp);
-      if(disp.getAudioTracks().length){ const ds=capCtx.createMediaStreamSource(disp); ds.connect(dest); ds.connect(capAnalyser); }
-      else { toast('タブ音声が共有されませんでした（マイクのみで継続）'); }
+      const ds=capCtx.createMediaStreamSource(disp); ds.connect(dest); ds.connect(capAnalyser);
+      tabAnalyser=capCtx.createAnalyser(); tabAnalyser.fftSize=1024; ds.connect(tabAnalyser);
+      tabExpected=true;
       disp.getVideoTracks().forEach(t=>t.stop()); // 映像は使わない
-      // ユーザーが共有を止めたら録音も止める
-      const at=disp.getAudioTracks()[0]; if(at) at.onended=()=>{ if(capturing) doStop(); };
+      at.onended=()=>{ if(capturing) doStop(); };  // ユーザーが共有を止めたら録音も止める
+      break;
     }
+    if(!tabExpected)toast(tr('マイクのみで録音します（相手の声は入りません）','Recording microphone only — the other side will not be captured.'));
   }
   capturing=true;
   cycle(dest.stream);
@@ -1891,6 +1975,7 @@ function cycle(stream){
     if(!capturing || rec.state==='inactive') return;
     const now=performance.now(), elapsed=now-t0, db=currentDb();
     if(db>=VAD.silDb){ spoke=true; silentSince=0; captureProof.mic=true;renderCaptureProof(tr('音声を検知しました','Voice detected')); } // 発話あり
+    if(tabExpected&&!captureProof.tab&&tabDb()>=VAD.silDb){ captureProof.tab=true; renderCaptureProof(tr('相手の声も届いています','Meeting audio is coming through')); }
     else if(!silentSince){ silentSince=now; }                  // 無音の開始
     const silentFor = silentSince ? now-silentSince : 0;
     // 発話の切れ目（無音が続いた）で区切る。最小長を満たす場合のみ。喋り続けは最大長で強制区切り
@@ -1930,7 +2015,7 @@ setInterval(()=>{ if(capturing && capCtx && capCtx.state==='suspended'){ try{ ca
 async function doStart(withTab,kind='meeting'){
   if(capturing) return;   // 二重起動防止（録音が二重になるとチャンクが溢れる）
   captureKind=kind==='prep'?'prep':'meeting';
-  captureProof={mic:false,server:false,transcript:false,baseline:transcriptUpdatedAt,started:Date.now()};
+  captureProof={mic:false,server:false,transcript:false,tab:false,baseline:transcriptUpdatedAt,started:Date.now()};
   // AIログインとWhisper診断は録音データの取得と分離。
   // サーバーが生きていれば録音し、未設定項目は別途診断で案内する。
   try{await api('/api/health');}catch(e){
@@ -2101,13 +2186,22 @@ $('gpick').onclick = async ()=>{ await pickDir($('gproj')); saveBrief(); };
 async function importNotes(kind){
   const b1=$('importfile'), b2=$('importdir');
   b1.disabled=b2.disabled=true;
-  toast(tr('事前メモを取り込み中…（選択後、AIが読んで反映するまで1分ほど）','Importing notes… (about a minute after you choose)'), true);
+  // フォルダ取り込みは背景フォルダと概念を分けない：設定済みならそのまま読む（ダイアログなし）、
+  // 未設定ならダイアログで選ばせる（2026-07-17 依頼者指示でUI一本化）
+  const body={kind};
+  if(kind==='folder'){
+    const proj=$('gproj').value.trim();
+    if(proj)body.path=proj;
+  }
+  toast(kind==='file'||!$('gproj').value.trim()
+    ?tr('選択ダイアログを開きました（他のウィンドウの後ろに出ることがあります）。選択後、AIが理解レポートを返すまで1分ほど','Choose a file/folder (the dialog may open behind other windows). The AI report takes about a minute.')
+    :tr('背景フォルダを取り込み中…（AIが読んで理解レポートを返すまで1分ほど）','Importing… (about a minute)'), true);
   try{
-    const r=await api('/api/import_notes',{kind});
+    const r=await api('/api/import_notes',body);
     hideToast();
     if(r.ok){
       drawStrategy(r.messages||[], r.board||{}, r.exportPath, r.folderMode);
-      toast(tr('事前メモをブリーフへ反映しました','Notes imported into the brief.'));
+      toast(tr('取り込みました。チャットにAIの理解レポートが届いています（答え合わせをどうぞ）','Imported — check the AI understanding report in the chat.'));
       await pollState();
     }else if(r.msg && r.msg!=='キャンセル'){
       toast(tr('取り込みに失敗：','Import failed: ')+localizeMessage(r.msg));
@@ -2459,7 +2553,7 @@ $('runtimebtn').onclick=()=>{ $('diagresult').textContent=''; refreshDiagnostics
 $('asrmodel').onchange=async()=>{
   try{
     const r=await api('/api/settings',{asrModel:$('asrmodel').value});
-    toast(r.ok?tr('文字起こしモデルを変更しました（初回は数分のダウンロードあり）','Transcription model updated. First use may download the model.')
+    toast(r.ok?tr('変更しました。モデルの準備（初回はダウンロード数分）をバックグラウンドで開始しています','Model changed — downloading/loading it in the background now.')
               :tr('変更に失敗しました','Could not update the model.'));
   }catch(e){ toast(tr('変更に失敗しました','Could not update the model.')); }
 };

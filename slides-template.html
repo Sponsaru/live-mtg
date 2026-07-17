@@ -70,6 +70,7 @@
   .generated-timeline-card p { color:var(--ink2); font-size:16px; line-height:1.55; }
   .generated-empty { margin:auto; color:var(--gray); font-size:18px; }
   .mindmap-page .stage { overflow:scroll; touch-action:pan-x pan-y; cursor:grab; scrollbar-gutter:stable both-edges; }
+  .radial-host { display:flex; align-items:center; justify-content:center; min-width:100%; min-height:100%; }
   .mindmap-page .stage.dragging { cursor:grabbing; user-select:none; }
   .mindmap-page .stage::-webkit-scrollbar { width:13px; height:13px; }
   .mindmap-page .stage::-webkit-scrollbar-track { background:#f5f5f7; }
@@ -221,6 +222,7 @@
 {{SLIDES}}
 <!-- Mermaid本体（相対参照。サーバ配信でも meetings/<id>/ から直接開いても解決） -->
 <script src="../../mermaid.min.js"></script>
+<script src="../../radial-map.js"></script>
 <script>
   const GENERATED_UPDATED={{DATA_UPDATED}};
   // PDF保存：印刷ページを「いまの画面サイズ」に合わせる＝画面と同じ描画がそのまま1スライド1ページに
@@ -241,7 +243,7 @@
   // 既定は「放射マップ」（2026-07-16 依頼者指示：ツリーは全開だと見づらく、閉じると情報が無い。放射が保存物として最も使える）。
   // 「会話の関係」は因果を見る別表示として残し、選択は自動更新後も維持する。
   (function(){
-    var allowed=['relation','radial','topics','timeline'];
+    var allowed=['relation','radial','cards','topics','timeline'];
     var defaultVersion='radial-v1';
     var mode=localStorage.getItem('livemtg_generated_map_mode');
     if(localStorage.getItem('livemtg_generated_map_default')!==defaultVersion){
@@ -254,12 +256,19 @@
     var urlView=new URLSearchParams(location.search).get('view');
     if(allowed.indexOf(urlView)>=0)mode=urlView;
     if(allowed.indexOf(mode)<0)mode='radial';
+    var radialExpanded=new Set();
+    function renderCards(){
+      var host=document.querySelector('[data-radial-host]'),modelEl=document.getElementById('radial-model');
+      if(!host||!modelEl||typeof LiveMTGRadial==='undefined')return;
+      LiveMTGRadial.render(host,JSON.parse(modelEl.textContent),{expanded:radialExpanded,interactive:true,layout:'cards',switchable:false});
+    }
     function apply(next){
       mode=allowed.indexOf(next)>=0?next:'radial';
       localStorage.setItem('livemtg_generated_map_mode',mode);
       document.querySelectorAll('[data-generated-view]').forEach(function(el){el.classList.toggle('on',el.dataset.generatedView===mode);});
       document.querySelectorAll('[data-generated-map]').forEach(function(el){el.classList.toggle('on',el.dataset.generatedMap===mode);});
       if(mode==='topics')requestAnimationFrame(drawTrees);
+      if(mode==='cards')requestAnimationFrame(renderCards);
     }
     document.querySelectorAll('[data-generated-map]').forEach(function(btn){btn.addEventListener('click',function(){apply(btn.dataset.generatedMap);});});
     apply(mode);
@@ -295,7 +304,7 @@
   });
   document.querySelectorAll('.mindmap-page .stage').forEach(function(scroller){
     var down=false,x=0,y=0,left=0,top=0;
-    scroller.addEventListener('pointerdown',function(e){if(e.button!==0||e.target.closest('button,.tree-node'))return;down=true;x=e.clientX;y=e.clientY;left=scroller.scrollLeft;top=scroller.scrollTop;scroller.classList.add('dragging');scroller.setPointerCapture(e.pointerId);});
+    scroller.addEventListener('pointerdown',function(e){if(e.button!==0||e.target.closest('button,.tree-node,.rd-node,.rd-crow'))return;down=true;x=e.clientX;y=e.clientY;left=scroller.scrollLeft;top=scroller.scrollTop;scroller.classList.add('dragging');scroller.setPointerCapture(e.pointerId);});
     scroller.addEventListener('pointermove',function(e){if(!down)return;scroller.scrollLeft=left-(e.clientX-x);scroller.scrollTop=top-(e.clientY-y);});
     function stop(e){down=false;scroller.classList.remove('dragging');try{scroller.releasePointerCapture(e.pointerId);}catch(_){}}
     scroller.addEventListener('pointerup',stop);scroller.addEventListener('pointercancel',stop);

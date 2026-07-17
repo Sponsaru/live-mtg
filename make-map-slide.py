@@ -58,6 +58,7 @@ def mermaid_label(value):
 
 
 if VIEW == "radial":
+    # mermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目）
     topics = [t for t in (data.get("mindmap") or []) if isinstance(t, dict) and t.get("topic")]
     if not topics:
         sys.exit(tr("マインドマップの素材がまだありません", "No mind map content yet"))
@@ -81,11 +82,12 @@ def esc(s):
     return html.escape(str(s or ""), quote=True)
 
 
+content = '<div class="mermaid">%s</div>' % esc(code)
 slide = (
     '<div class="slide"><div class="corp-logo"></div>'
     '<div class="head"><div class="kick">%s</div><h1>%s</h1></div>'
-    '<div class="stage mapstage"><div class="mermaid">%s</div></div></div>'
-    % (esc(TITLE), esc(heading), esc(code)))
+    '<div class="stage mapstage">%s</div></div>'
+    % (esc(TITLE), esc(heading), content))
 
 extra = """
 <style>
