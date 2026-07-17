@@ -1,5 +1,7 @@
 # 議事ライブ整理システム（live-mtg）
 
+[![npm](https://img.shields.io/npm/v/live-mtg/beta?label=npm%40beta&color=0071e3)](https://www.npmjs.com/package/live-mtg) [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Kenshin-Tanno)
+
 > **English is supported.** During `live-mtg onboard`, choose English, or switch anytime with `live-mtg config --language en`. The dashboard, English transcription, AI analysis, meeting preparation, web research, mind maps, and slides will all use English. Switch back with `live-mtg config --language ja`.
 
 > **配布方式**：OpenClawと同じく、主経路はnpmのグローバルCLI＋オンボーディング＋常駐サービス。Mac用DMG/Windowsアプリは補助経路として [`desktop/`](desktop/) に残す。
@@ -234,3 +236,8 @@ CLAUDE_MODEL=sonnet bash /path/to/live-mtg/live-mtg.sh
   - 原因調査：`~/mtg-live/server.log`（サーバの標準出力・エラーを記録）を見る。
 - 会議データ（議事・全文・スライド）はサーバが落ちても `meetings/<会議ID>/` に残るので消えない。
 ```
+
+
+## 開発を支援する / Support
+
+LiveMTGは無料のOSS（MIT）です。開発を支援したい方は [GitHub Sponsors](https://github.com/sponsors/Kenshin-Tanno) からどうぞ。スポンサー特典：Issueの優先対応・ロードマップへの発言権（今後、チーム向け機能等の先行アクセスを追加予定）。

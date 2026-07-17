@@ -1,0 +1,4 @@
+# GitHubリポジトリ上部に「Sponsor」ボタンを出す設定。
+# ボタンが実際に表示されるのは、下のアカウントで GitHub Sponsors を有効化してから
+# （https://github.com/sponsors → Join the waitlist / Set up）
+github: [Kenshin-Tanno]
