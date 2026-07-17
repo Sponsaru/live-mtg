@@ -54,15 +54,15 @@ assert "mindmapMode='tree'" in html and "mindmapDefaultVersion='tree-v1'" in htm
     "live map state must keep tree as the stored default mode"
 assert all(token in html for token in (
     'data-vt="list"', 'data-vt="tree"', 'data-vt="radial"', 'data-vt="relation"', 'data-vt="timeline"',
-    'class="radial-map"', "LiveMTGRadial.render", "radial-map.js"
-)), "live view must expose all five views as flat tabs (radial uses the in-house renderer)"
+    'class="radial-map"', "radial=['mindmap'"
+)), "live view must expose all five views as flat tabs"
 assert "Mermaid</button>" not in html and "Mermaid</button>" not in mindmap, "the Mermaid tech name must not appear in UI labels"
 assert all(token in slides for token in (
     "data-generated-map", "data-generated-view", "livemtg_generated_map_mode", "defaultVersion='radial-v1'", "mode='radial'"
 )), "generated map must default to the radial view and preserve the selected tab"
 assert 'str(data.get("diagram") or "").strip()' in mindmap, "generated Mermaid must preserve line breaks"
-assert 'radial_model = json.dumps' in mindmap and 'data-generated-map="radial"' in mindmap, \
-    "generated output must embed the radial model for the in-house renderer"
+assert 'radial_lines = ["mindmap"' in mindmap and 'data-generated-map="radial"' in mindmap, \
+    "generated output must contain the separate radial mind map"
 assert 'grid-template-columns:minmax(0,1fr) minmax(360px,520px)' in html, "prep layout must keep chat dominant with the brief sidebar"
 assert 'class="railtabs"' in html and 'id="rail-ask"' in html and 'id="rail-goal"' in html, "live rail must keep its two tabs"
 assert 'min-height:calc(100dvh - 58px)' in html, "live rail color must always reach the viewport bottom"

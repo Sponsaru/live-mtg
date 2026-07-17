@@ -711,20 +711,33 @@
   .idx .r .use { color: var(--ink2); }
 
   @media print {
+    /* 印刷ページ＝スライド寸法に固定（未指定だとA4に流し込まれ、1枚が2ページに割れる。2026-07-17 実障害） */
+    @page { size: 1440px 810px; margin: 0; }
+    html, body { margin: 0; padding: 0; }
     html { scroll-snap-type: none; }
     body { background: #fff; }
     .slide { box-shadow: none; border-radius: 0; page-break-after: always; }
+    .slide:last-of-type { page-break-after: auto; }   /* 末尾の空白ページを作らない（2026-07-17 実障害） */
+    /* mermaidがbody直下に追加するツールチップがスライド外の高さになり空白ページを生む（2026-07-17 実障害） */
+    .mermaidTooltip { display: none !important; }
   }
 </style>
 
 
 <style id="livemtg-slide-work-controls">
-  /* LiveMTGのneutral：左下にプロダクトロゴ＋成果物マインドマップと同じうっすらグラデ背景
-     （2026-07-16 依頼者指示。ロゴはサーバ配信の /brand-logo.png。案件フォルダへの同期時は ../brand-logo.png に書き換えて同梱） */
+  /* LiveMTGのneutral（2026-07-17 依頼者確定）：
+     - 背景＝白ベースの青い流線画像（slide-bg.jpg。依頼者支給）
+     - 配色＝黒（--strong/文字）＋LiveMTG青（--accent #0071e3）の2色構成
+     - 左下にプロダクトロゴ。案件フォルダ同期時は /… → ../… に書き換えて画像も同梱 */
   body[data-theme="neutral"]{
-    --bg-image:radial-gradient(75rem 32.5rem at 88% -8%, rgba(0,113,227,.05), transparent 60%),
-               radial-gradient(56rem 30rem at -6% 108%, rgba(29,29,31,.03), transparent 60%);
+    --bg-image:url("/slide-bg.jpg");
     --logo:url("/brand-logo.png");
+    --accent:#0071e3;
+    --accent-ink:#0066cc;
+    --accent-soft:#eaf3fd;
+    --accent2:#1d1d1f;
+    --mark:#d9e8fb;
+    --bar:#9ec8f0;
   }
   .pt{display:none!important}
   .sw-back,.sw-pdf{position:fixed;z-index:1000;border:1px solid var(--line);border-radius:62rem;

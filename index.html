@@ -220,6 +220,12 @@
   .sp-stopbtn{font-family:inherit;font-size:12px;font-weight:700;border:1px solid #e0b4af;background:#fdf4f3;
     color:#b0453c;border-radius:999px;padding:6px 14px;cursor:pointer}
   .sp-stopbtn:hover{background:#fbe9e7}
+  /* 表示タブの更新インジケータ：処理中は赤ポチ、待機中は次回更新までの秒数 */
+  #viewtabs button[data-vt]{position:relative}
+  #viewtabs .vdot{display:none;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:1px}
+  #viewtabs .vdot.show{display:inline-block;animation:pulse 1.4s infinite}
+  #viewtabs .veta{font-size:10px;color:var(--sub);margin-left:4px;font-weight:700;font-variant-numeric:tabular-nums}
+  #viewtabs .veta:empty{display:none}
   @media(max-width:1180px){
     .sessbtn{max-width:180px}
   }
@@ -634,10 +640,12 @@
   #deck .tree-map:not(.root-collapsed) .tree-node.root::after,#deck .tree-branch:not(.collapsed)>.branch-head .tree-node.branch::after,#deck .tree-subbranch:not(.group-collapsed)>.tree-node.group::after{transform:rotate(90deg)}
   #deck .tree-map.root-collapsed .tree-branches{display:none}
   /* デッキ内のマップ切替は5タブ（#viewtabs）に統合済み */
-  #deck .relation-map,#deck .radial-map,#deck .cards-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
-  #deck .relation-map.on,#deck .radial-map.on,#deck .cards-map.on{display:flex} #deck .tree-map.off{display:none}
-  /* 論点整理（カード）：キャンバスが広い時はdstageのスクロール（ドラッグでパン）が効くようサイズを内容に合わせる */
-  #deck .cards-map.on{width:max-content;height:max-content;min-width:100%;min-height:100%}
+  #deck .relation-map,#deck .radial-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
+  #deck .relation-map.on,#deck .radial-map.on{display:flex} #deck .tree-map.off{display:none}
+  /* 会話の関係：流れ（subgraph）ごとに縦カラムへ分割して横並び（2026-07-17 依頼者指示） */
+  .relflows{display:flex;gap:36px;align-items:flex-start;justify-content:center;width:100%;flex-wrap:wrap}
+  .relflow{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .rf-title{font-size:13px;font-weight:800;color:var(--sub);letter-spacing:.05em}
   #deck .timeline-map{width:min(920px,calc(100% - 48px));min-width:620px;margin:0 auto;padding:42px 36px 80px;display:flex;flex-direction:column;gap:0}
   #deck .timeline-map.off{display:none}
   #deck .timeline-item{position:relative;margin-left:84px;padding:0 0 28px 34px;border-left:2px solid #d2d2d7}
@@ -794,7 +802,6 @@
   <button data-vt="list" class="on">リスト</button>
   <button data-vt="tree">論点マップ</button>
   <button data-vt="radial">放射マップ</button>
-  <button data-vt="cards">論点整理</button>
   <button data-vt="relation">会話の関係</button>
   <button data-vt="timeline">時系列</button>
   <button class="vt-full" id="full" title="会話全文を見る">全文</button>
@@ -931,16 +938,13 @@
   <p class="pv-sub">推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 成果物の生成 → 学びと次の一手。生成中は画面下のトーストから中断できます。</p>
   <div class="phasecards">
     <div class="phasecard"><h3>高精度清書 <span class="pc-status" id="rvst-final">—</span></h3><p>保存した全音声をまとめて、分断のない議事録を作り直します。開始前に話者名と固有名詞を確認します。</p><button class="pcbtn" id="rvbtn-final" data-proxy="final">清書する</button></div>
-    <div class="phasecard"><h3>放射マップ（成果物） <span class="pc-status" id="rvst-map">—</span></h3><p>会議全体を放射状の1枚マップに変換します（論点ツリー・会話の関係・時系列にも切替可）。</p><button class="pcbtn" id="rvbtn-map" data-proxy="slides">作成する</button><button class="pcbtn sub" id="rvbtn-map-pdf">PDF保存</button><button class="pcbtn sub" id="rvbtn-map-regen" data-proxy="regen" style="display:none">作り直す</button></div>
-    <div class="phasecard"><h3>会話の関係 <span class="pc-status" id="rvst-rel">—</span></h3><p>人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。</p><button class="pcbtn" id="rvbtn-rel-open">開く</button><button class="pcbtn sub" id="rvbtn-rel-pdf">PDF保存</button></div>
-    <div class="phasecard"><h3>議事録PDF <span class="pc-status" id="rvst-minutes">—</span></h3><p>表紙・要旨・議題・決定・ToDo・論点・未解決をスライド様式のページに分け、省略なしの全文で書き出します。</p><button class="pcbtn" id="rvbtn-minutes-pdf">PDF保存</button></div>
+    <div class="phasecard"><h3>議事録PDF <span class="pc-status" id="rvst-minutes">—</span></h3><p>表紙・要旨・議題・決定・ToDo・論点・未解決に加え、巻末に放射マップと会話の関係も収めた「全部入り」を、省略なしの全文で書き出します。</p><button class="pcbtn" id="rvbtn-minutes-open" style="display:none">開く</button><button class="pcbtn" id="rvbtn-minutes-pdf">PDF保存</button></div>
     <div class="phasecard"><h3>学びと次の一手 <span class="pc-status" id="rvst-learn">—</span></h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。作成すると自動保存されます。プレイブックへの蓄積は任意。</p><button class="pcbtn" id="rvbtn-learn-view" style="display:none">要点を見る</button><button class="pcbtn sub" id="rvbtn-learn-slides" style="display:none">スライドを作る</button><button class="pcbtn" id="rvbtn-learn" data-proxy="learnbtn">レポートを作る</button></div>
   </div>
 </section>
 
 
 <script src="/mermaid.min.js"></script>
-<script src="/radial-map.js"></script>
 
 <!-- 全文ドロワー -->
 <div class="drawer-bg" id="drbg"></div>
@@ -1160,7 +1164,6 @@ const EN_TEXT=new Map([
   ['要点を見る','View highlights'],['スライドを作る','Create slides'],['スライドを見る','Open slides'],
   ['PDF保存','Save PDF'],['開く','Open'],
   ['人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。','See how people, topics, and causes connect. A view of the map artifact, exportable as PDF.'],
-  ['論点整理','Topic cards'],
   ['相手の声が録れない設定です','This setup will not capture the other side'],['マイクのみで続行','Continue with microphone only'],['選び直す','Choose again'],
   ['文字起こしモデル','Transcription model'],
   ['高精度（large-v3・録音中は重い）','Accurate (large-v3, heavy while recording)'],
@@ -1450,6 +1453,24 @@ function applyState(s){
   if(s.chunk) chunkMs = s.chunk*1000;
   const t=(s.current&&s.current.title)||'';
   if(t!==meetingTitle){ meetingTitle=t; if(view==='slide'&&lastData) buildDeck(lastData); }
+  updateViewJobBadges(s);
+}
+// タブ別の更新状況：処理中＝赤ポチ、待機中＝次回更新までの秒数（マップ系のみ既知）
+function updateViewJobBadges(s){
+  const jobs=s.viewJobs||{}, live=recording||!!s.recording;
+  document.querySelectorAll('#viewtabs button[data-vt]').forEach(b=>{
+    let dot=b.querySelector('.vdot'), eta=b.querySelector('.veta');
+    if(!dot){
+      dot=document.createElement('span');dot.className='vdot';b.appendChild(dot);
+      eta=document.createElement('span');eta.className='veta';b.appendChild(eta);
+    }
+    const vt=b.dataset.vt;
+    let running=false,next=null;
+    if(vt==='tree'||vt==='radial'){const j=jobs.map||{};running=!!j.running;next=j.nextInSec;}
+    else{running=!!(jobs.list&&jobs.list.running);}   // リスト・関係・時系列は即時レーン/転写と連動
+    dot.classList.toggle('show',running&&live);
+    eta.textContent=(live&&!running&&next!=null&&next>0)?next+tr('秒後','s'):'';
+  });
 }
 async function pollState(){
   try{
@@ -1684,14 +1705,14 @@ if(localStorage.getItem('livemtg_mindmap_default')!==mindmapDefaultVersion){
   localStorage.setItem('livemtg_mindmap_mode',mindmapMode);
   localStorage.setItem('livemtg_mindmap_default',mindmapDefaultVersion);
 }
-if(!['timeline','tree','radial','relation','cards'].includes(mindmapMode))mindmapMode='tree';
+if(!['timeline','tree','radial','relation'].includes(mindmapMode))mindmapMode='tree';
 let lastData = null, meetingTitle = '', deckSig = '';
 function todayStr(){ const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
 function activeView(){return view==='list'?'list':mindmapMode;}
 function deckSignature(d){
   if(view!=='slide')return '';
-  const key=mindmapMode==='tree'||mindmapMode==='radial'||mindmapMode==='cards'?'map':mindmapMode;
+  const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
   if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
   if(key==='timeline')return JSON.stringify([key,d&&d.timeline,d&&d.log]);
   return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
@@ -1709,7 +1730,7 @@ async function sendViewFocus(changed=false){
   if(startupPending)return; // 前回の会議を開くか選ぶまで、古い会議のAIを動かさない
   clearTimeout(viewFocusTimer);
   viewFocusTimer=setTimeout(async()=>{
-    const av=activeView(),labels={list:tr('リスト','List'),tree:tr('論点マップ','Topic map'),radial:tr('放射マップ','Radial map'),cards:tr('論点整理','Topic cards'),relation:tr('会話の関係','Relationships'),timeline:tr('時系列','Timeline')};
+    const av=activeView(),labels={list:tr('リスト','List'),tree:tr('論点マップ','Topic map'),radial:tr('放射マップ','Radial map'),relation:tr('会話の関係','Relationships'),timeline:tr('時系列','Timeline')};
     if($('viewtabs'))$('viewtabs').title=(labels[av]||av)+tr('を優先更新中',' is being updated first');
     try{await fetch('/api/view-focus',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:viewClientId,view:av,visible:document.visibilityState==='visible',changed})});}catch(e){}
   },changed?0:80);
@@ -1725,14 +1746,14 @@ function captureMindmapUi(){
   return{left:stage.scrollLeft,top:stage.scrollTop,root:tree.classList.contains('root-collapsed'),branch,group,detail};
 }
 function applyMindmapMode(mode,remember=true){
-  if(!['timeline','tree','radial','relation','cards'].includes(mode))mode='tree';
+  if(!['timeline','tree','radial','relation'].includes(mode))mode='tree';
   mindmapMode=mode;if(remember)localStorage.setItem('livemtg_mindmap_mode',mode);
   if(typeof updateViewTabs==='function')updateViewTabs();
   applyDeckZoom(); // 切替先タブが記憶している倍率を適用
-  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map'),cards=deck.querySelector('.cards-map');
+  const deck=$('deck'),timeline=deck.querySelector('.timeline-map'),tree=deck.querySelector('.tree-map'),radial=deck.querySelector('.radial-map'),relation=deck.querySelector('.relation-map');
   if(!timeline||!tree||!radial||!relation)return;
-  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');if(cards)cards.classList.toggle('on',mode==='cards');
-  if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='cards')requestAnimationFrame(renderLiveCards);else if(mode==='tree')requestAnimationFrame(drawLiveTree);
+  timeline.classList.toggle('off',mode!=='timeline');tree.classList.toggle('off',mode!=='tree');radial.classList.toggle('on',mode==='radial');relation.classList.toggle('on',mode==='relation');
+  if(mode==='relation'||mode==='radial')renderLiveMermaid();else if(mode==='tree')requestAnimationFrame(drawLiveTree);
   if(remember){deckSig='';if(lastData){deckSig=deckSignature(lastData);buildDeck(lastData);}sendViewFocus(true);}
 }
 function restoreMindmapUi(state){
@@ -1772,14 +1793,11 @@ function buildDeck(d){
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
   const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
   branches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,4).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,5).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
-  // 論点整理（カード表示）用モデル
-  lastRadialModel={title:meetingTitle||tr('会議','Meeting'),
-    topics:branches.slice(0,8).map(([name,groups])=>({topic:name,groups:(groups||[]).slice(0,4)}))};
+
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dstage"><div class="zoomwrap"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
       <div class="radial-map"><div class="mermaid">${esc(radial.join('\n'))}</div></div>
-      <div class="cards-map"></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div></div>`);
   applyDeckZoom();
   bindLiveTree();
@@ -1813,7 +1831,7 @@ function bindMapPan(scroller){let down=false,x=0,y=0,left=0,top=0;
   },{passive:false});
 }
 // ズーム倍率は表示モードごとに独立して記憶する（タブを切り替えても他タブの倍率を引き継がない）
-const deckZooms={tree:1,radial:1,relation:1,timeline:1,cards:1};
+const deckZooms={tree:1,radial:1,relation:1,timeline:1};
 function applyDeckZoom(){
   const w=$('deck').querySelector('.zoomwrap'); if(!w)return;
   const z=deckZooms[mindmapMode]||1;
@@ -1842,15 +1860,53 @@ function initMermaid(){
       lineColor:'#86868b', secondaryColor:'#ffffff', tertiaryColor:'#f0f0f2'}});
     mermaidReady=true; }catch(e){}
 }
-// 論点整理（カード表示）：radial-map.jsのcardsレイアウト。展開状態はページ内で保持され、再構築後も引き継ぐ
-let lastRadialModel=null; const radialExpanded=new Set();
-function renderLiveCards(){
-  const host=$('deck').querySelector('.cards-map');
-  if(!host||!lastRadialModel||typeof LiveMTGRadial==='undefined')return;
-  LiveMTGRadial.render(host,lastRadialModel,{expanded:radialExpanded,interactive:true,layout:'cards',switchable:false});
-}
+  // 会話の関係：流れ（subgraph）ごとに縦カラムへ分割して横並びに。
+  // エッジがsubgraphの外に書かれる形式にも対応：両端が同じ流れに属すエッジをそのカラムへ割当て、
+  // 流れをまたぐエッジがある図は分割せず従来表示（2026-07-17）
+  function __splitRelFlows(host){
+    if(!host)return;
+    var code=(host.textContent||'').trim(), lines=code.split('\n');
+    if(!/^(flowchart|graph)/.test((lines[0]||'').trim()))return;
+    var flows=[],cur=null,rest=[],bad=false;
+    for(var i=1;i<lines.length;i++){var raw=lines[i],t=raw.trim(); if(!t)continue;
+      if(t.indexOf('subgraph')===0){ if(cur){bad=true;break;} cur={title:t.slice(8).trim(),lines:[],ids:{}}; }
+      else if(t==='end'&&cur){ flows.push(cur);cur=null; }
+      else if(cur){ cur.lines.push(raw); }
+      else rest.push(t);
+    }
+    if(bad||cur||flows.length<2)return;
+    var KW=['flowchart','graph','subgraph','end','direction','TD','TB','LR','RL','BT','classDef','class','style','linkStyle','click'];
+    function idsIn(t){
+      t=t.replace(/"[^"]*"/g,'"').replace(/\|[^|]*\|/g,'|').replace(/\[[^\]]*\]/g,'#').replace(/\([^)]*\)/g,'#').replace(/\{[^}]*\}/g,'#');
+      return (t.match(/[A-Za-z][A-Za-z0-9_]*/g)||[]).filter(function(x){return KW.indexOf(x)<0;});
+    }
+    flows.forEach(function(f){ f.lines.forEach(function(l){ idsIn(l).forEach(function(id){ f.ids[id]=1; }); }); });
+    for(var r=0;r<rest.length;r++){var t=rest[r];
+      if(/^(classDef|linkStyle|style|click|direction)\b/.test(t))continue;
+      var ids=idsIn(t); if(!ids.length)continue;
+      var owner=-1;
+      for(var k=0;k<flows.length;k++){
+        var all=true;
+        for(var q=0;q<ids.length;q++){ if(!flows[k].ids[ids[q]]){all=false;break;} }
+        if(all){owner=k;break;}
+      }
+      if(owner<0)return;   // 流れをまたぐ／所属不明 → 分割しない
+      flows[owner].lines.push('  '+t);
+    }
+    var wrap=document.createElement('div'); wrap.className='relflows';
+    flows.forEach(function(f){
+      var col=document.createElement('div'); col.className='relflow';
+      var title=f.title,mm=title.match(/\[(.*)\]\s*$/); if(mm)title=mm[1];
+      title=title.replace(/^"+|"+$/g,'');
+      var h=document.createElement('div'); h.className='rf-title'; h.textContent=title; col.appendChild(h);
+      var d=document.createElement('div'); d.className='mermaid'; d.textContent='flowchart TD\n'+f.lines.join('\n'); col.appendChild(d);
+      wrap.appendChild(col);
+    });
+    host.parentNode.replaceChild(wrap,host);
+  }
 async function renderLiveMermaid(){
   initMermaid(); if(typeof mermaid==='undefined') return;
+  __splitRelFlows($('deck').querySelector('.relation-map > .mermaid:not(.done)'));
   const nodes=[...$('deck').querySelectorAll('.mermaid:not(.done)')];
   for(const el of nodes){
     const code=(el.textContent||'').trim();
@@ -2129,10 +2185,8 @@ async function exportPdf(btn, path, body, cancelKind){
   }catch(e){ hideToast(); toast(tr('書き出しに失敗しました','Export failed.')); }
   btn.disabled=false;
 }
-$('rvbtn-map-pdf').onclick=()=>exportPdf($('rvbtn-map-pdf'),'/api/map_pdf',{view:'radial'},'mappdf');
-$('rvbtn-rel-pdf').onclick=()=>exportPdf($('rvbtn-rel-pdf'),'/api/map_pdf',{view:'relation'},'mappdf');
 $('rvbtn-minutes-pdf').onclick=()=>exportPdf($('rvbtn-minutes-pdf'),'/api/minutes_pdf',{},'minutespdf');
-$('rvbtn-rel-open').onclick=()=>window.open('/slides.html?view=relation&ts='+Date.now(),'_blank');
+$('rvbtn-minutes-open').onclick=()=>window.open('/minutes.pdf?ts='+Date.now(),'_blank');
 // 学びスライド：未生成なら生成（依頼者のボタン押下時のみ）、生成済みなら開く
 $('rvbtn-learn-slides').onclick = async ()=>{
   const btn=$('rvbtn-learn-slides');
@@ -2634,19 +2688,15 @@ function updateReviewCards(s){
   const chip=(id,txt,done)=>{const el=$(id);if(!el)return;el.textContent=txt;el.classList.toggle('done',!!done);};
   chip('rvst-final', !s.hasAudio?tr('録音音声なし','No audio'):s.hasFinal?tr('清書済み','Done'):tr('未作成','Not yet'), s.hasFinal);
   const bf=$('rvbtn-final'); if(bf)bf.textContent=s.hasFinal?tr('再清書する','Regenerate'):tr('清書する','Create minutes');
-  chip('rvst-map', hasSlides?tr('生成済み','Done'):tr('未作成','Not yet'), hasSlides);
   chip('rvst-learn', s.hasLearn?tr('生成済み','Done'):tr('未作成','Not yet'), s.hasLearn);
   const bl=$('rvbtn-learn'); if(bl){ bl.textContent=s.hasLearn?tr('作り直す','Regenerate'):tr('レポートを作る','Create report'); bl.classList.toggle('sub',!!s.hasLearn); }
   const lv=$('rvbtn-learn-view'); if(lv)lv.style.display=s.hasLearn?'':'none';
   const lsl=$('rvbtn-learn-slides');
   if(lsl){ lsl.style.display=s.hasLearn?'':'none'; lsl.dataset.has=s.hasLearnSlides?'1':'0';
     lsl.textContent=s.hasLearnSlides?tr('スライドを見る','Open slides'):tr('スライドを作る','Create slides'); }
-  chip('rvst-rel', s.hasRelationPdf?tr('PDF保存済み','PDF saved'):hasSlides?tr('表示可','Ready'):tr('未作成','Not yet'), s.hasRelationPdf||hasSlides);
-  // PDFはdata.jsonから直接スライドを組むため、マップ成果物が未作成でも書き出せる。「開く」だけ成果物依存
-  const relOpen=$('rvbtn-rel-open'); if(relOpen)relOpen.disabled=!hasSlides;
   chip('rvst-minutes', s.hasMinutesPdf?tr('PDF保存済み','PDF saved'):tr('未作成','Not yet'), s.hasMinutesPdf);
-  const bm=$('rvbtn-map'); if(bm)bm.textContent=hasSlides?tr('開く','Open'):tr('作成する','Create');
-  const bmr=$('rvbtn-map-regen'); if(bmr)bmr.style.display=hasSlides?'':'none';
+  const mo=$('rvbtn-minutes-open'); if(mo)mo.style.display=s.hasMinutesPdf?'':'none';
+  const mb=$('rvbtn-minutes-pdf'); if(mb){ mb.textContent=s.hasMinutesPdf?tr('作り直す','Regenerate'):tr('PDF保存','Save PDF'); mb.classList.toggle('sub',!!s.hasMinutesPdf); }
 }
 // ===== 3フェーズナビ：準備／ライブ／振り返り。行き来自由・会議ごとに最後のフェーズを記憶 =====
 let phase='live', phaseSessionId=null;

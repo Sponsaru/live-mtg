@@ -94,6 +94,36 @@ def _(run):
     assert any("佐藤" in str(t.get("who") or "") for t in todos if isinstance(t, dict)), "明示のToDoを拾えていない: %r" % todos
 
 
+RICH_DELTA = """毎日興業の案件はまず30万円で入って、実績を作って月単価100万に上げる。それを10社やれば1000万規模になる。
+一方でラクハブはシステムとして売るから、1対1のコンサルと1対Nのアプリの中間の位置づけだよね。
+そうそう。ただ個社コンサルを10社並行でやるのは労力が大きいのが懸念で、そこはAIエージェントでどこまで自動化できるか次第。
+アプリ型に寄せられれば低労力・高単価になる。じゃあまず毎日興業で実績化を進めて、その事例を横展開しよう。"""
+
+
+@case("diagram: 詳細レーン → ストーリーライン図", "diagram")
+def _(run):
+    obj = {"mindmap": []}
+    prompt = srv.DETAIL_PATCH_PROMPT.format(title="評価用会議", delta=RICH_DELTA, bg="",
+                                            index=srv._detail_index(obj))
+    d = run(prompt, timeout=120)
+    dg = str((d or {}).get("diagram") or "")
+    assert "flowchart" in dg, "flowchartでない: %r" % dg[:80]
+    edges = dg.count("-->") + dg.count("-.->")
+    labeled = dg.count("-->|") + dg.count("-.->|")
+    assert edges >= 4, "エッジが少なすぎる（流れになっていない）: %d本" % edges
+    assert labeled == edges, "ラベル無しエッジがある（論旨が再生できない）: %d/%d" % (labeled, edges)
+    assert dg.count("[") >= 6, "ノードが少なすぎる: %s" % dg.count("[")
+
+
+@case("diagram: ライブ関係ペア → 論理ラベル", "diagram")
+def _(run):
+    d = run(fast_prompt("30万円で10社取れば300万。その実績で月単価100万に上げて、合計1000万規模を狙う。"))
+    r = (d or {}).get("relation") or {}
+    t = str(r.get("type") or "")
+    assert str(r.get("from") or "").strip() and t.strip(), "relationが空: %r" % r
+    assert len(t) >= 4 and t != "関連", "typeが論理を語っていない: %r" % t
+
+
 @case("retro: 訂正 → 置換ペア抽出", "retro")
 def _(run):
     out = ask(srv.RETRO_PROMPT.format(note="訂正：担当は田中さんではなく中田さんです"))
