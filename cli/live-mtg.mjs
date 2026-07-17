@@ -57,6 +57,9 @@ const configFile = join(home, "config.json");
 const logFile = join(home, "server.log");
 const isMac = platform() === "darwin";
 const isWindows = platform() === "win32";
+// mlx（既定の文字起こし）はApple Silicon専用。Intel Macはwhisper.cpp経路（Windowsと同じ）を使う
+const isAppleSilicon = isMac && process.arch === "arm64";
+const isIntelMac = isMac && !isAppleSilicon;
 const windowsWhisperRoot = join(home, "tools", "whisper.cpp");
 const windowsModel = join(home, "models", "ggml-large-v3-turbo.bin");
 const whisperWindowsRelease = {
@@ -231,7 +234,7 @@ async function prepareRuntime(assumeYes) {
     await installWithSystemManager("ffmpeg", ["install", "ffmpeg"],
       ["install", "-e", "--id", "Gyan.FFmpeg"], assumeYes);
   }
-  if (isMac && !commandExists("mlx_whisper")) {
+  if (isAppleSilicon && !commandExists("mlx_whisper")) {
     if (!commandExists("pipx")) {
       await installWithSystemManager("pipx", ["install", "pipx"], [], assumeYes);
     }
@@ -241,7 +244,7 @@ async function prepareRuntime(assumeYes) {
       else if (!commandExists("mlx_whisper")) console.log(t("mlx-whisperは導入されましたが実行ファイルを検出できません。~/.local/bin を確認してください。", "mlx-whisper was installed but its executable was not detected. Check ~/.local/bin."));
     }
   }
-  if (isMac && !commandExists("whispermlx") && commandExists("pipx")) {
+  if (isAppleSilicon && !commandExists("whispermlx") && commandExists("pipx")) {
     if (await confirmStep(t("話者分離（whispermlx）をインストールしますか？ 清書前に話者A/Bを確認できます。", "Install speaker diarization (whispermlx)? You can review Speaker A/B before polishing."), assumeYes)) {
       // whispermlx 3.12.2 は mlx-whisper 経由で古いnumbaを選ぶため、素のpip解決では
       // Python 3.10+という自身の要件と衝突する。動作確認済みの現行numbaへ上書きし、
@@ -259,7 +262,7 @@ async function prepareRuntime(assumeYes) {
       if (!installed) console.log(t("whispermlxのインストールに失敗しました。従来の文字起こしはそのまま利用できます。", "whispermlx installation failed. Standard transcription remains available."));
     }
   }
-  if (isMac && commandExists("mlx_whisper") && commandExists("ffmpeg")) {
+  if (isAppleSilicon && commandExists("mlx_whisper") && commandExists("ffmpeg")) {
     // モデル（約3GB）を初会議の最初のチャンクで落とし始めると数分沈黙する（2026-07-17 棚卸しで発覚。
     // Windowsは以前からonboardで先に落とす設計）。無音0.4秒を1回文字起こし＝DL＋ロードを済ませる
     const asrChoice = String(readConfig().asrModel || "accurate");
@@ -279,6 +282,17 @@ async function prepareRuntime(assumeYes) {
       console.log(okWarm ? t("モデルの準備が完了しました。", "Model is ready.")
                          : t("モデルの事前取得に失敗しました（最初の録音時に自動で再取得されます）。",
                              "Pre-download failed; it will retry on the first recording."));
+    }
+  }
+  if (isIntelMac) {
+    // Intel MacはmlxではなくHomebrewのwhisper.cpp（whisper-cli）＋ggmlモデルを使う
+    if (!commandExists("whisper-cli")) {
+      await installWithSystemManager("whisper.cpp", ["install", "whisper-cpp"], [], assumeYes);
+    }
+    if (commandExists("whisper-cli") && !existsSync(windowsModel)) {
+      if (await confirmStep(t("文字起こしモデルをダウンロードしますか？（約1.6GB）", "Download the transcription model (about 1.6 GB)?"), assumeYes)) {
+        downloadGgmlModelMac();
+      }
     }
   }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
@@ -312,6 +326,22 @@ function installWindowsWhisper() {
   const extracted = powershell(`Expand-Archive -LiteralPath '${zip.replaceAll("'", "''")}' -DestinationPath '${windowsWhisperRoot.replaceAll("'", "''")}' -Force`);
   rmSync(zip, { force: true });
   return extracted && Boolean(windowsWhisperExe());
+}
+
+function downloadGgmlModelMac() {
+  // Intel Mac用：whisper.cpp向けggmlモデルをcurlで取得（2026-07-17 Intel Mac対応）
+  mkdirSync(dirname(windowsModel), { recursive: true });
+  const partial = `${windowsModel}.download`;
+  const url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+  console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…", "Downloading the transcription model. This may take several minutes…"));
+  const ok = runInteractive("curl", ["-L", "--fail", "--progress-bar", "-o", partial, url]);
+  if (ok && existsSync(partial) && statSync(partial).size > 100_000_000) {
+    renameSync(partial, windowsModel);
+    return true;
+  }
+  rmSync(partial, { force: true });
+  console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
+  return false;
 }
 
 function downloadWindowsModel() {
@@ -363,8 +393,8 @@ function runtimeEnv() {
     DRIVE_SYNC_DIR: join(home, "meetings"),
     PROFILE_MD: join(home, "profile.md"),
     PLAYBOOK_DIR: join(home, "playbooks"),
-    ASR_BACKEND: process.env.ASR_BACKEND || (isMac ? "mlx" : "cpp"),
-    MODEL: process.env.MODEL || (isWindows ? windowsModel : undefined),
+    ASR_BACKEND: process.env.ASR_BACKEND || (isAppleSilicon ? "mlx" : "cpp"),
+    MODEL: process.env.MODEL || ((isWindows || isIntelMac) ? windowsModel : undefined),
     AI_PROVIDER: selectedProvider(),
     LIVE_MTG_LANGUAGE: selectedLanguage(),
     PATH: effectivePath(),
@@ -416,8 +446,8 @@ function doctor(provider = selectedProvider()) {
     [aiLabel, aiInstalled, provider === "codex" ? "npm install -g @openai/codex" : "npm install -g @anthropic-ai/claude-code"],
     [t(`${aiLabel} ログイン`, `${aiLabel} sign-in`), aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
     ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
-    [t(`文字起こし（${asr}）`, `Transcription (${asr})`), asrInstalled, isMac ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
-    ...(isWindows ? [[t("文字起こしモデル", "Transcription model"), existsSync(windowsModel), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
+    [t(`文字起こし（${asr}）`, `Transcription (${asr})`), asrInstalled, isAppleSilicon ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
+    ...((isWindows || isIntelMac) ? [[t("文字起こしモデル", "Transcription model"), existsSync(windowsModel), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
   ];
   console.log("LiveMTG doctor\n");
   for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
