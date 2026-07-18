@@ -4837,7 +4837,7 @@ def main():
     signal.signal(signal.SIGTERM, shutdown)
 
     print("════════════════════════════════════════════")
-    print(" 議事ライブ整理  ｜ http://localhost:%d/" % PORT)
+    print(" 議事ライブ整理  ｜ http://127.0.0.1:%d/" % PORT)
     print(" 会議データ: %s" % SESS)
     _asr = ("mlx:%s" % MLX_MODEL.split("/")[-1]) if ASR_BACKEND == "mlx" else "whisper-cli"
     print(" 文字起こし=%s / 整理=%s / スライド=%s   停止: Ctrl+C" % (_asr, CLAUDE_MODEL, SLIDE_MODEL))
