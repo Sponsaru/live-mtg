@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, statfsSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -316,7 +316,12 @@ function installWindowsWhisper() {
   mkdirSync(windowsWhisperRoot, { recursive: true });
   console.log(t(`whisper.cpp ${whisperWindowsRelease.version} を取得しています…`, `Downloading whisper.cpp ${whisperWindowsRelease.version}…`));
   const downloaded = powershell(`$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri '${whisperWindowsRelease.url}' -OutFile '${zip.replaceAll("'", "''")}'`);
-  if (!downloaded || !existsSync(zip)) return false;
+  if (!downloaded || !existsSync(zip)) {
+    console.log(t("whisper.cppをダウンロードできませんでした。", "Could not download whisper.cpp."));
+    console.log(t(`手動での回避策: ブラウザで ${whisperWindowsRelease.url} を取得し、zipを展開して中身を ${windowsWhisperRoot} に置いてください（社内プロキシやウイルス対策が自動ダウンロードを妨げることがあります）`,
+                  `Manual workaround: download ${whisperWindowsRelease.url} in your browser, extract the zip, and place its contents in ${windowsWhisperRoot} (corporate proxies or antivirus can block automated downloads).`));
+    return false;
+  }
   const digest = createHash("sha256").update(readFileSync(zip)).digest("hex");
   if (digest !== whisperWindowsRelease.sha256) {
     rmSync(zip, { force: true });
@@ -341,6 +346,7 @@ function downloadGgmlModelMac() {
   }
   rmSync(partial, { force: true });
   console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
+  manualFetchHint(url, windowsModel);
   return false;
 }
 
@@ -354,6 +360,7 @@ function downloadWindowsModel() {
     rmSync(partial, { force: true });
     rmSync(windowsModel, { force: true });
     console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
+    manualFetchHint(url, windowsModel);
     return false;
   }
   return true;
@@ -429,6 +436,64 @@ async function desktopHealth() {
   return fetchJson("/api/desktop-health", 12000);
 }
 
+// 環境リスクの事前検知（2026-07-18）：入っているか（上のchecks）ではなく、
+// その人の環境で「これから壊れそうな所」を先に知らせる。全て警告どまりで導入は妨げない。
+function chromePath() {
+  if (isMac) return ["/Applications/Google Chrome.app", join(homedir(), "Applications/Google Chrome.app")].find(p => existsSync(p)) || "";
+  if (isWindows) return [
+    join(process.env.ProgramFiles || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+    join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+    process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe") : "",
+  ].find(p => p && existsSync(p)) || "";
+  return "";
+}
+
+function portStatus() {
+  // 0=空き 2=LiveMTG稼働中 3=別プロセスが占有（listenを試し、塞がっていたら/api/healthで正体を確認）
+  const src = 'const net=require("net"),http=require("http");const p=' + Number(port) + ';'
+    + 'const s=net.createServer();'
+    + 's.once("error",()=>{const r=http.get({host:"127.0.0.1",port:p,path:"/api/health",timeout:1500},res=>process.exit(res.statusCode===200?2:3));'
+    + 'r.on("error",()=>process.exit(3));r.on("timeout",()=>{r.destroy();process.exit(3);});});'
+    + 's.once("listening",()=>s.close(()=>process.exit(0)));'
+    + 's.listen(p,"127.0.0.1");';
+  const r = spawnSync(process.execPath, ["-e", src], { timeout: 5000 });
+  return r.status === null ? 3 : r.status;
+}
+
+function envChecks() {
+  console.log(t("\n環境チェック", "\nEnvironment checks"));
+  const ps = portStatus();
+  if (ps === 0) console.log(t(`✓ ポート${port} は空いています`, `✓ Port ${port} is available`));
+  else if (ps === 2) console.log(t(`✓ ポート${port} でLiveMTGが稼働中です`, `✓ LiveMTG is running on port ${port}`));
+  else console.log(t(`△ ポート${port} を別のアプリが使用中 — 例: PORT=8890 live-mtg start で回避できます`,
+                     `△ Port ${port} is used by another app — work around with e.g. PORT=8890 live-mtg start`));
+  let freeGb = -1;
+  try { const f = statfsSync(home); freeGb = (f.bavail * f.bsize) / 1e9; } catch {}
+  const needsModel = (isWindows || isIntelMac) && !existsSync(windowsModel);
+  if (freeGb >= 0) {
+    const need = needsModel ? 4 : 1;
+    if (freeGb >= need) console.log(t(`✓ ディスク空き ${freeGb.toFixed(0)}GB`, `✓ Free disk space: ${freeGb.toFixed(0)} GB`));
+    else console.log(t(`△ ディスク空きが${freeGb.toFixed(1)}GBしかありません${needsModel ? "（文字起こしモデルの取得に約2GB必要）" : ""}`,
+                       `△ Only ${freeGb.toFixed(1)} GB free${needsModel ? " (the transcription model needs about 2 GB)" : ""}`));
+  }
+  if (chromePath()) console.log("✓ Chrome");
+  else console.log(t("△ Chromeが見つかりません — 録音にはChromeが必要です（標準外の場所に導入済みなら無視してください）",
+                     "△ Chrome not found — recording requires Chrome (ignore if installed in a custom location)"));
+  if (/[^\x00-\x7F]/.test(home)) {
+    const probe = join(home, ".パス確認.txt");
+    let ok = false;
+    try { writeFileSync(probe, "ok"); ok = readFileSync(probe, "utf8") === "ok"; rmSync(probe, { force: true }); } catch {}
+    if (ok) console.log(t(`✓ 日本語を含む保存先パスで読み書きOK（${home}）`, `✓ Non-ASCII data path reads/writes fine (${home})`));
+    else console.log(t(`△ 保存先パス（${home}）の読み書きに失敗しました — live-mtg report で診断を作成してください`,
+                       `△ Could not read/write the data path (${home}) — create a diagnostic with live-mtg report`));
+  }
+}
+
+function manualFetchHint(url, dest) {
+  console.log(t(`手動での回避策: ブラウザで ${url} を開いてダウンロードし、${dest} に置いてから再実行してください（社内プロキシやウイルス対策が自動ダウンロードを妨げることがあります）`,
+                `Manual workaround: download ${url} in your browser, place it at ${dest}, then run again (corporate proxies or antivirus can block automated downloads).`));
+}
+
 function doctor(provider = selectedProvider()) {
   const hasMlx = commandExists("mlx_whisper");
   const hasCpp = commandExists("whisper-cli") || (isWindows && Boolean(windowsWhisperExe()));
@@ -460,6 +525,7 @@ function doctor(provider = selectedProvider()) {
       ? t(" — 任意: 画面の『AI・音声の接続診断』でHFトークンを設定", " — optional: set an HF token in AI & audio diagnostics")
       : " (whispermlx)";
   console.log(`${diarizationState} ${t("話者分離", "Speaker diarization")}${diarizationDetail}`);
+  envChecks();
   const failed = checks.filter(([, ok]) => !ok).length;
   console.log(t(`\nデータ: ${home}`, `\nData: ${home}`));
   console.log(`AI: ${provider === "codex" ? "Codex" : "Claude Code"}`);
