@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/live-mtg/beta?label=npm%40beta&color=0071e3)](https://www.npmjs.com/package/live-mtg)
 [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](https://github.com/Sponsaru/live-mtg/blob/main/LICENSE)
-[![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Kenshin-Tanno)
+[![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
 LiveMTG is a local-first meeting copilot that transcribes conversations in real time and turns them into structured notes, suggested questions, meeting guidance, mind maps, polished minutes, and slides.
 
@@ -30,7 +30,7 @@ Report bugs through [GitHub Issues](https://github.com/Sponsaru/live-mtg/issues)
 
 ## Support the project
 
-LiveMTG is free and open source (MIT). If it saves your meetings, consider [sponsoring on GitHub](https://github.com/sponsors/Kenshin-Tanno) — sponsors get priority responses on issues and a say in the roadmap.
+LiveMTG is free and open source (MIT). If it saves your meetings, consider [sponsoring on GitHub](https://github.com/sponsors/Sponsaru) — sponsors get priority responses on issues and a say in the roadmap.
 
 ## 日本語
 
@@ -45,4 +45,4 @@ live-mtg
 
 初回の `live-mtg` で初期設定が自動的に始まり、**Claude Code / Codex** と日本語・英語を選べます。必要環境が揃うまで診断し、準備完了後にダッシュボードを開きます。会議データはローカルに保存され、共有APIキーは不要です。
 
-**開発を支援する** — LiveMTGは無料のOSS（MIT）です。役に立ったら [GitHub Sponsors](https://github.com/sponsors/Kenshin-Tanno) での支援を検討してください。スポンサーにはIssueの優先対応とロードマップへの発言権があります。
+**開発を支援する** — LiveMTGは無料のOSS（MIT）です。役に立ったら [GitHub Sponsors](https://github.com/sponsors/Sponsaru) での支援を検討してください。スポンサーにはIssueの優先対応とロードマップへの発言権があります。
