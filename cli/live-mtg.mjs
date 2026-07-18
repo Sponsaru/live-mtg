@@ -50,7 +50,7 @@ if (autoLegacyHome && hasTools(defaultHome) && !hasTools(legacyHome)) {
   if (migrateLegacyMeetings()) autoLegacyHome = false;
 }
 const home = process.env.LIVE_MTG_HOME || (autoLegacyHome ? legacyHome : defaultHome);
-const port = process.env.PORT || "8777";
+let port = process.env.PORT || "8777";
 const server = join(root, "server.py");
 const pidFile = join(home, "server.pid");
 const configFile = join(home, "config.json");
@@ -62,6 +62,13 @@ const isAppleSilicon = isMac && process.arch === "arm64";
 const isIntelMac = isMac && !isAppleSilicon;
 const windowsWhisperRoot = join(home, "tools", "whisper.cpp");
 const windowsModel = join(home, "models", "ggml-large-v3-turbo.bin");
+// ディスクが少ない環境向けの軽量ggmlモデル（精度は下がるが約0.5GBで動く）
+const windowsModelSmall = join(home, "models", "ggml-small.bin");
+function ggmlUrl(dest) {
+  return dest === windowsModelSmall
+    ? "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin"
+    : "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+}
 const whisperWindowsRelease = {
   version: "v1.9.1",
   url: "https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.1/whisper-bin-x64.zip",
@@ -114,6 +121,27 @@ function saveProvider(provider) {
   const config = readConfig();
   config.aiProvider = provider;
   writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
+}
+
+function saveConfigKey(key, value) {
+  const config = readConfig();
+  config[key] = value;
+  writeFileSync(configFile, JSON.stringify(config, null, 2) + "\n");
+}
+
+// ポート衝突時に自動で切り替えた値を全コマンドで共有する（envのPORT指定が常に最優先）
+if (!process.env.PORT) {
+  const savedPort = Number(readConfig().port);
+  if (savedPort >= 1024 && savedPort <= 65535) port = String(savedPort);
+}
+
+// Windows/Intel Macのggmlモデル：通常はlarge-v3-turbo、ディスクが少ない環境ではsmallを選べる
+function preferredGgmlModel() {
+  return readConfig().asrGgml === "small" ? windowsModelSmall : windowsModel;
+}
+
+function freeDiskGb() {
+  try { const f = statfsSync(home); return (f.bavail * f.bsize) / 1e9; } catch { return -1; }
 }
 
 function saveLanguage(language) {
@@ -230,6 +258,11 @@ async function prepareRuntime(assumeYes) {
     await installWithSystemManager("Python 3", ["install", "python@3.12"],
       ["install", "-e", "--id", "Python.Python.3.12"], assumeYes);
   }
+  if ((isMac || isWindows) && !chromePath()) {
+    // 録音の必須要件。検出止まりにせず、その場で導入まで面倒を見る（同意制）
+    await installWithSystemManager(t("Google Chrome（録音に必要）", "Google Chrome (required for recording)"),
+      ["install", "--cask", "google-chrome"], ["install", "-e", "--id", "Google.Chrome"], assumeYes);
+  }
   if (!commandExists("ffmpeg")) {
     await installWithSystemManager("ffmpeg", ["install", "ffmpeg"],
       ["install", "-e", "--id", "Gyan.FFmpeg"], assumeYes);
@@ -289,9 +322,12 @@ async function prepareRuntime(assumeYes) {
     if (!commandExists("whisper-cli")) {
       await installWithSystemManager("whisper.cpp", ["install", "whisper-cpp"], [], assumeYes);
     }
-    if (commandExists("whisper-cli") && !existsSync(windowsModel)) {
-      if (await confirmStep(t("文字起こしモデルをダウンロードしますか？（約1.6GB）", "Download the transcription model (about 1.6 GB)?"), assumeYes)) {
-        downloadGgmlModelMac();
+    if (commandExists("whisper-cli") && !existsSync(preferredGgmlModel())) {
+      await chooseGgmlBySpace(assumeYes);
+      const dest = preferredGgmlModel();
+      const size = dest === windowsModelSmall ? "0.5" : "1.6";
+      if (await confirmStep(t(`文字起こしモデルをダウンロードしますか？（約${size}GB）`, `Download the transcription model (about ${size} GB)?`), assumeYes)) {
+        downloadGgmlModelMac(dest);
       }
     }
   }
@@ -300,9 +336,23 @@ async function prepareRuntime(assumeYes) {
       installWindowsWhisper();
     }
   }
-  if (isWindows && !existsSync(windowsModel)) {
-    if (await confirmStep(t("文字起こしモデルをダウンロードしますか？（約1.6GB）", "Download the transcription model (about 1.6 GB)?"), assumeYes)) {
-      downloadWindowsModel();
+  if (isWindows && !existsSync(preferredGgmlModel())) {
+    await chooseGgmlBySpace(assumeYes);
+    const dest = preferredGgmlModel();
+    const size = dest === windowsModelSmall ? "0.5" : "1.6";
+    if (await confirmStep(t(`文字起こしモデルをダウンロードしますか？（約${size}GB）`, `Download the transcription model (about ${size} GB)?`), assumeYes)) {
+      downloadWindowsModel(dest);
+    }
+  }
+}
+
+// ディスクが少ない環境では、検出止まりにせず軽量モデルへの切替を提案する（同意制）
+async function chooseGgmlBySpace(assumeYes) {
+  const freeGb = freeDiskGb();
+  if (freeGb >= 0 && freeGb < 4 && readConfig().asrGgml !== "small") {
+    if (await confirmStep(t(`ディスク空きが${freeGb.toFixed(1)}GBと少なめです。軽量な文字起こしモデル（約0.5GB・精度は少し下がります）を使いますか？`,
+                            `Only ${freeGb.toFixed(1)} GB of disk is free. Use the lightweight transcription model (about 0.5 GB, slightly lower accuracy)?`), assumeYes)) {
+      saveConfigKey("asrGgml", "small");
     }
   }
 }
@@ -333,34 +383,34 @@ function installWindowsWhisper() {
   return extracted && Boolean(windowsWhisperExe());
 }
 
-function downloadGgmlModelMac() {
+function downloadGgmlModelMac(dest = preferredGgmlModel()) {
   // Intel Mac用：whisper.cpp向けggmlモデルをcurlで取得（2026-07-17 Intel Mac対応）
-  mkdirSync(dirname(windowsModel), { recursive: true });
-  const partial = `${windowsModel}.download`;
-  const url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+  mkdirSync(dirname(dest), { recursive: true });
+  const partial = `${dest}.download`;
+  const url = ggmlUrl(dest);
   console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…", "Downloading the transcription model. This may take several minutes…"));
   const ok = runInteractive("curl", ["-L", "--fail", "--progress-bar", "-o", partial, url]);
   if (ok && existsSync(partial) && statSync(partial).size > 100_000_000) {
-    renameSync(partial, windowsModel);
+    renameSync(partial, dest);
     return true;
   }
   rmSync(partial, { force: true });
   console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
-  manualFetchHint(url, windowsModel);
+  manualFetchHint(url, dest);
   return false;
 }
 
-function downloadWindowsModel() {
-  mkdirSync(dirname(windowsModel), { recursive: true });
-  const partial = `${windowsModel}.download`;
-  const url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
+function downloadWindowsModel(dest = preferredGgmlModel()) {
+  mkdirSync(dirname(dest), { recursive: true });
+  const partial = `${dest}.download`;
+  const url = ggmlUrl(dest);
   console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…", "Downloading the transcription model. This may take several minutes…"));
-  const ok = powershell(`$ProgressPreference='Continue'; Invoke-WebRequest -UseBasicParsing -Uri '${url}' -OutFile '${partial.replaceAll("'", "''")}'; Move-Item -LiteralPath '${partial.replaceAll("'", "''")}' -Destination '${windowsModel.replaceAll("'", "''")}' -Force`);
-  if (!ok || !existsSync(windowsModel) || statSync(windowsModel).size < 100_000_000) {
+  const ok = powershell(`$ProgressPreference='Continue'; Invoke-WebRequest -UseBasicParsing -Uri '${url}' -OutFile '${partial.replaceAll("'", "''")}'; Move-Item -LiteralPath '${partial.replaceAll("'", "''")}' -Destination '${dest.replaceAll("'", "''")}' -Force`);
+  if (!ok || !existsSync(dest) || statSync(dest).size < 100_000_000) {
     rmSync(partial, { force: true });
-    rmSync(windowsModel, { force: true });
+    rmSync(dest, { force: true });
     console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
-    manualFetchHint(url, windowsModel);
+    manualFetchHint(url, dest);
     return false;
   }
   return true;
@@ -401,7 +451,7 @@ function runtimeEnv() {
     PROFILE_MD: join(home, "profile.md"),
     PLAYBOOK_DIR: join(home, "playbooks"),
     ASR_BACKEND: process.env.ASR_BACKEND || (isAppleSilicon ? "mlx" : "cpp"),
-    MODEL: process.env.MODEL || ((isWindows || isIntelMac) ? windowsModel : undefined),
+    MODEL: process.env.MODEL || ((isWindows || isIntelMac) ? preferredGgmlModel() : undefined),
     AI_PROVIDER: selectedProvider(),
     LIVE_MTG_LANGUAGE: selectedLanguage(),
     PATH: effectivePath(),
@@ -448,9 +498,9 @@ function chromePath() {
   return "";
 }
 
-function portStatus() {
+function portStatus(p = Number(port)) {
   // 0=空き 2=LiveMTG稼働中 3=別プロセスが占有（listenを試し、塞がっていたら/api/healthで正体を確認）
-  const src = 'const net=require("net"),http=require("http");const p=' + Number(port) + ';'
+  const src = 'const net=require("net"),http=require("http");const p=' + Number(p) + ';'
     + 'const s=net.createServer();'
     + 's.once("error",()=>{const r=http.get({host:"127.0.0.1",port:p,path:"/api/health",timeout:1500},res=>process.exit(res.statusCode===200?2:3));'
     + 'r.on("error",()=>process.exit(3));r.on("timeout",()=>{r.destroy();process.exit(3);});});'
@@ -460,32 +510,50 @@ function portStatus() {
   return r.status === null ? 3 : r.status;
 }
 
+// ポートが他アプリに塞がれていたら、隣の空きポートへ自動で移る（検出止まりにしない）。
+// 選んだ値はconfig.jsonに保存し、serve/start/open/apiの全コマンドが同じ値を使う。
+function resolvePortConflict() {
+  if (process.env.PORT) return;   // 明示指定は尊重
+  if (portStatus() !== 3) return;
+  const base = Number(port);
+  for (let cand = base + 1; cand <= base + 30; cand++) {
+    if (portStatus(cand) === 0) {
+      saveConfigKey("port", cand);
+      port = String(cand);
+      console.log(t(`ポート${base}は別のアプリが使用中のため、${cand} に自動で切り替えました`,
+                    `Port ${base} is taken by another app; switched to ${cand} automatically.`));
+      return;
+    }
+  }
+  console.log(t(`ポート${base}が使用中で、近くの空きポートも見つかりませんでした。PORT=<番号> live-mtg start をお試しください`,
+                `Port ${base} is busy and no nearby port is free. Try PORT=<number> live-mtg start.`));
+}
+
 function envChecks() {
   console.log(t("\n環境チェック", "\nEnvironment checks"));
   const ps = portStatus();
   if (ps === 0) console.log(t(`✓ ポート${port} は空いています`, `✓ Port ${port} is available`));
   else if (ps === 2) console.log(t(`✓ ポート${port} でLiveMTGが稼働中です`, `✓ LiveMTG is running on port ${port}`));
-  else console.log(t(`△ ポート${port} を別のアプリが使用中 — 例: PORT=8890 live-mtg start で回避できます`,
-                     `△ Port ${port} is used by another app — work around with e.g. PORT=8890 live-mtg start`));
-  let freeGb = -1;
-  try { const f = statfsSync(home); freeGb = (f.bavail * f.bsize) / 1e9; } catch {}
-  const needsModel = (isWindows || isIntelMac) && !existsSync(windowsModel);
+  else console.log(t(`△ ポート${port} を別のアプリが使用中 — 次回の live-mtg start が自動で空きポートへ切り替えます`,
+                     `△ Port ${port} is used by another app — the next live-mtg start switches to a free port automatically`));
+  const freeGb = freeDiskGb();
+  const needsModel = (isWindows || isIntelMac) && !existsSync(preferredGgmlModel());
   if (freeGb >= 0) {
-    const need = needsModel ? 4 : 1;
+    const need = needsModel ? (readConfig().asrGgml === "small" ? 1.5 : 4) : 1;
     if (freeGb >= need) console.log(t(`✓ ディスク空き ${freeGb.toFixed(0)}GB`, `✓ Free disk space: ${freeGb.toFixed(0)} GB`));
-    else console.log(t(`△ ディスク空きが${freeGb.toFixed(1)}GBしかありません${needsModel ? "（文字起こしモデルの取得に約2GB必要）" : ""}`,
-                       `△ Only ${freeGb.toFixed(1)} GB free${needsModel ? " (the transcription model needs about 2 GB)" : ""}`));
+    else console.log(t(`△ ディスク空きが${freeGb.toFixed(1)}GBしかありません${needsModel ? "（live-mtg onboard が軽量モデルへの切替を提案します）" : ""}`,
+                       `△ Only ${freeGb.toFixed(1)} GB free${needsModel ? " (live-mtg onboard will offer the lightweight model)" : ""}`));
   }
   if (chromePath()) console.log("✓ Chrome");
-  else console.log(t("△ Chromeが見つかりません — 録音にはChromeが必要です（標準外の場所に導入済みなら無視してください）",
-                     "△ Chrome not found — recording requires Chrome (ignore if installed in a custom location)"));
+  else console.log(t("△ Chromeが見つかりません — 録音に必要です。live-mtg onboard で導入できます（標準外の場所に導入済みなら無視してください）",
+                     "△ Chrome not found — required for recording. live-mtg onboard can install it (ignore if installed in a custom location)"));
   if (/[^\x00-\x7F]/.test(home)) {
     const probe = join(home, ".パス確認.txt");
     let ok = false;
     try { writeFileSync(probe, "ok"); ok = readFileSync(probe, "utf8") === "ok"; rmSync(probe, { force: true }); } catch {}
     if (ok) console.log(t(`✓ 日本語を含む保存先パスで読み書きOK（${home}）`, `✓ Non-ASCII data path reads/writes fine (${home})`));
-    else console.log(t(`△ 保存先パス（${home}）の読み書きに失敗しました — live-mtg report で診断を作成してください`,
-                       `△ Could not read/write the data path (${home}) — create a diagnostic with live-mtg report`));
+    else console.log(t(`△ 保存先パス（${home}）の読み書きに失敗しました — 回避策: ${isWindows ? "setx LIVE_MTG_HOME C:\\live-mtg-data を実行し、新しいターミナルで live-mtg onboard" : "export LIVE_MTG_HOME=$HOME/live-mtg-data を設定して live-mtg onboard"}。解決しない場合は live-mtg report で診断を作成してください`,
+                       `△ Could not read/write the data path (${home}) — workaround: ${isWindows ? "run setx LIVE_MTG_HOME C:\\live-mtg-data, then live-mtg onboard in a new terminal" : "set export LIVE_MTG_HOME=$HOME/live-mtg-data and run live-mtg onboard"}. If it persists, create a diagnostic with live-mtg report`));
   }
 }
 
@@ -512,7 +580,7 @@ function doctor(provider = selectedProvider()) {
     [t(`${aiLabel} ログイン`, `${aiLabel} sign-in`), aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
     ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
     [t(`文字起こし（${asr}）`, `Transcription (${asr})`), asrInstalled, isAppleSilicon ? "pipx install mlx-whisper" : t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")],
-    ...((isWindows || isIntelMac) ? [[t("文字起こしモデル", "Transcription model"), existsSync(windowsModel), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
+    ...((isWindows || isIntelMac) ? [[t("文字起こしモデル", "Transcription model"), existsSync(preferredGgmlModel()), t("live-mtg onboard で自動取得", "downloaded by live-mtg onboard")]] : [])
   ];
   console.log("LiveMTG doctor\n");
   for (const [label, ok, detail] of checks) console.log(`${ok ? "✓" : "✗"} ${label}${ok ? "" : ` — ${detail}`}`);
@@ -588,6 +656,7 @@ async function createReport() {
 }
 
 function serve() {
+  resolvePortConflict();   // 常駐起動時もポート衝突を自力で回避する
   const python = pythonCommand();
   if (!python) throw new Error(t("Python 3がありません。live-mtg doctorで確認してください。", "Python 3 is missing. Run live-mtg doctor."));
   const args = python === "py" ? ["-3", "-u", server] : ["-u", server];
@@ -630,6 +699,7 @@ function installDaemon() {
 }
 
 async function start() {
+  resolvePortConflict();
   let running = await serviceHealth();
   const hadMacDaemon = isMac && existsSync(macPlistPath());
   let currentMacDaemon = false;
