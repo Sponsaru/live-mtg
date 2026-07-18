@@ -812,6 +812,27 @@ async function configure(provider, language) {
   }
 }
 
+// きれいに消せることは再検証・乗り換えの安心材料（2026-07-18）。
+// 常駐設定は削除まで面倒を見る。データ削除は破壊的なので、コマンドの提示に留めて自動では消さない。
+function uninstall() {
+  stop();
+  if (isMac && existsSync(macPlistPath())) {
+    spawnSync("launchctl", ["bootout", `gui/${process.getuid()}`, macPlistPath()], { stdio: "ignore" });
+    rmSync(macPlistPath(), { force: true });
+    console.log(t("自動起動（LaunchAgent）を削除しました", "Removed the auto-start LaunchAgent"));
+  } else if (isWindows) {
+    spawnSync("schtasks", ["/End", "/TN", "LiveMTG"], { stdio: "ignore" });
+    const removed = spawnSync("schtasks", ["/Delete", "/F", "/TN", "LiveMTG"], { stdio: "ignore" }).status === 0;
+    if (removed) console.log(t("自動起動（タスクスケジューラ）を削除しました", "Removed the auto-start scheduled task"));
+  }
+  console.log(t("\n残りの手順（この2つはご自身で実行してください）:", "\nRemaining steps (run these yourself):"));
+  console.log(t("1. 本体の削除:      npm uninstall -g live-mtg", "1. Remove the CLI:  npm uninstall -g live-mtg"));
+  const dirs = [home, existsSync(legacyHome) && legacyHome !== home ? legacyHome : ""].filter(Boolean);
+  const rmCmd = d => isWindows ? `Remove-Item -Recurse -Force "${d}"` : `rm -rf "${d}"`;
+  console.log(t(`2. データの削除（会議・モデルごと消えます）: ${dirs.map(rmCmd).join(" と ")}`,
+                `2. Delete data (meetings and models included): ${dirs.map(rmCmd).join(" and ")}`));
+}
+
 async function update() {
   const channel = pkg.version.includes("-") ? "beta" : "latest";
   const wasRunning = Boolean(await serviceHealth());
@@ -863,6 +884,7 @@ Usage:
   live-mtg logs [--lines 200]          Show server logs
   live-mtg report                      Create a privacy-safe diagnostic report
   live-mtg rollback [version]          Roll back to a previous version
+  live-mtg uninstall                   Stop auto-start and show removal steps
   live-mtg onboard --no-daemon         Set up without auto-start
   live-mtg serve                       Run the server in the foreground
   live-mtg --version                   Show version
@@ -881,6 +903,7 @@ Issues: https://github.com/Sponsaru/live-mtg/issues` : `LiveMTG
   live-mtg logs [--lines 200]        サーバーログを表示
   live-mtg report                    個人情報を伏せた診断レポートを作成
   live-mtg rollback [version]        直前または指定バージョンへ戻す
+  live-mtg uninstall                 常駐を解除し、完全削除の手順を表示
   live-mtg onboard --no-daemon       常駐化せず初期設定
   live-mtg serve                     サーバーを手前で実行
   live-mtg --version                 バージョン表示
@@ -924,6 +947,7 @@ try {
   else if (command === "logs") showLogs(Number.isFinite(requestedLines) ? requestedLines : 120);
   else if (command === "report") await createReport();
   else if (command === "rollback") await rollback(args[1]);
+  else if (command === "uninstall") uninstall();
   else if (command === "--version" || command === "-v") console.log(pkg.version);
   else help();
 } catch (error) {
