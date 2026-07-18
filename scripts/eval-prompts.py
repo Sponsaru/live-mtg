@@ -39,9 +39,13 @@ def ask(prompt, timeout=90):
     return json.loads(m.group(0)) if m else None
 
 
-def fast_prompt(delta, index=INDEX_EMPTY, goal=""):
-    bg = ("【会議の目標】\n" + goal) if goal else ""
-    return srv.LIVE_PATCH_PROMPT.format(title="評価用会議", bg=bg, index=index, delta=delta)
+def fast_prompt(delta, index=INDEX_EMPTY, goal="", mtype=""):
+    parts = []
+    if mtype:
+        parts.append("【会議の用途】" + mtype)
+    if goal:
+        parts.append("【会議の目標】\n" + goal)
+    return srv.LIVE_PATCH_PROMPT.format(title="評価用会議", bg="\n".join(parts), index=index, delta=delta)
 
 
 CASES = []
@@ -125,6 +129,22 @@ def _(run):
     t = str(r.get("type") or "")
     assert str(r.get("from") or "").strip() and t.strip(), "relationが空: %r" % r
     assert len(t) >= 4 and t != "関連", "typeが論理を語っていない: %r" % t
+
+
+@case("mode: ブレスト会話 → kind=話す の提案", "mode")
+def _(run):
+    d = run(fast_prompt("じゃあ新サービスの名前と売り方、自由に出していこうか。とりあえずサブスクはありだよね。あとは代理店経由も面白いかも。他には何があるかな。",
+                        mtype="ブレスト"))
+    qs = (d or {}).get("questions") or []
+    assert any(q.get("kind") == "話す" for q in qs), "ブレストなのに話す提案が無い: %r" % qs
+
+
+@case("mode: 商談ヒアリング → kind=聞く の質問", "mode")
+def _(run):
+    d = run(fast_prompt("弊社の在庫管理はエクセルでやっていて、月末の棚卸しに3日かかるんですよ。担当は2名です。",
+                        mtype="商談", goal="課題を聞き出して提案につなげる"))
+    qs = (d or {}).get("questions") or []
+    assert qs and all(q.get("kind") != "話す" for q in qs), "商談なのに話す提案が混ざった: %r" % qs
 
 
 @case("fast: 行き詰まり発話 → stuckが立つ", "counsel")

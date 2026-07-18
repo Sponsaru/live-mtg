@@ -281,6 +281,9 @@
   .ri-x:hover{color:#b0453c}
   .railitem.stale{opacity:.55}
   .ri-stale{font-size:10.5px;color:var(--sub);font-weight:700;margin-bottom:3px}
+  .ri-kind{display:inline-block;font-size:10px;font-weight:800;border-radius:999px;padding:1px 8px;margin-bottom:5px;letter-spacing:.04em}
+  .ri-kind.ask{background:#e8f1fc;color:var(--blue-d)}
+  .ri-kind.talk{background:#e9f6ef;color:#1d7a4f}
   /* 行き詰まりへの提案（参謀の意見）カード */
   .counselcard{background:#fff;border:1.5px solid var(--blue);border-radius:14px;padding:13px 14px;box-shadow:0 2px 10px rgba(0,113,227,.10)}
   .cs-head{font-size:11.5px;font-weight:800;color:var(--blue-d);letter-spacing:.06em;margin-bottom:6px}
@@ -1581,15 +1584,22 @@ function renderNextQuestions(qs){
   const nsig=JSON.stringify(nextQuestions);
   if(nsig!==nextQSig){ const first=!nextQSig; nextQSig=nsig; if(!first&&nextQuestions.length)railNotify('ask'); }
   $('nextwrap').classList.toggle('show',nextQuestions.length>0||!!curGoal);
+  // 見出しはカードの主流に合わせて切替（ブレスト＝「次に話すこと」、引き出す場＝「次に聞く質問」。2026-07-18）
+  const talkCount=nextQuestions.filter(x=>x.kind==='話す').length;
+  const head=$('nextwrap').querySelector('.nexthead');
+  if(head)head.textContent=nextQuestions.length&&talkCount>nextQuestions.length/2?tr('次に話すこと','What to discuss next'):tr('次に聞く質問','Next questions');
+  const mixed=nextQuestions.length&&talkCount>0&&talkCount<nextQuestions.length;
   $('nextchips').innerHTML=nextQuestions.length
     ? nextQuestions.map((x,i)=>{
         const question=String(x.q||'').trim(),intent=String(x.intent||tr('意図はまだ整理中です','Intent is still being analyzed')).trim();
         const age=x.at?Math.floor(Date.now()/1000-x.at):0, stale=age>180;
+        const talk=x.kind==='話す';
         return `<div class="railitem${stale?' stale':''}" data-at="${x.at||''}">`
           +(stale?`<div class="ri-stale">${tr('少し前の提案','Earlier suggestion')}</div>`:'')
-          +`<button class="ri-x" title="${tr('この質問を消す（再提案しません）','Dismiss (won\'t suggest again)')}" onclick="dismissQuestion(${i})">×</button>`
+          +(mixed?`<span class="ri-kind ${talk?'talk':'ask'}">${talk?tr('話す','Discuss'):tr('聞く','Ask')}</span>`:'')
+          +`<button class="ri-x" title="${tr('この提案を消す（再提案しません）','Dismiss (won\'t suggest again)')}" onclick="dismissQuestion(${i})">×</button>`
           +`<div class="ri-q">${esc(question)}</div><div class="ri-body">${esc(intent)}</div></div>`}).join('')
-    : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問がここに出ます。','Suggested questions will appear here once the conversation begins.')}</span>`;
+    : `<span class="nextempty">${tr('録音が始まり会話が入ると、目標に近づくための質問や話すと良い論点がここに出ます。','Suggestions on what to ask or discuss will appear here once the conversation begins.')}</span>`;
 }
 async function dismissQuestion(i){
   const x=nextQuestions[i]; if(!x)return;
