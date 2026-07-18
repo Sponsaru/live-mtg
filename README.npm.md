@@ -6,6 +6,8 @@
 
 ![LiveMTG — live meeting intelligence](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/hero.jpg)
 
+![Demo: minutes, questions, and maps grow in real time while you record](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/demo.gif)
+
 LiveMTG is a local-first meeting copilot that transcribes conversations in real time and turns them into structured notes, suggested questions, meeting guidance, mind maps, polished minutes, and slides.
 
 Completed slide decks use the vendored neutral **Slide Work** pattern system in hybrid mode: message layouts for conclusions and informative layouts for evidence, comparisons, decisions, and actions.
