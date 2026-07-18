@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, statfsSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, statfsSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -911,6 +911,20 @@ Issues: https://github.com/Sponsaru/live-mtg/issues` : `LiveMTG
 不具合報告: https://github.com/Sponsaru/live-mtg/issues`);
 }
 
+// import（テスト・他ツールからの読み込み）だけではコマンドを実行しない。
+// 直接起動された時のみ動く（2026-07-18 実障害：検証時のimportが既定コマンド＝onboardを走らせ、
+// 常駐サービスの保存先を一時フォルダへ書き換えた）。binのsymlinkはrealpathで解決して比較する。
+const invokedDirectly = (() => {
+  try { return import.meta.url === pathToFileURL(realpathSync(process.argv[1] || "")).href; }
+  catch { return false; }
+})();
+if (!invokedDirectly) {
+  // 何もせず読み込みだけ成功させる（副作用ゼロ）
+} else {
+await main();
+}
+
+async function main() {
 const args = process.argv.slice(2);
 const command = args[0] || "dashboard";
 const providerAt = args.indexOf("--provider");
@@ -953,4 +967,5 @@ try {
 } catch (error) {
   console.error(`LiveMTG: ${error.message}`);
   process.exitCode = 1;
+}
 }
