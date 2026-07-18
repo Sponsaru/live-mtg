@@ -670,6 +670,11 @@ function serve() {
 
 function macPlistPath() { return join(homedir(), "Library", "LaunchAgents", "com.rakuhub.live-mtg.plist"); }
 
+function windowsStartupVbs() {
+  if (!process.env.APPDATA) return "";
+  return join(process.env.APPDATA, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "LiveMTG.vbs");
+}
+
 function installDaemon() {
   if (isMac) {
     const plist = macPlistPath();
@@ -691,7 +696,25 @@ function installDaemon() {
   } else if (isWindows) {
     const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve`;
     const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "inherit" });
-    if (result.status !== 0) throw new Error(t("Windowsの自動起動を登録できませんでした", "Could not register Windows auto-start"));
+    if (result.status !== 0) {
+      // 標準ユーザーではONLOGONタスクの作成が「アクセスが拒否されました」になる
+      // （2026-07-18 PC41実機・壁⑤）。管理者権限を要求せず、ユーザー権限で書ける
+      // スタートアップフォルダのVBS（隠しウィンドウ起動）へフォールバックする。
+      const vbsPath = windowsStartupVbs();
+      try {
+        if (!vbsPath) throw new Error("APPDATA not set");
+        const vbs = `CreateObject("WScript.Shell").Run """${process.execPath}"" ""${fileURLToPath(import.meta.url)}"" serve", 0, False\r\n`;
+        writeFileSync(vbsPath, vbs);
+        console.log(t("管理者権限が無いため、スタートアップフォルダ（ユーザー権限）で自動起動を設定しました",
+                      "No admin rights; auto-start registered via the user Startup folder instead."));
+      } catch {
+        console.log(t("自動起動を登録できませんでした。管理者PowerShellで live-mtg onboard を実行すると登録できます。今回は手動起動で続行します",
+                      "Could not register auto-start. Run live-mtg onboard from an admin PowerShell to register it. Continuing with a manual start."));
+      }
+      // どちらの場合も今回は今すぐ起動する（スタートアップ登録は次回ログオンから効く）
+      spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" }).unref();
+      return;
+    }
     spawnSync("schtasks", ["/Run", "/TN", "LiveMTG"], { stdio: "ignore" });
   } else {
     console.log(t("Linuxのsystemd登録は今後対応します。別ターミナルで live-mtg serve を実行してください。", "Linux systemd setup is not available yet. Run live-mtg serve in another terminal."));
@@ -824,6 +847,11 @@ function uninstall() {
     spawnSync("schtasks", ["/End", "/TN", "LiveMTG"], { stdio: "ignore" });
     const removed = spawnSync("schtasks", ["/Delete", "/F", "/TN", "LiveMTG"], { stdio: "ignore" }).status === 0;
     if (removed) console.log(t("自動起動（タスクスケジューラ）を削除しました", "Removed the auto-start scheduled task"));
+    const vbs = windowsStartupVbs();
+    if (vbs && existsSync(vbs)) {
+      rmSync(vbs, { force: true });
+      console.log(t("自動起動（スタートアップフォルダ）を削除しました", "Removed the auto-start Startup folder entry"));
+    }
   }
   console.log(t("\n残りの手順（この2つはご自身で実行してください）:", "\nRemaining steps (run these yourself):"));
   console.log(t("1. 本体の削除:      npm uninstall -g live-mtg", "1. Remove the CLI:  npm uninstall -g live-mtg"));
