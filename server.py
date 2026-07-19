@@ -203,7 +203,7 @@ def desktop_health():
     asr_name = "mlx_whisper" if has_mlx else ("whisper-cli" if has_cpp else "mlx_whisper / whisper-cli")
     ai_cmd, ai_label = ("codex", "Codex") if AI_PROVIDER == "codex" else ("claude", "Claude Code")
     ai_installed = bool(shutil.which(ai_cmd))
-    ai_login_cmd = ["codex", "login", "status"] if AI_PROVIDER == "codex" else ["claude", "auth", "status"]
+    ai_login_cmd = [_cli("codex"), "login", "status"] if AI_PROVIDER == "codex" else [_cli("claude"), "auth", "status"]
     ai_login_help = ("Run codex login" if LANGUAGE == "en" else "codex login を実行してください") if AI_PROVIDER == "codex" else ("Run claude auth login" if LANGUAGE == "en" else "claude auth login を実行してください")
     ai_logged_in = False
     if ai_installed:
@@ -305,6 +305,12 @@ def set_hf_token(token):
         _delete_setting("hfToken")
     return ok
 
+def _cli(name):
+    """CLIコマンド名をフルパスへ解決する。Windowsでは実体が claude.cmd / codex.cmd
+    （npmのバッチシム）で、素の名前ではCreateProcessが見つけられず起動に失敗する
+    （2026-07-18 PC109実機レポート：ログイン判定の誤判定）。whichはPATHEXTを考慮する。"""
+    return shutil.which(name) or name
+
 def _ai_env():
     """claude をローカル自動実行する時の共通環境（morning-routine.sh の plist 準拠）。
     ★ DISABLE_AUTOUPDATER=1 が無いと、auto-update が走った直後に claude -p が固まる（実測）。
@@ -336,7 +342,7 @@ def _ai_text(prompt, timeout=120, cwd=None, model=None, web=False, schema=None, 
     prompt = _localized_prompt(prompt)
     cwd = cwd if cwd and os.path.isdir(cwd) else tempfile.gettempdir()
     if AI_PROVIDER == "claude":
-        cmd = ["claude", "-p", "--model", model or ASSIST_MODEL]
+        cmd = [_cli("claude"), "-p", "--model", model or ASSIST_MODEL]
         if web:
             cmd += ["--permission-mode", "bypassPermissions", "--allowedTools", ASSIST_TOOLS]
         if background:
@@ -361,7 +367,7 @@ def _ai_text(prompt, timeout=120, cwd=None, model=None, web=False, schema=None, 
     output.close()
     schema_path = None
     try:
-        cmd = ["codex"]
+        cmd = [_cli("codex")]
         if web:
             cmd.append("--search")
         cmd += ["exec", "--ephemeral", "--sandbox", "read-only", "--skip-git-repo-check",
@@ -1010,7 +1016,7 @@ def _claude_explore(project_dir, prompt, timeout=240, json_schema=None,
             sys.stderr.write("[CODEX] 探索失敗 %r\n" % e); sys.stderr.flush()
             return ""
     prompt = _localized_prompt(prompt)
-    cmd = (["claude", "-p", prompt] if os.name == "nt"
+    cmd = ([_cli("claude"), "-p", prompt] if os.name == "nt"
            else ["script", "-q", "/dev/null", "claude", "-p", prompt])
     cmd += ["--model", model or ASSIST_MODEL, "--tools", tools,
            "--permission-mode", "bypassPermissions",

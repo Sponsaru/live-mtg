@@ -213,8 +213,10 @@ async function confirmStep(question, assumeYes = false) {
 function isAiLoggedIn(provider) {
   const command = provider === "codex" ? "codex" : "claude";
   if (!commandExists(command)) return false;
+  // Windowsのclaude/codexは.cmdシム。shell無しのspawnSyncは.cmdを起動できず
+  // 「未ログイン」誤判定になる（2026-07-18 PC109実機レポート）
   return spawnSync(command, provider === "codex" ? ["login", "status"] : ["auth", "status"],
-    { stdio: "ignore", env: commandEnv() }).status === 0;
+    { stdio: "ignore", shell: isWindows, env: commandEnv() }).status === 0;
 }
 
 async function prepareAi(provider, assumeYes) {
@@ -572,7 +574,7 @@ function doctor(provider = selectedProvider()) {
   const aiInstalled = commandExists(aiCommand);
   const aiLoggedIn = aiInstalled && spawnSync(aiCommand,
     provider === "codex" ? ["login", "status"] : ["auth", "status"],
-    { stdio: "ignore", env: commandEnv() }).status === 0;
+    { stdio: "ignore", shell: isWindows, env: commandEnv() }).status === 0;
   const checks = [
     ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
     ["Python 3", Boolean(pythonCommand()), "python3"],
@@ -695,7 +697,10 @@ function installDaemon() {
     if (result.status !== 0) throw new Error(t("LaunchAgentを登録できませんでした", "Could not register the LaunchAgent"));
   } else if (isWindows) {
     const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve`;
-    const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "inherit" });
+    // 標準ユーザーでは「アクセスが拒否されました」が出るのが正常系（→フォールバック）。
+    // エラー文をそのまま見せると失敗に見えるため出力は抑制し、結果だけ1行で伝える
+    const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "ignore" });
+    if (result.status === 0) console.log(t("自動起動を登録しました（タスクスケジューラ）", "Auto-start registered (Task Scheduler)."));
     if (result.status !== 0) {
       // 標準ユーザーではONLOGONタスクの作成が「アクセスが拒否されました」になる
       // （2026-07-18 PC41実機・壁⑤）。管理者権限を要求せず、ユーザー権限で書ける
@@ -705,8 +710,8 @@ function installDaemon() {
         if (!vbsPath) throw new Error("APPDATA not set");
         const vbs = `CreateObject("WScript.Shell").Run """${process.execPath}"" ""${fileURLToPath(import.meta.url)}"" serve", 0, False\r\n`;
         writeFileSync(vbsPath, vbs);
-        console.log(t("管理者権限が無いため、スタートアップフォルダ（ユーザー権限）で自動起動を設定しました",
-                      "No admin rights; auto-start registered via the user Startup folder instead."));
+        console.log(t("自動起動を登録しました（スタートアップ・ユーザー権限。管理者権限は不要です）",
+                      "Auto-start registered (user Startup folder; no admin rights needed)."));
       } catch {
         console.log(t("自動起動を登録できませんでした。管理者PowerShellで live-mtg onboard を実行すると登録できます。今回は手動起動で続行します",
                       "Could not register auto-start. Run live-mtg onboard from an admin PowerShell to register it. Continuing with a manual start."));

@@ -1068,7 +1068,7 @@
 <div class="modal-bg" id="rbg">
   <div class="modal">
     <h3>録音を開始</h3>
-    <p>オンライン会議の<b>相手の声も</b>文字起こしするには「会議音声も取り込む」を選び、次の共有画面で<b>会議のタブ</b>を選んで<b>「タブの音声を共有」にチェック</b>してください（自分の声はマイクから拾います）。</p>
+    <p>オンライン会議の<b>相手の声も</b>文字起こしするには「会議音声も取り込む」を選び、次の共有画面で：<br>①「Chromeタブ」を選ぶ → ② 会議のタブをクリック → ③「タブの音声も共有」にチェック<br>ZoomやTeamsのアプリで会議中は「画面全体」を選び「システム音声も共有」にチェック（自分の声はマイクから拾います）。</p>
     <label style="display:block;font-size:13px;font-weight:700;color:var(--sub);margin-bottom:5px">使用するマイク</label>
     <div class="pickrow"><select id="micsel" style="width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;outline:none;background:#fff;color:var(--ink)"></select><button type="button" class="pickbtn" id="micrefresh"><svg class="inline-icon"><use href="#i-refresh"/></svg>再読込</button></div>
     <p style="margin:7px 0 0;font-size:12px">※一覧表示だけでは接続しません。選択後、下の録音方法を押した時だけそのマイクへ接続します。</p>
@@ -1203,8 +1203,9 @@ const EN_TEXT=new Map([
   ['をAIが理解し、話者の名前ラベル・ガイドの助言・清書が正確になります。','and can improve speaker labels, guidance, and polished minutes.'],['全会議で共通','Shared across meetings'],['・いつでも変更できます。','and editable anytime.'],
   ['AIが抽出した学びです。','These learnings were extracted by AI.'],['編集して「プレイブックに追記」','Edit them and choose “Add to playbook”'],
   ['を押すと、用途別プレイブックに蓄積され、次回以降のガイドが賢くなります。不要な行は消してください。','to reuse them in future meetings of this type. Delete anything you do not want to keep.'],
-  ['オンライン会議の','To transcribe'],['相手の声も','other participants in an online meeting'],['文字起こしするには「会議音声も取り込む」を選び、次の共有画面で','choose “Include meeting audio,” select the meeting tab, and enable'],
-  ['会議のタブ','the meeting tab'],['「タブの音声を共有」にチェック','Share tab audio'],['してください（自分の声はマイクから拾います）。','Your own voice will come from the microphone.']
+  ['オンライン会議の','To transcribe'],['相手の声も','other participants in an online meeting'],['文字起こしするには「会議音声も取り込む」を選び、次の共有画面で：','choose “Include meeting audio,” then in the share dialog:'],
+  ['①「Chromeタブ」を選ぶ → ② 会議のタブをクリック → ③「タブの音声も共有」にチェック','① Pick “Chrome Tab” → ② click the meeting tab → ③ check “Share tab audio”'],
+  ['ZoomやTeamsのアプリで会議中は「画面全体」を選び「システム音声も共有」にチェック（自分の声はマイクから拾います）。','If the meeting runs in the Zoom/Teams desktop app, pick “Entire screen” and check “Also share system audio.” Your own voice comes from the microphone.']
 ]);
 const EN_ATTR=new Map([
   ['会議名（例：DX部 定例 7/9）','Meeting title (e.g. Product weekly sync)'],['選択または過去の候補・パス入力','Choose a folder or enter its path'],
@@ -2053,12 +2054,16 @@ async function startCapture(withTab){
       const vt=disp.getVideoTracks()[0];
       const surface=vt&&vt.getSettings?vt.getSettings().displaySurface:'';
       const at=disp.getAudioTracks()[0];
+      // 音声トラックが取れていれば共有方法は問わない：タブ音声でも、
+      // 画面全体＋システム音声（Zoom/Teamsアプリの会議で正解の方法）でも相手の声は録れる
+      // （2026-07-18 PC109レポート改善②：アプリ会議の分岐案内）
       let problem='';
-      if(surface&&surface!=='browser')problem=tr('「ウィンドウ／画面全体」が選ばれました。この方法では相手の声（音声）を取れません。','A window or the entire screen was selected — audio cannot be captured that way.');
-      else if(!at)problem=tr('「タブの音声も共有する」がオフのまま共有されました。相手の声は録れません。','"Share tab audio" was off, so the other side will not be recorded.');
+      if(!at)problem=surface&&surface!=='browser'
+        ?tr('「ウィンドウ／画面全体」が音声なしで共有されました。相手の声は録れません。','A window or screen was shared without audio, so the other side will not be recorded.')
+        :tr('「タブの音声も共有する」がオフのまま共有されました。相手の声は録れません。','"Share tab audio" was off, so the other side will not be recorded.');
       if(problem){
         disp.getTracks().forEach(t=>t.stop());
-        const act=await askTabRedo(problem+tr('\n共有画面で会議のタブを選び、左下の「タブの音声も共有する」をオンにしてください。','\nPick the meeting tab and enable "Share tab audio".'));
+        const act=await askTabRedo(problem+tr('\nブラウザ会議 → 会議のタブを選び「タブの音声も共有」をオン\nZoom/Teamsアプリ → 「画面全体」を選び「システム音声も共有」をオン','\nBrowser meeting → pick the meeting tab and enable "Share tab audio"\nZoom/Teams app → pick "Entire screen" and enable "Also share system audio"'));
         if(act==='retry')continue; else break;
       }
       capStreams.push(disp);
