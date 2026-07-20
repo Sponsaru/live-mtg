@@ -680,6 +680,9 @@
   #deck .timeline-who{font-size:11px;font-weight:750;color:var(--blue);margin-bottom:4px}
   #deck .timeline-text{font-size:16px;line-height:1.55;color:var(--ink);white-space:normal;overflow-wrap:anywhere}
   #deck .timeline-empty{margin:auto;padding:28px;color:var(--sub);font-size:16px}
+  #deck .timeline-more{align-self:center;margin:0 0 22px;font-family:inherit;font-size:13px;font-weight:700;
+    color:var(--blue-d);background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 18px;cursor:pointer}
+  #deck .timeline-more:hover{border-color:var(--blue)}
 
   /* LiveMTG unified design: neutral, product-first, and independent of company branding. */
   :root{
@@ -1844,6 +1847,10 @@ function restoreMindmapUi(state){
   }
   applyMindmapMode(mindmapMode,false);
 }
+// 時系列は積み上げ表示だが、長い会議で全件をDOMに描くと重い。
+// 初期は最新分だけ描き、上部の「以前の発言を表示」で過去を増分ロードする（2026-07-20 依頼者提案）
+let timelinePage=80;
+function showMoreTimeline(){ timelinePage+=200; if(lastData){ deckSig=deckSignature(lastData); buildDeck(lastData); } }
 function buildDeck(d){
   const preservedUi=captureMindmapUi();
   d=d||{};
@@ -1865,8 +1872,12 @@ function buildDeck(d){
   const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>${tr('根拠：','Source: ')}${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
-  // 時系列は積み上げ表示：序盤を捨てず全件描く（サーバ側でTIMELINE_MAX件に上限。2026-07-20）
-  const timeline=(Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[])).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
+  // 時系列は積み上げ（サーバ側でTIMELINE_MAX件保持）。画面は最新timelinePage件を描き、
+  // 上部ボタンで過去を増分表示（全件を一度に描くとDOMが重い。2026-07-20）
+  const tlAll=Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[]);
+  const tlHidden=Math.max(0,tlAll.length-timelinePage);
+  const tlMore=tlHidden>0?`<button class="timeline-more" onclick="showMoreTimeline()">${tr('以前の発言を表示','Show earlier')}（${tr('残り','')}${tlHidden}${tr('件','')}）</button>`:'';
+  const timeline=tlMore+tlAll.slice(-timelinePage).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   // 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目に戻す）
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
   const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
