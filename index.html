@@ -1790,7 +1790,8 @@ function deckSignature(d){
   if(view!=='slide')return '';
   const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
   if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
-  if(key==='timeline')return JSON.stringify([key,d&&d.timeline,d&&d.log]);
+  // 時系列は追記のみ。全体をstringifyせず件数＋末尾で変化検知（長い会議でも署名が軽い）
+  if(key==='timeline'){const tl=(d&&d.timeline)||[],lg=(d&&d.log)||[];return JSON.stringify([key,tl.length,tl[tl.length-1],lg.length]);}
   return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
 }
 function deckHeight(){
@@ -1864,7 +1865,8 @@ function buildDeck(d){
   const rows=branches.map(([name,groups],i)=>{const bid=`b${i}`;const gs=groups.map((g,j)=>{const gid=`${bid}g${j}`;return `<div class="tree-subbranch" data-group><div class="tree-node group" data-node-id="${gid}" data-parent="${bid}">${esc(String(g.label||''))}</div><div class="tree-items">${(g.items||[]).slice(0,5).map((v,k)=>{const x=typeof v==='object'?v:{label:headline(v),detail:String(v)},iid=`${gid}i${k}`;return `<div class="tree-detailrow"><div class="tree-node item tone-${i%5}" data-node-id="${iid}" data-parent="${gid}">${esc(String(x.label||''))}</div><div class="tree-node tree-detail" data-node-id="${iid}d" data-parent="${iid}">${x.status?`<span class="detail-status">${esc(String(x.status))}</span><br>`:''}${esc(String(x.detail||x.label||''))}${x.source?`<br><small>${tr('根拠：','Source: ')}${esc(String(x.source))}</small>`:''}</div></div>`}).join('')}</div></div>`}).join('');return `<section class="tree-branch${i?' collapsed':''}" data-branch>
     <div class="branch-head"><div class="tree-node branch tone-${i%5}" data-node-id="${bid}" data-parent="root">${esc(name)}</div></div>
     <div class="tree-leaves">${gs}</div></section>`;}).join('');
-  const timeline=(Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[])).slice(-60).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
+  // 時系列は積み上げ表示：序盤を捨てず全件描く（サーバ側でTIMELINE_MAX件に上限。2026-07-20）
+  const timeline=(Array.isArray(d.timeline)?d.timeline:(Array.isArray(d.log)?d.log:[])).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
   // 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目に戻す）
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
   const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];

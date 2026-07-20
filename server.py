@@ -689,9 +689,12 @@ MARKER = re.compile(r'^[\s]*[\[\(（【]?\s*(音楽|拍手|笑|BGM|効果音|チ
 MUSIC = re.compile(r'^[\s♪♬〜～\-—ー・。、]*[♪♬][\s♪♬〜～\-—ー・。、]*$')  # ♪記号を含む記号だけの行
 # 聞き取り不能時にwhisperが吐く無意味な擬音・短断片（単独行なら捨てる。例:「ブーブー」「ブーバイブー」）
 NOISE = re.compile(r'^[\s、。.!！]*((ブ[ーぶ]*)+|(ブー*バ?イ?)+|んー*|あー*|えー*|うー*|[ぁ-んゝ]{1,2})[\s、。.!！]*$')
-# ライブ関係図が保持する関係ペア数。会議が進んでも会議序盤の関係が消えないよう、
-# FASTの関係ペアをここまで累積してからMermaid化する（2026-07-20 序盤の関係図が消える報告）
-LIVE_RELATIONS_MAX = 20
+# ライブ関係図が保持する関係ペア数。会話の関係は「積み上げ」なので序盤を捨てない。
+# 実会議はまず届かない大きさにし、暴走防止の安全上限としてのみ機能させる（2026-07-20 依頼者要望）。
+LIVE_RELATIONS_MAX = 60
+# 時系列に保持する発話数。旧60（≒15秒チャンクで15分）だと長い会議の序盤が消えていた。
+# 時系列も積み上げが本質なので実質無制限にし、安全上限だけ残す（2026-07-20 依頼者要望）。
+TIMELINE_MAX = 2000
 
 EMPTY_DATA = json.dumps({
     "updated": _t("待機中", "Waiting"),
@@ -2198,7 +2201,7 @@ def _write_live_receipt(sid, text, transcript_end, audio_name=""):
                     if isinstance(e, dict) and _clean(str(e.get("text") or ""), sid)]
         timeline.append({"at": time.strftime("%H:%M"), "who": who, "speaker": speaker,
                          "audio": audio_name, "text": text})
-        obj["timeline"] = timeline[-60:]
+        obj["timeline"] = timeline[-TIMELINE_MAX:]
         vu = obj.get("_viewUpdatedAt") if isinstance(obj.get("_viewUpdatedAt"), dict) else {}
         vu["timeline"] = int(time.time()); obj["_viewUpdatedAt"] = vu
         tmp = path + ".tmp"
