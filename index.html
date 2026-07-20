@@ -1283,7 +1283,9 @@ function fill(id, arr, render){
 async function api(path, body, timeoutMs){
   // 接続が切れた時（サーバ再起動・スリープ復帰等）に永久待ちで固まらないようタイムアウトを必ず付ける。
   // 清書・学び・スライド等は数分かかり得るので長め、それ以外は45秒（2026-07-20 清書が永久「準備中」で固まる不具合）
-  if(timeoutMs===undefined) timeoutMs = /finalize|learn|slides|deck|import_notes|assist_verify/.test(path) ? 420000 : 45000;
+  // 長時間許容の対象はサーバ側のAI/変換タイムアウトに合わせる：
+  // strategy=準備チャット120s・minutes_pdf=Chrome変換・delete=大量音声の削除も45秒では足りない
+  if(timeoutMs===undefined) timeoutMs = /finalize|learn|slides|deck|import_notes|assist_verify|strategy|minutes_pdf|delete/.test(path) ? 420000 : 45000;
   const ctrl = new AbortController();
   const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
   const opt = body!==undefined ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal} : {signal:ctrl.signal};
