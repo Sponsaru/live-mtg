@@ -2287,9 +2287,9 @@ async function exportPdf(btn, path, body, cancelKind){
   try{
     const r=await api(path, body);
     hideToast();
-    if(r.ok){ toast(tr('PDFを保存しました（会議フォルダに保存・案件フォルダへ同期）','PDF saved to the meeting folder.')); window.open(r.url,'_blank'); await pollState(); }
+    if(r.ok){ const w=window.open(r.url,'_blank'); toast(w?tr('PDFを保存しました（会議フォルダに保存・案件フォルダへ同期）','PDF saved to the meeting folder.'):tr('PDFを保存しました。「開く」ボタンで表示できます','PDF saved. Use the “Open” button to view it.')); await pollState(); }
     else if(!r.cancelled) toast(tr('書き出しに失敗：','Export failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
-  }catch(e){ hideToast(); toast(tr('書き出しに失敗しました','Export failed.')); }
+  }catch(e){ hideToast(); toast(e&&e.message?e.message:tr('書き出しに失敗しました','Export failed.')); }
   btn.disabled=false;
 }
 $('rvbtn-minutes-pdf').onclick=()=>exportPdf($('rvbtn-minutes-pdf'),'/api/minutes_pdf',{},'minutespdf');
@@ -2303,10 +2303,18 @@ $('rvbtn-learn-slides').onclick = async ()=>{
   try{
     const r=await api('/api/learn_slides',{});
     hideToast();
-    if(r.ok){ toast(tr('学びスライドが完成しました','Learning slides ready.')); window.open(r.url,'_blank'); await pollState(); }
+    if(r.ok){
+      // 成功したら即このボタンを「スライドを見る」に切替（pollStateの遅延を待たず開く動線を確保）
+      btn.dataset.has='1'; btn.textContent=tr('スライドを見る','Open slides');
+      // await後のwindow.openはポップアップブロックされがち。開けなければボタンで開くよう促す
+      const w=window.open(r.url,'_blank');
+      toast(w?tr('学びスライドが完成しました','Learning slides ready.')
+             :tr('学びスライドが完成しました。「スライドを見る」で開けます','Learning slides ready. Use “Open slides” to view.'));
+      pollState();
+    }
     else if(r.cancelled){ /* キャンセル時は静かに戻る */ }
     else toast(tr('生成に失敗：','Generation failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
-  }catch(e){ hideToast(); toast(tr('生成に失敗しました','Generation failed.')); }
+  }catch(e){ hideToast(); toast(e&&e.message?e.message:tr('生成に失敗しました','Generation failed.')); }
   btn.disabled=false;
 };
 $('lok').onclick = async ()=>{
@@ -2537,10 +2545,10 @@ async function genSlides(){
   try{
     const r = await api('/api/slides', {theme:'neutral'});
     hideToast(); $('slides').disabled=false; $('regen').disabled=false;
-    if(r.ok){ toast('マインドマップが完成しました'); window.open(r.url, '_blank'); await pollState(); }
+    if(r.ok){ hasSlides=true; const w=window.open(r.url, '_blank'); toast(w?'マインドマップが完成しました':tr('マインドマップが完成しました。「開く」で表示できます','Mind map ready. Use “Open” to view it.')); await pollState(); }
     else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
-  }catch(e){ hideToast(); $('slides').disabled=false; $('regen').disabled=false; toast('生成に失敗しました'); }
+  }catch(e){ hideToast(); $('slides').disabled=false; $('regen').disabled=false; toast(e&&e.message?e.message:'生成に失敗しました'); }
 }
 $('slides').onclick = ()=>{ if(hasSlides) openSlides(); else genSlides(); };  // 生成済みは再生成せず即開く
 $('regen').onclick = genSlides;
@@ -2552,10 +2560,10 @@ async function genDeck(){
   try{
     const r = await api('/api/deck', {theme:'neutral'});
     hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false;
-    if(r.ok){ toast('スライドが完成しました'); window.open(r.url, '_blank'); await pollState(); }
+    if(r.ok){ hasDeck=true; const w=window.open(r.url, '_blank'); toast(w?'スライドが完成しました':tr('スライドが完成しました。「開く」で表示できます','Slides ready. Use “Open” to view them.')); await pollState(); }
     else if(r.cancelled) toast(tr('キャンセルしました','Cancelled'));
     else toast('生成に失敗しました：'+(r.msg||'不明なエラー'));
-  }catch(e){ hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false; toast('生成に失敗しました'); }
+  }catch(e){ hideToast(); $('deckbtn').disabled=false; $('deckregen').disabled=false; toast(e&&e.message?e.message:'生成に失敗しました'); }
 }
 $('deckbtn').onclick = ()=>{ if(hasDeck) openDeck(); else genDeck(); };  // 生成済みは再生成せず即開く
 $('deckregen').onclick = genDeck;
