@@ -1454,6 +1454,7 @@ function applyState(s){
     phaseSessionId=currentSessionId;
     setPhase(serverRecording?'live':(localStorage.getItem(phaseKey())||'live'),false);
     loadFixLog();   // 補足・訂正の送信済み表示は会議ごと
+    timelinePage=80;   // 時系列の増分表示は会議ごとに初期化
   }
   const sig = s.sessions.map(x=>x.id+'|'+x.title+'|'+(x.hasSlides?'1':'0')).join(',')+'::'+cur;
   if(sel.dataset.sig!==sig){
@@ -1793,8 +1794,10 @@ function deckSignature(d){
   if(view!=='slide')return '';
   const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
   if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
-  // 時系列は追記のみ。全体をstringifyせず件数＋末尾で変化検知（長い会議でも署名が軽い）
-  if(key==='timeline'){const tl=(d&&d.timeline)||[],lg=(d&&d.log)||[];return JSON.stringify([key,tl.length,tl[tl.length-1],lg.length]);}
+  // 時系列は全体をstringifyせず件数＋末尾＋サーバ更新時刻で変化検知（長い会議でも署名が軽い）。
+  // _viewUpdatedAt.timeline を含める理由：話者分離が過去エントリのwhoだけ後から書き換えるため、
+  // 件数と末尾だけでは「話者確認中→実名」の更新を取りこぼす（2026-07-20 レビューで発覚）
+  if(key==='timeline'){const tl=(d&&d.timeline)||[],lg=(d&&d.log)||[],vu=(d&&d._viewUpdatedAt)||{};return JSON.stringify([key,tl.length,tl[tl.length-1],lg.length,vu.timeline||0]);}
   return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
 }
 function deckHeight(){

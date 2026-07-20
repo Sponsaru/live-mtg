@@ -695,6 +695,10 @@ LIVE_RELATIONS_MAX = 60
 # 時系列に保持する発話数。旧60（≒15秒チャンクで15分）だと長い会議の序盤が消えていた。
 # 時系列も積み上げが本質なので実質無制限にし、安全上限だけ残す（2026-07-20 依頼者要望）。
 TIMELINE_MAX = 2000
+# 時系列の過去エントリ掃除（幻聴・ヒント漏れ）を実行済みかを示す浄化ルールの版。
+# 掃除は「版が変わった時に一度だけ」：毎チャンク全件_cleanするとエントリ毎のメタ読取＋
+# LCSで長い会議ほど重くなる（2026-07-20 レビューで発覚）。ルールを変えたら+1する。
+TL_CLEAN_VER = 2
 
 EMPTY_DATA = json.dumps({
     "updated": _t("待機中", "Waiting"),
@@ -2195,10 +2199,12 @@ def _write_live_receipt(sid, text, transcript_end, audio_name=""):
                               "audio": audio_name, "speaker": speaker, "who": who}
         # 時系列はAIを待たず、文字起こしが届いた時点で更新する。
         timeline = obj.get("timeline") if isinstance(obj.get("timeline"), list) else []
-        # 旧版が書いた幻聴・ヒント漏れ行を、追記のたびに既存分も掃除して自己修復する
-        # （_cleanが空を返す＝丸ごと定型ハルシネーション/マーカー/ヒント漏れの行を除外）
-        timeline = [e for e in timeline
-                    if isinstance(e, dict) and _clean(str(e.get("text") or ""), sid)]
+        # 旧版が書いた幻聴・ヒント漏れ行の掃除は、浄化ルールの版が変わった時に一度だけ。
+        # 新規エントリは追記前に_clean済みなので、毎チャンクの全件走査は不要（性能対策）
+        if obj.get("_tlCleanVer") != TL_CLEAN_VER:
+            timeline = [e for e in timeline
+                        if isinstance(e, dict) and _clean(str(e.get("text") or ""), sid)]
+            obj["_tlCleanVer"] = TL_CLEAN_VER
         timeline.append({"at": time.strftime("%H:%M"), "who": who, "speaker": speaker,
                          "audio": audio_name, "text": text})
         obj["timeline"] = timeline[-TIMELINE_MAX:]
