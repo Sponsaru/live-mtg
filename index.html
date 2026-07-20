@@ -969,7 +969,7 @@
   <div class="phasecards">
     <div class="phasecard"><h3>高精度清書 <span class="pc-status" id="rvst-final">—</span></h3><p>保存した全音声をまとめて、分断のない議事録を作り直します。開始前に話者名と固有名詞を確認します。</p><button class="pcbtn" id="rvbtn-final" data-proxy="final">清書する</button></div>
     <div class="phasecard"><h3>議事録PDF <span class="pc-status" id="rvst-minutes">—</span></h3><p>表紙・要旨・議題・決定・ToDo・論点・未解決に加え、巻末に放射マップと会話の関係も収めた「全部入り」を、省略なしの全文で書き出します。</p><button class="pcbtn" id="rvbtn-minutes-open" style="display:none">開く</button><button class="pcbtn" id="rvbtn-minutes-pdf">PDF保存</button></div>
-    <div class="phasecard"><h3>学びと次の一手 <span class="pc-status" id="rvst-learn">—</span></h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。作成すると自動保存されます。プレイブックへの蓄積は任意。</p><button class="pcbtn" id="rvbtn-learn-view" style="display:none">要点を見る</button><button class="pcbtn sub" id="rvbtn-learn-slides" style="display:none">スライドを作る</button><button class="pcbtn" id="rvbtn-learn" data-proxy="learnbtn">レポートを作る</button></div>
+    <div class="phasecard"><h3>学びと次の一手 <span class="pc-status" id="rvst-learn">—</span></h3><p>あなたの立場・目標に照らして、この会議で得た気づき・見落とした視点・次に活きる教訓をまとめます。作成すると自動保存されます。プレイブックへの蓄積は任意。</p><button class="pcbtn" id="rvbtn-learn-view" style="display:none">要点を見る</button><button class="pcbtn sub" id="rvbtn-learn-slides" style="display:none">スライドを作る</button><button class="pcbtn sub" id="rvbtn-learn-pdf" style="display:none">PDFを開く</button><button class="pcbtn" id="rvbtn-learn" data-proxy="learnbtn">レポートを作る</button></div>
   </div>
 </section>
 
@@ -1191,7 +1191,7 @@ const EN_TEXT=new Map([
   ['送信 →','Send →'],['最初から','Reset'],['会議に反映して閉じる','Apply to meeting and close'],
   ['補足・訂正','Context / correction'],['反映','Apply'],['AIと確認','Ask AI'],
   ['勘違いを訂正','Correct AI'],['背景を補足','Add context'],['送信','Send'],
-  ['要点を見る','View highlights'],['スライドを作る','Create slides'],['スライドを見る','Open slides'],
+  ['要点を見る','View highlights'],['スライドを作る','Create slides'],['スライドを見る','Open slides'],['PDFを開く','Open PDF'],
   ['PDF保存','Save PDF'],['開く','Open'],
   ['人・話題・因果のつながりを図で見る表示です。マップ成果物の別ビューで、PDFとして保存できます。','See how people, topics, and causes connect. A view of the map artifact, exportable as PDF.'],
   ['相手の声が録れない設定です','This setup will not capture the other side'],['マイクのみで続行','Continue with microphone only'],['選び直す','Choose again'],
@@ -2296,6 +2296,7 @@ async function exportPdf(btn, path, body, cancelKind){
 }
 $('rvbtn-minutes-pdf').onclick=()=>exportPdf($('rvbtn-minutes-pdf'),'/api/minutes_pdf',{},'minutespdf');
 $('rvbtn-minutes-open').onclick=()=>window.open('/minutes.pdf?ts='+Date.now(),'_blank');
+$('rvbtn-learn-pdf').onclick=()=>window.open('/learn-slides.pdf?ts='+Date.now(),'_blank');
 // 学びスライド：未生成なら生成（依頼者のボタン押下時のみ）、生成済みなら開く
 $('rvbtn-learn-slides').onclick = async ()=>{
   const btn=$('rvbtn-learn-slides');
@@ -2811,6 +2812,7 @@ function updateReviewCards(s){
   const lsl=$('rvbtn-learn-slides');
   if(lsl){ lsl.style.display=s.hasLearn?'':'none'; lsl.dataset.has=s.hasLearnSlides?'1':'0';
     lsl.textContent=s.hasLearnSlides?tr('スライドを見る','Open slides'):tr('スライドを作る','Create slides'); }
+  const lpdf=$('rvbtn-learn-pdf'); if(lpdf)lpdf.style.display=s.hasLearnPdf?'':'none';
   chip('rvst-minutes', s.hasMinutesPdf?tr('PDF保存済み','PDF saved'):tr('未作成','Not yet'), s.hasMinutesPdf);
   const mo=$('rvbtn-minutes-open'); if(mo)mo.style.display=s.hasMinutesPdf?'':'none';
   const mb=$('rvbtn-minutes-pdf'); if(mb){ mb.textContent=s.hasMinutesPdf?tr('作り直す','Regenerate'):tr('PDF保存','Save PDF'); mb.classList.toggle('sub',!!s.hasMinutesPdf); }

@@ -543,6 +543,7 @@ def sync_to_project(sid):
                                        ("map-topics.pdf", "論点ツリー.pdf"),
                                        ("map-timeline.pdf", "時系列.pdf"),
                                        ("minutes.pdf", "議事録.pdf"),
+                                       ("learn-slides.pdf", "学びと次の一手.pdf"),
                                        ("learnings.md", "学びと次の一手.md")):
                 p_src = os.path.join(d, src_name)
                 if os.path.isfile(p_src): shutil.copy2(p_src, os.path.join(stage, dst_name))
@@ -2965,6 +2966,12 @@ def make_learn_deck(sid=None):
              env=env, capture_output=True, text=True, timeout=420)
     ok = r.returncode == 0 and os.path.isfile(os.path.join(sdir(sid), "learn-slides.html"))
     if ok:
+        # 議事録と同じく「そのまま保存できる形式」で残す（2026-07-20 依頼者要望）：
+        # HTMLに加えPDFも書き出し、会議フォルダ保存＋案件フォルダ同期（学びと次の一手.pdf）
+        try:
+            _html_to_pdf("/learn-slides.html", os.path.join(sdir(sid), "learn-slides.pdf"))
+        except Exception as e:
+            sys.stderr.write("[LEARN-SLIDES] %s PDF変換失敗 %r\n" % (sid, e)); sys.stderr.flush()
         sync_to_drive(sid)
         sync_to_project(sid)
     return ok, (r.stderr or r.stdout or "").strip()
@@ -4222,6 +4229,7 @@ class H(BaseHTTPRequestHandler):
             "hasFinal": bool(current_id) and os.path.isfile(os.path.join(sdir(current_id), "final.json")),
             "hasLearn": bool(current_id) and os.path.isfile(os.path.join(sdir(current_id), "learnings.md")),
             "hasLearnSlides": bool(current_id) and os.path.isfile(os.path.join(sdir(current_id), "learn-slides.html")),
+            "hasLearnPdf": bool(current_id) and os.path.isfile(os.path.join(sdir(current_id), "learn-slides.pdf")),
             "hasMinutesPdf": bool(current_id) and os.path.isfile(os.path.join(sdir(current_id), "minutes.pdf")),
             "hasRadialPdf": bool(current_id) and os.path.isfile(_map_pdf_path(current_id, "radial")),
             "hasRelationPdf": bool(current_id) and os.path.isfile(_map_pdf_path(current_id, "relation")),
@@ -4303,6 +4311,13 @@ class H(BaseHTTPRequestHandler):
                 html = neutral_generated_html(os.path.join(sdir(current_id), "minutes-deck.html"), persist=True)
                 return self._send(200, html, "text/html; charset=utf-8") if html is not None else self._send(404, "not found", "text/plain; charset=utf-8")
             return self._send(404, "no minutes", "text/plain; charset=utf-8")
+        if p == "/learn-slides.pdf":
+            if not current_id:
+                return self._send(404, "no meeting", "text/plain; charset=utf-8")
+            path = os.path.join(sdir(current_id), "learn-slides.pdf")
+            if not os.path.isfile(path):
+                return self._send(404, "not found", "text/plain; charset=utf-8")
+            return self._file(path, "application/pdf")
         if p == "/learn-slides.html":
             if current_id:
                 html = neutral_generated_html(os.path.join(sdir(current_id), "learn-slides.html"), persist=True)
@@ -4781,6 +4796,10 @@ class H(BaseHTTPRequestHandler):
                         try:
                             os.remove(os.path.join(sdir(current_id), "learn-slides.html"))
                             sys.stderr.write("[LEARN-SAVE] %s 旧学びスライドを無効化\n" % current_id)
+                        except FileNotFoundError:
+                            pass
+                        try:
+                            os.remove(os.path.join(sdir(current_id), "learn-slides.pdf"))
                         except FileNotFoundError:
                             pass
                         sync_to_drive(current_id)
