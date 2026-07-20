@@ -29,6 +29,16 @@ with tempfile.TemporaryDirectory() as tmp:
     cleaned = server._clean("話者名は丹野健吾。\n話題は丹野健吾とのAX相談。\n実際の発言です。", sid)
     assert cleaned == "実際の発言です。"
 
+    # whisperがinitial-promptを崩して吐く漏れ（記号違い・1〜2字の揺れ）も曖昧一致で除去し、
+    # 語彙が被るだけの実発話は残す（2026-07-20 時系列にヒント文が混入する報告への対応）
+    leak = server._clean("話者名やメタデータを創作しない！\n"          # 記号付き
+                         "話者名やメタデータを作成しない\n"            # 創作→作成
+                         "忠実に文字起こしする\n"                      # ヒント前半の断片
+                         "メタデータの設計を来週見直そう\n"            # 実発話（語彙被り）
+                         "話者分離の精度を上げたい", sid)
+    assert "創作しない" not in leak and "作成しない" not in leak and "忠実に文字起こし" not in leak, leak
+    assert "メタデータの設計を来週見直そう" in leak and "話者分離の精度を上げたい" in leak, leak
+
     result = {"segments": [
         {"speaker": "SPEAKER_00", "start": 0, "end": 2, "text": "最初の発言"},
         {"speaker": "SPEAKER_00", "start": 3, "end": 5, "text": "続きの発言"},

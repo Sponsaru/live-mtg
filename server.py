@@ -1694,8 +1694,36 @@ def _whisper(wav, sid=None):
     return _whisper_cpp(wav, sid)
 
 def _norm_leak(s):
-    """ヒント漏れ判定用の正規化（空白・句読点・記号を除去）"""
-    return re.sub(r"[\s、。・：:「」『』（）()＊*]+", "", s or "")
+    """ヒント漏れ判定用の正規化：語の文字（かな・カナ・漢字・英数）だけ残す。
+    句読点・記号・空白は全て落とすので「創作しない！」等の記号付き漏れも同一視できる。"""
+    return "".join(re.findall(r"[0-9A-Za-z぀-ヿ一-鿿]", s or ""))
+
+def _lcs_len(a, b):
+    """最長共通部分文字列（連続一致）の長さ。ヒントの崩れ吐き（1〜2文字違い）を捕まえる。
+    a,bとも短い（数十字）ので素朴なDPで十分。"""
+    if not a or not b:
+        return 0
+    prev = [0] * (len(b) + 1)
+    best = 0
+    for ca in a:
+        cur = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if ca == b[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                if cur[j] > best:
+                    best = cur[j]
+        prev = cur
+    return best
+
+def _is_hint_echo(n, hintn):
+    """正規化済みの行nがヒントhintnの漏れ吐きかを判定。
+    完全部分一致に加え、連続一致が行の大半（8字以上かつ7割以上）を占めれば漏れとみなす。
+    実発話が『実際に聞こえる日本語の発話だけを忠実に…』等と8字連続一致する確率は低い。"""
+    if len(n) < 6:
+        return False
+    if n in hintn:
+        return True
+    return _lcs_len(n, hintn) >= max(8, int(len(n) * 0.7))
 
 def _clean(txt, sid=None):
     hintn = _norm_leak(_asr_hint(sid))   # whisperは聞き取れない区間でinitial_promptを吐く（既知の癖）
@@ -1717,8 +1745,8 @@ def _clean(txt, sid=None):
         ln = re.sub(r"(.{4,}?)\1{2,}", r"\1", ln)  # 同一フレーズの連続反復を圧縮
         ln = re.sub(r"(\S{2,12})(?:[ 　、]+\1){2,}", r"\1", ln)  # 「誠一 誠一 誠一」型の語反復を圧縮
         n = _norm_leak(ln)
-        if len(n) >= 6 and n in hintn:
-            continue   # ヒントの漏れ出し行（「頻出する固有名詞」「社内会議」等）を捨てる
+        if _is_hint_echo(n, hintn):
+            continue   # ヒントの漏れ出し行。記号違い・1〜2字の崩れ吐きも曖昧一致で捨てる
         if prev is not None and n == prev:
             continue   # 直前と同一の行（whisperの反復癖）を捨てる
         prev = n
@@ -2136,6 +2164,10 @@ def _write_live_receipt(sid, text, transcript_end, audio_name=""):
                               "audio": audio_name, "speaker": speaker, "who": who}
         # 時系列はAIを待たず、文字起こしが届いた時点で更新する。
         timeline = obj.get("timeline") if isinstance(obj.get("timeline"), list) else []
+        # 旧版が書いたヒント漏れ行を、追記のたびに既存分も掃除して自己修復する
+        hintn = _norm_leak(_asr_hint(sid))
+        timeline = [e for e in timeline
+                    if not (isinstance(e, dict) and _is_hint_echo(_norm_leak(str(e.get("text") or "")), hintn))]
         timeline.append({"at": time.strftime("%H:%M"), "who": who, "speaker": speaker,
                          "audio": audio_name, "text": text})
         obj["timeline"] = timeline[-60:]
