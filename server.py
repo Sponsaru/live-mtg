@@ -4195,9 +4195,12 @@ class H(BaseHTTPRequestHandler):
         analysis_updated = int(data_obj.get("_analysisUpdatedAt") or 0)
         if not analysis_updated and data_path and os.path.isfile(data_path):
             analysis_updated = int(os.path.getmtime(data_path))
+        with long_job_lock:
+            busy = sorted({k[1] for k in long_jobs})   # 実行中の長時間ジョブ種別（清書/学び/スライド等）
         return {
             "ver": "v66-runtime-truth",   # デバッグ用：稼働中コードの版を確認するマーカー
             "recording": recording,
+            "busy": busy,
             "asrWarmup": dict(asr_warmup),
             "viewJobs": self._view_jobs(),
             "captureHeartbeatAt": int(capture_heartbeat),

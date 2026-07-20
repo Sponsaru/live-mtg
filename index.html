@@ -1280,9 +1280,20 @@ function fill(id, arr, render){
   $('c-'+id).textContent=items.length;
   ul.innerHTML = items.length ? items.map(render).join('') : '<div class="empty">—</div>';
 }
-async function api(path, body){
-  const opt = body!==undefined ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {};
-  const r = await fetch(path, opt), raw=await r.text();
+async function api(path, body, timeoutMs){
+  // 接続が切れた時（サーバ再起動・スリープ復帰等）に永久待ちで固まらないようタイムアウトを必ず付ける。
+  // 清書・学び・スライド等は数分かかり得るので長め、それ以外は45秒（2026-07-20 清書が永久「準備中」で固まる不具合）
+  if(timeoutMs===undefined) timeoutMs = /finalize|learn|slides|deck|import_notes|assist_verify/.test(path) ? 420000 : 45000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
+  const opt = body!==undefined ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal} : {signal:ctrl.signal};
+  let r, raw;
+  try{ r = await fetch(path, opt); raw = await r.text(); }
+  catch(e){
+    if(e&&e.name==='AbortError'){const err=new Error(tr('時間がかかりすぎたため中断しました。もう一度お試しください（処理が続いていれば結果は保存されています）','Timed out. Please try again — if the work finished on the server, its result was saved.'));err.timeout=true;throw err;}
+    throw new Error(tr('サーバーに接続できませんでした','Could not reach the server'));
+  }
+  finally{ clearTimeout(timer); }
   let data=null;
   try{data=raw?JSON.parse(raw):{};}catch(e){
     const err=new Error(`HTTP ${r.status}: ${raw.slice(0,120)||'invalid response'}`);err.status=r.status;throw err;
@@ -2558,7 +2569,7 @@ async function loadPrep(regen){
     hideToast(); $('final').disabled=false;
     if(!r.ok){ toast(r.cancelled?tr('キャンセルしました','Cancelled'):'準備に失敗：'+(r.msg||'不明なエラー')); return null; }
     return r;   // {questions, answers, cached}
-  }catch(e){ hideToast(); $('final').disabled=false; toast('準備に失敗しました'); return null; }
+  }catch(e){ hideToast(); $('final').disabled=false; toast(e&&e.message?e.message:'準備に失敗しました'); return null; }
 }
 $('final').onclick = async ()=>{
   if(capturing){ toast('録音を停止してから清書してください'); return; }
