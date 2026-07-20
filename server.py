@@ -689,6 +689,9 @@ MARKER = re.compile(r'^[\s]*[\[\(（【]?\s*(音楽|拍手|笑|BGM|効果音|チ
 MUSIC = re.compile(r'^[\s♪♬〜～\-—ー・。、]*[♪♬][\s♪♬〜～\-—ー・。、]*$')  # ♪記号を含む記号だけの行
 # 聞き取り不能時にwhisperが吐く無意味な擬音・短断片（単独行なら捨てる。例:「ブーブー」「ブーバイブー」）
 NOISE = re.compile(r'^[\s、。.!！]*((ブ[ーぶ]*)+|(ブー*バ?イ?)+|んー*|あー*|えー*|うー*|[ぁ-んゝ]{1,2})[\s、。.!！]*$')
+# ライブ関係図が保持する関係ペア数。会議が進んでも会議序盤の関係が消えないよう、
+# FASTの関係ペアをここまで累積してからMermaid化する（2026-07-20 序盤の関係図が消える報告）
+LIVE_RELATIONS_MAX = 20
 
 EMPTY_DATA = json.dumps({
     "updated": _t("待機中", "Waiting"),
@@ -1919,7 +1922,7 @@ def _relations_to_mermaid(relations):
         if label not in nodes: nodes[label] = "R%d" % len(nodes)
         return nodes[label]
     clean = []
-    for rel in (relations or [])[-8:]:
+    for rel in (relations or [])[-LIVE_RELATIONS_MAX:]:
         if not isinstance(rel, dict): continue
         a, b = node(rel.get("from")), node(rel.get("to"))
         if not a or not b: continue
@@ -2053,7 +2056,7 @@ def _merge_live_patch(old, patch, now):
                                              lambda x: str(x.get("label", "")).strip() if isinstance(x, dict) else str(x))
         target["groups"] = groups[-4:]
     obj["mindmap"] = topics[-8:]
-    relations = _append_unique(obj.get("relations"), patch.get("relations_add"), 8,
+    relations = _append_unique(obj.get("relations"), patch.get("relations_add"), LIVE_RELATIONS_MAX,
                                lambda x: "%s|%s|%s" % (x.get("from", ""), x.get("to", ""), x.get("type", "")) if isinstance(x, dict) else str(x))
     obj["relations"] = relations
     # 機械生成の関係図は「新しいペアが来た時」だけ再生成する。無条件に作り直すと、
