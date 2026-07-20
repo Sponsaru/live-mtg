@@ -1728,18 +1728,31 @@ def _lcs_len(a, b):
         prev = cur
     return best
 
-def _is_hint_echo(n, hintn):
-    """正規化済みの行nがヒントhintnの漏れ吐きかを判定。
-    完全部分一致に加え、連続一致が行の大半（8字以上かつ7割以上）を占めれば漏れとみなす。
-    実発話が『実際に聞こえる日本語の発話だけを忠実に…』等と8字連続一致する確率は低い。"""
+def _hint_leak_parts(sid=None):
+    """ヒント漏れ判定の材料：ヒントを文単位の正規化断片＋全文正規化に分解する。
+    断片単位で見ると「同じ文の2連結」や「文字起こしする→文字起こしない」の崩れ吐きも捕まる。"""
+    raw = _asr_hint(sid)
+    hn = _norm_leak(raw)
+    frags = [f for f in (_norm_leak(s) for s in re.split(r"[。.!?！？\n]", raw)) if len(f) >= 6]
+    frags.append(hn)
+    return frags, hn
+
+def _is_hint_echo(n, frags, hintn):
+    """正規化済みの行nがヒントの漏れ吐きかを判定。
+    ・断片が行に含まれる/行が断片に含まれる（2連結・記号付きもここで捕まる）
+    ・連続一致が短い方の7割以上（1〜2字の崩れ吐き）
+    ・8字以下で全文字がヒント由来かつ5字連続一致（「文字起こしない」等の短い崩れ）"""
     if len(n) < 6:
         return False
-    if n in hintn:
+    for f in frags:
+        if f and (n in f or f in n or _lcs_len(n, f) >= max(7, int(min(len(n), len(f)) * 0.7))):
+            return True
+    if len(n) <= 8 and set(n) <= set(hintn) and _lcs_len(n, hintn) >= 5:
         return True
-    return _lcs_len(n, hintn) >= max(8, int(len(n) * 0.7))
+    return False
 
 def _clean(txt, sid=None):
-    hintn = _norm_leak(_asr_hint(sid))   # whisperは聞き取れない区間でinitial_promptを吐く（既知の癖）
+    hint_frags, hintn = _hint_leak_parts(sid)   # whisperは聞き取れない区間でinitial_promptを吐く（既知の癖）
     lines, prev = [], None
     for ln in (txt or "").replace("\r", "").split("\n"):
         if not ln.strip():           continue
@@ -1760,8 +1773,8 @@ def _clean(txt, sid=None):
         ln = re.sub(r"(.{4,}?)\1{2,}", r"\1", ln)  # 同一フレーズの連続反復を圧縮
         ln = re.sub(r"(\S{2,12})(?:[ 　、]+\1){2,}", r"\1", ln)  # 「誠一 誠一 誠一」型の語反復を圧縮
         n = _norm_leak(ln)
-        if _is_hint_echo(n, hintn):
-            continue   # ヒントの漏れ出し行。記号違い・1〜2字の崩れ吐きも曖昧一致で捨てる
+        if _is_hint_echo(n, hint_frags, hintn):
+            continue   # ヒントの漏れ出し行。2連結・記号違い・1〜2字の崩れ吐きも捨てる
         if prev is not None and n == prev:
             continue   # 直前と同一の行（whisperの反復癖）を捨てる
         prev = n
