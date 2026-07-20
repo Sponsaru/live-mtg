@@ -238,8 +238,11 @@
     min-height:calc(100vh - 58px);min-height:calc(100dvh - 58px)}
   .mainpane{min-width:0;padding:14px 0 40px}
   .siderail{min-width:0;background:#eceef2;border-left:1px solid var(--line)}
-  .railinner{position:sticky;top:58px;max-height:calc(100vh - 58px);overflow-y:auto;overscroll-behavior:contain;
-    display:flex;flex-direction:column;gap:14px;padding:14px 16px 20px}
+  .railinner{position:sticky;top:58px;max-height:calc(100vh - 58px);overflow:hidden;
+    display:flex;flex-direction:column;gap:14px;padding:14px 16px 0}
+  /* パネル部だけをスクロールさせ、補足・訂正フッターは常時見えるよう分離（2026-07-20 下端の見切れ修正） */
+  .railscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    display:flex;flex-direction:column;gap:14px}
   body.railclosed .workspace{grid-template-columns:minmax(0,1fr);padding-right:22px}
   body.railclosed .siderail{display:none}
   /* レール開閉ハンドル：開いている時はパネルの左端（境界線の中央）、閉じたら画面右端 */
@@ -258,7 +261,7 @@
     .mainpane{padding:14px 0 24px}
     .siderail{position:fixed;top:var(--hdrh,58px);right:0;bottom:0;width:min(360px,90vw);z-index:17;
       box-shadow:-14px 0 34px rgba(10,60,90,.20)}
-    .railinner{position:static;max-height:none;height:100%;padding:14px 22px 24px}
+    .railinner{position:static;max-height:none;height:100%;padding:14px 22px 0}
     body:not(.railclosed) .railtoggle{right:calc(min(360px,90vw) - 8px)}
   }
   /* レールを畳んでいる間に新しい提案が届いたらトグルに赤ポチ（開くと消える） */
@@ -411,8 +414,8 @@
   .vresult{margin-top:8px; font-size:13px; line-height:1.7; color:var(--ink)}
   .vresult:empty{margin:0}
   /* 補足・訂正：レール最下部に常駐（タブ非依存）。AIの勘違い・不足背景をその場で伝える入口。
-     レールが長い時もスクロールせずに見えるよう、スクロール領域の下端に貼り付ける（sticky） */
-  .railfix{position:sticky;bottom:0;z-index:2;margin:auto -16px 0;padding:12px 16px 14px;background:#eceef2;
+     スクロール領域(.railscroll)の外に置いた固定フッター。カードが多くても下端に隠れない */
+  .railfix{flex:none;margin:0 -16px;padding:12px 16px 14px;background:#eceef2;
     border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
   @media(max-width:1100px){
     .railfix{margin-left:-22px;margin-right:-22px;padding-left:22px;padding-right:22px}
@@ -854,6 +857,7 @@
   <button data-rt="goal">会議の狙い<span class="rdot"></span></button>
 </div>
 
+<div class="railscroll">
 <div class="railpane on" id="rail-ask">
   <div id="counselwrap" style="display:none"></div>
   <div class="nextwrap" id="nextwrap">
@@ -882,6 +886,7 @@
     <div class="gbody" id="gbody"></div>
   </div>
   <div class="railhint">「準備」タブで目標を設定すると、狙いへの進捗・相手の回答の読み・調査結果がここに表示されます。</div>
+</div>
 </div>
 
 <!-- 補足・訂正：旧コパイロットバブルのライブ版（§5.3-4）。どちらのタブからも使えるようレール最下部に常駐。
