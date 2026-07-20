@@ -674,9 +674,19 @@ def _read_text(path, timeout=20):
 # 録音はブラウザ(マイク＋会議タブ音声)で行い、音声チャンクを /api/chunk で受け取り
 # サーバ側で ffmpeg(decode)→whisper(文字起こし)→claude(整理) する。
 # whisperが無音・雑音時に吐きやすい定型ハルシネーション句（単独行なら捨てる）
-HALLU = re.compile(r'^[\s]*(おやすみなさい|ご視聴ありがとうございました|ご清聴ありがとうございました|'
-                   r'最後までご覧いただきありがとうございました|チャンネル登録|高評価|バイバイ|'
-                   r'ありがとうございました|thanks for watching|thank you for watching|subscribe to the channel)[\s、。.!！]*$', re.I)
+# whisperはYouTube字幕で学習しているため、無音・雑音区間で字幕定番句を発話として吐く。
+# 行全体がその定型に一致する時だけ捨てる（「音楽が好き」「チャンネル登録数を分析」等の実発話は残す）。
+_HALLU_CTA = r'(?:を?お願いします?|して(?:ね|ください)?|よろしく(?:お願いします?)?|お願いいたします)'
+HALLU = re.compile(r'^[\s]*('
+                   r'おやすみなさい|ご視聴ありがとうございました|ご清聴ありがとうございました|'
+                   r'最後までご覧いただきありがとうございました|'
+                   r'(?:高評価と)?チャンネル登録(?:と高評価)?' + _HALLU_CTA + r'?|高評価' + _HALLU_CTA + r'|バイバイ|'
+                   r'(?:私は)?この動画を見てみましょう|次(?:回|の動画|回の動画)でお会いしましょう|'
+                   r'ありがとうございました|thanks for watching|thank you for watching|subscribe to the channel'
+                   r')[\s、。.!！]*$', re.I)
+# [音楽]（拍手）♪ 等のマーカー行。行全体がマーカーの時だけ捨てる（実発話「音楽が好き」は残る）
+MARKER = re.compile(r'^[\s]*[\[\(（【]?\s*(音楽|拍手|笑|BGM|効果音|チャイム|ベル|ざわざわ|沈黙|無音)\s*[\]\)）】]?[\s、。.!！♪〜～ー]*$')
+MUSIC = re.compile(r'^[\s♪♬〜～\-—ー・。、]*[♪♬][\s♪♬〜～\-—ー・。、]*$')  # ♪記号を含む記号だけの行
 # 聞き取り不能時にwhisperが吐く無意味な擬音・短断片（単独行なら捨てる。例:「ブーブー」「ブーバイブー」）
 NOISE = re.compile(r'^[\s、。.!！]*((ブ[ーぶ]*)+|(ブー*バ?イ?)+|んー*|あー*|えー*|うー*|[ぁ-んゝ]{1,2})[\s、。.!！]*$')
 
@@ -1740,7 +1750,9 @@ def _clean(txt, sid=None):
             continue   # initial prompt由来の偽メタデータ（実音声の話者分離には使わない）
         if re.match(r"^\s*(?:the\s+)?speaker(?:'s)?\s+name\s+is\b.{1,60}[.]?\s*$", ln, re.I):
             continue
-        if HALLU.match(ln):           continue   # 定型ハルシネーション行を捨てる
+        if HALLU.match(ln):           continue   # YouTube字幕由来の定型ハルシネーション行を捨てる
+        if MARKER.match(ln):          continue   # [音楽]（拍手）等のマーカー行を捨てる
+        if MUSIC.match(ln):           continue   # ♪など記号だけの行を捨てる
         if NOISE.match(ln):           continue   # 聞き取り不能の擬音・短断片を捨てる（ブーブー等）
         ln = re.sub(r"(.{4,}?)\1{2,}", r"\1", ln)  # 同一フレーズの連続反復を圧縮
         ln = re.sub(r"(\S{2,12})(?:[ 　、]+\1){2,}", r"\1", ln)  # 「誠一 誠一 誠一」型の語反復を圧縮
@@ -2164,10 +2176,10 @@ def _write_live_receipt(sid, text, transcript_end, audio_name=""):
                               "audio": audio_name, "speaker": speaker, "who": who}
         # 時系列はAIを待たず、文字起こしが届いた時点で更新する。
         timeline = obj.get("timeline") if isinstance(obj.get("timeline"), list) else []
-        # 旧版が書いたヒント漏れ行を、追記のたびに既存分も掃除して自己修復する
-        hintn = _norm_leak(_asr_hint(sid))
+        # 旧版が書いた幻聴・ヒント漏れ行を、追記のたびに既存分も掃除して自己修復する
+        # （_cleanが空を返す＝丸ごと定型ハルシネーション/マーカー/ヒント漏れの行を除外）
         timeline = [e for e in timeline
-                    if not (isinstance(e, dict) and _is_hint_echo(_norm_leak(str(e.get("text") or "")), hintn))]
+                    if isinstance(e, dict) and _clean(str(e.get("text") or ""), sid)]
         timeline.append({"at": time.strftime("%H:%M"), "who": who, "speaker": speaker,
                          "audio": audio_name, "text": text})
         obj["timeline"] = timeline[-60:]

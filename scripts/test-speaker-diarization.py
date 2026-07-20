@@ -39,6 +39,17 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "創作しない" not in leak and "作成しない" not in leak and "忠実に文字起こし" not in leak, leak
     assert "メタデータの設計を来週見直そう" in leak and "話者分離の精度を上げたい" in leak, leak
 
+    # YouTube字幕由来の定型ハルシネーション（音楽マーカー・動画句）も行全体一致なら除去し、
+    # 語彙が被る実発話は残す（2026-07-20 「音楽」「この動画を見てみましょう」混入報告への対応）
+    hallu = server._clean("次回は金曜15時でお願いします\n音楽\n私はこの動画を見てみましょう\n"
+                          "[拍手]\n♪\nチャンネル登録お願いします\n"
+                          "音楽が好きなメンバーが多い\nチャンネル登録数を来月分析する", sid)
+    lines = hallu.split("\n")
+    assert "音楽" not in lines and "♪" not in lines and "[拍手]" not in lines, hallu
+    assert "私はこの動画を見てみましょう" not in lines and "チャンネル登録お願いします" not in lines, hallu
+    assert "次回は金曜15時でお願いします" in lines and "音楽が好きなメンバーが多い" in lines \
+        and "チャンネル登録数を来月分析する" in lines, hallu
+
     result = {"segments": [
         {"speaker": "SPEAKER_00", "start": 0, "end": 2, "text": "最初の発言"},
         {"speaker": "SPEAKER_00", "start": 3, "end": 5, "text": "続きの発言"},
