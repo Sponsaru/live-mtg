@@ -26,5 +26,11 @@ jobs:
       - run: npm test
       - run: npm run build:package
       - run: npm pack --dry-run ./dist/npm
-      - name: Publish beta or stable channel
-        run: npm publish ./dist/npm --access public --tag ${{ contains(github.ref_name, '-') && 'beta' || 'latest' }}
+      - name: Publish stable release
+        shell: bash
+        run: |
+          npm publish ./dist/npm --access public --tag latest
+          # beta.78以前のupdaterも正式版へ移行できるよう、
+          # betaは新しい開発チャンネルではなく一時的な互換エイリアスとする。
+          VERSION="$(node -p "require('./package.json').version")"
+          npm dist-tag add "live-mtg@$VERSION" beta

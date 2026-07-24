@@ -1,6 +1,6 @@
 # 議事ライブ整理システム（live-mtg）
 
-[![npm](https://img.shields.io/npm/v/live-mtg/beta?label=npm%40beta&color=0071e3)](https://www.npmjs.com/package/live-mtg) [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
+[![npm](https://img.shields.io/npm/v/live-mtg?label=npm&color=0071e3)](https://www.npmjs.com/package/live-mtg) [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
 ![LiveMTG — 会議が、その場で前に進む。](docs/hero.jpg)
 
@@ -13,7 +13,7 @@
 ## インストール（OpenClaw方式）
 
 ```bash
-npm install -g live-mtg@beta
+npm install -g live-mtg
 live-mtg
 ```
 

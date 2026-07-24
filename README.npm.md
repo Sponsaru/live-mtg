@@ -1,6 +1,6 @@
 # LiveMTG
 
-[![npm](https://img.shields.io/npm/v/live-mtg/beta?label=npm%40beta&color=0071e3)](https://www.npmjs.com/package/live-mtg)
+[![npm](https://img.shields.io/npm/v/live-mtg?label=npm&color=0071e3)](https://www.npmjs.com/package/live-mtg)
 [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](https://github.com/Sponsaru/live-mtg/blob/main/LICENSE)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
@@ -15,7 +15,7 @@ Completed slide decks use the vendored neutral **Slide Work** pattern system in 
 English and Japanese are supported for the interface, transcription, and AI-generated output.
 
 ```bash
-npm install -g live-mtg@beta
+npm install -g live-mtg
 live-mtg
 ```
 
@@ -33,7 +33,7 @@ live-mtg dashboard             # Open the app
 live-mtg doctor                # Check dependencies
 live-mtg config --language en  # English
 live-mtg config --language ja  # Japanese
-live-mtg update                # Update the beta
+live-mtg update                # Update to the latest stable release
 live-mtg status                # Check service status and recovery guidance
 live-mtg logs                  # Show persisted server logs
 live-mtg report                # Privacy-safe diagnostic report
@@ -58,7 +58,7 @@ LiveMTGは、会話をリアルタイムに文字起こし・整理し、次に�
 完成スライドは **Slide Work** のニュートラル型を正典にし、結論はMESSAGE型、根拠・比較・決定・行動はINFORMATIVE型を使うhybrid構成で生成します。
 
 ```bash
-npm install -g live-mtg@beta
+npm install -g live-mtg
 live-mtg
 ```
 
