@@ -6,6 +6,7 @@ import io
 import os
 from pathlib import Path
 import queue
+import subprocess
 import sys
 import tempfile
 import threading
@@ -264,6 +265,49 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-recording-integrity-") as tmp:
         server._chunk_finished(first, sync=False)
         assert original.read_bytes() == original_hash, \
             "ASR processing must never overwrite the durable original"
+
+        # A stalled ASR process must be bounded. Live chunks use the short
+        # timeout while imported recordings retain enough time for long audio.
+        captured_timeouts = []
+        def capture_asr_run(_cmd, **kwargs):
+            captured_timeouts.append(kwargs.get("timeout"))
+            return Result()
+        server._run = capture_asr_run
+        server._whisper_mlx_once(str(root / "inc_1700000000000-00000003-x.wav"), first)
+        server._whisper_cpp(str(root / "prep_1700000000000-00000004-y.wav"), first)
+        assert captured_timeouts == [server.ASR_LIVE_TIMEOUT, server.ASR_LIVE_TIMEOUT], \
+            "every live ASR backend must enforce the short timeout"
+        assert server._asr_timeout(str(root / "inc_import_recording.wav")) == server.ASR_IMPORT_TIMEOUT, \
+            "completed recording imports must use the longer ASR timeout"
+
+        # Timeout/error cleanup must preserve the queue copy, then requeue it
+        # behind later audio instead of permanently blocking the worker.
+        failed_webm = root / "inc_1700000000000-00000005-timeout.webm"
+        failed_webm.write_bytes(b"retry-me")
+        def decode_then_timeout(cmd, **_kwargs):
+            if cmd and cmd[0] == "ffmpeg":
+                Path(cmd[-1]).write_bytes(b"fake-wav")
+            return Result()
+        server._run = decode_then_timeout
+        server._mean_db = lambda _wav: -10
+        server._overlap_wav = lambda _sid, wav, _kind="meeting": wav
+        server._whisper = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            subprocess.TimeoutExpired("mlx_whisper", server.ASR_LIVE_TIMEOUT))
+        try:
+            server.process_chunk(first, str(failed_webm))
+            raise AssertionError("ASR timeout must propagate to the queue worker")
+        except subprocess.TimeoutExpired:
+            pass
+        assert failed_webm.exists(), "ASR timeout must preserve the retryable queue audio"
+        drain_queue()
+        assert server._retry_failed_chunk(first, str(failed_webm),
+                                          subprocess.TimeoutExpired("mlx_whisper", 1)) is True
+        retry_sid, retry_path = server.chunk_q.get_nowait()
+        server.chunk_q.task_done(); server._chunk_finished(retry_sid, sync=False)
+        assert (retry_sid, retry_path) == (first, str(failed_webm)), \
+            "failed audio must return at the end of the ASR queue"
+        server.chunk_retry_counts.pop(str(failed_webm), None)
+        failed_webm.unlink(missing_ok=True)
 
         server.current_id = first
         server.recording = True

@@ -1,6 +1,6 @@
 {
   "name": "live-mtg",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Real-time bilingual meeting minutes and AI meeting copilot for Claude Code or Codex",
   "type": "module",
   "bin": {
