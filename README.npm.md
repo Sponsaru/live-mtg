@@ -6,9 +6,11 @@
 
 ![LiveMTG — live meeting intelligence](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/hero.jpg)
 
-![Demo: minutes, questions, and maps grow in real time while you record](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/demo.gif)
+![Demo: prepare with AI, follow the active agenda live, visualize the conversation, and create shareable PDFs](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/demo.gif)
 
-LiveMTG is a local-first meeting copilot that transcribes conversations in real time and turns them into structured notes, suggested questions, meeting guidance, mind maps, polished minutes, and slides.
+**One workspace for before, during, and after the meeting.**
+
+LiveMTG is a local-first AI meeting workspace powered by Claude Code or Codex. Prepare the outcome, agendas, and questions with AI; follow the active agenda, agreements, and new suggestions during the conversation; then turn the finished meeting into polished minutes, conversation maps, learnings, and shareable PDFs.
 
 Completed slide decks use the vendored neutral **Slide Work** pattern system in hybrid mode: message layouts for conclusions and informative layouts for evidence, comparisons, decisions, and actions.
 
@@ -53,7 +55,7 @@ LiveMTG is free and open source (MIT). If it saves your meetings, consider [spon
 
 ## 日本語
 
-LiveMTGは、会話をリアルタイムに文字起こし・整理し、次に聞く質問、会議ガイド、マインドマップ、清書議事録、スライドを表示するローカル実行型ツールです。
+LiveMTGは、会議前の壁打ちから、会議中の議題追跡とAI支援、会議後の清書・可視化・共有PDFまでをひとつにつなぐ、ローカル実行型のAI会議ワークスペースです。Claude CodeまたはCodexを使い、録音から現在の議題、合意、次に聞く質問、会話構造のマップ、共有用PDFまでを整理します。
 
 完成スライドは **Slide Work** のニュートラル型を正典にし、結論はMESSAGE型、根拠・比較・決定・行動はINFORMATIVE型を使うhybrid構成で生成します。
 

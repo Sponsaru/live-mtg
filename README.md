@@ -1,10 +1,14 @@
-# 議事ライブ整理システム（live-mtg）
+# LiveMTG
 
 [![npm](https://img.shields.io/npm/v/live-mtg?label=npm&color=0071e3)](https://www.npmjs.com/package/live-mtg) [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
 ![LiveMTG — 会議が、その場で前に進む。](docs/hero.jpg)
 
-![デモ：録音開始から議事・質問・マップがリアルタイムに育つ様子](docs/demo.gif)
+![デモ：会議前の準備、会議中のAI支援、会議後の可視化と共有PDF](docs/demo.gif)
+
+**会議前・会議中・会議後を、ひとつにつなぐ。**
+
+LiveMTGは、会議前の壁打ちから、会議中の議題追跡とAI支援、会議後の清書・可視化・共有資料までをひとつにつなぐ、ローカル実行型のAI会議ワークスペースです。Claude CodeまたはCodexを使い、録音から現在の議題、合意、次に聞く質問、会話構造のマップ、共有用PDFまでを整理します。
 
 > **English is supported.** During `live-mtg onboard`, choose English, or switch anytime with `live-mtg config --language en`. The dashboard, English transcription, AI analysis, meeting preparation, web research, mind maps, and slides will all use English. Switch back with `live-mtg config --language ja`.
 
@@ -76,9 +80,7 @@ live-mtg doctor | Out-File -Encoding utf8 .\live-mtg-doctor.txt
 
 作者のリリースは、初回のみnpmへ手動公開してパッケージ名を作成する。以後はnpm側でGitHub Actionsの `npm-release.yml` をTrusted Publisherに指定し、`package.json`のversionを上げて同じversionのGitタグをpushする。長期保存の`NPM_TOKEN`は使わない。
 
-**ブラウザで録音**（マイク＋オンライン会議のタブ音声）→ whisper文字起こし（Mac=mlx_whisper／large-v3）→ 選択したClaude Code/Codexで整理 → ブラウザにリアルタイム表示。
-会議中、話した内容が「議題／論点／決定事項／ToDo／未解決」に自動整理されていく。
-**操作はすべて画面ヘッダーから**：録音の開始/停止・新規会議・会議切替・全文表示・スライド化・リスト/スライド切替。
+**準備**で着地点・議題・質問を組み立て、**ライブ**で現在の議題、質問と意図、合意状態、AI支援を更新。終了後は **振り返り** から高精度清書、学びと次の一手、会話マップ、会議ペーパー・スライドPDFまで作成できる。
 
 ## 主な機能
 - **リアルタイム議事整理**：発話の切れ目ごとに議題・論点・決定・ToDo・未解決へ自動仕分け
