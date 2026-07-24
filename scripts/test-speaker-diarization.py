@@ -143,6 +143,30 @@ with tempfile.TemporaryDirectory() as tmp:
     assert [Path(x).name for x in selected] == ["inc_01.webm", "inc_02.webm", "inc_03.webm", "inc_04.webm"]
     assert [x["name"] for x in spans] == [Path(x).name for x in selected]
 
+    # MediaRecorderの分割WebMはformat.durationがN/Aでも、packet時刻から
+    # 実時間を取得してライブ話者分離の対象に残す。
+    duration_file = Path(tmp) / "duration-na.webm"
+    duration_file.write_bytes(b"audio")
+    original_run = server._run
+
+    class ProbeResult:
+        def __init__(self, stdout):
+            self.stdout = stdout
+
+    def fake_probe(cmd, **_kwargs):
+        if "format=duration" in cmd:
+            return ProbeResult("N/A\n")
+        assert "packet=pts_time,duration_time" in cmd
+        return ProbeResult("0.000000,0.060000\n14.941000,0.060000\n")
+
+    server._run = fake_probe
+    server.audio_duration_cache.pop(str(duration_file), None)
+    try:
+        assert abs(server._audio_duration(str(duration_file)) - 15.001) < 0.001
+    finally:
+        server._run = original_run
+        server.audio_duration_cache.pop(str(duration_file), None)
+
     # 一つのチャンクに二人が拮抗しているときは誤って1人に帰属しない。
     span = {"start": 0, "end": 10}
     assert server._dominant_speaker(span, [
@@ -164,8 +188,54 @@ with tempfile.TemporaryDirectory() as tmp:
     assert live_data["liveReceipt"]["speaker"] == "SPEAKER_00"
     assert live_data["timeline"][-1]["who"] == "話者A"
 
+    # 登録済み声と照合できたターンは、再解析で安定IDへ
+    # 置き換えても本人名と確信度を失わない。
+    _, profiled_turns = server._stable_live_speakers(sid, [
+        {"speaker": "profile_voice", "start": 200, "end": 205,
+         "profileName": "丹野健心", "profileConfidence": 0.84},
+    ])
+    assert profiled_turns[0]["profileName"] == "丹野健心"
+    assert profiled_turns[0]["profileConfidence"] == 0.84
+
+    Path(server._live_diarization_path(sid)).write_text(__import__("json").dumps({
+        "audioSpeakers": {"inc_04.webm": "SPEAKER_00"},
+        "profileSpeakers": {"SPEAKER_00": "丹野健心"},
+        "turns": [], "speakers": [],
+    }), encoding="utf-8")
+    server._write_live_receipt(sid, "登録声の発話", 20, "inc_04.webm")
+    named_data = __import__("json").loads((Path(server.sdir(sid)) / "data.json").read_text(encoding="utf-8"))
+    assert named_data["liveReceipt"]["who"] == "丹野健心"
+    assert named_data["timeline"][-1]["who"] == "丹野健心"
+
+    # 事前準備では本人以外も複数登録でき、話者分離に全員を渡す。
+    voice_path = Path(server._voice_profile_path())
+    voice_path.write_text(__import__("json").dumps({"version": 2, "profiles": [
+        {"id": "voice-a", "name": "丹野健心", "embedding": [0.1] * 32, "updated": 1},
+        {"id": "voice-b", "name": "佐藤さん", "embedding": [0.2] * 32, "updated": 2},
+    ]}, ensure_ascii=False), encoding="utf-8")
+    requests = []
+    original_call = server._call_diarizer_request
+    server._call_diarizer_request = lambda request: (requests.append(request) or {"turns": []})
+    try:
+        server._call_diarizer("dummy.wav")
+    finally:
+        server._call_diarizer_request = original_call
+    assert [row["name"] for row in requests[0]["voiceProfiles"]] == ["丹野健心", "佐藤さん"]
+    remaining = server._remove_voice_profile("voice-a")
+    assert [row["name"] for row in remaining["profiles"]] == ["佐藤さん"]
+
+    # 旧版の1人形式も、更新後に消えず読み込める。
+    voice_path.write_text(__import__("json").dumps(
+        {"version": 1, "name": "旧登録", "embedding": [0.3] * 32, "updated": 3}, ensure_ascii=False),
+        encoding="utf-8")
+    assert server._load_voice_profiles()[0]["name"] == "旧登録"
+
 worker_source = (ROOT / "scripts" / "live-diarize-worker.py").read_text(encoding="utf-8")
-assert "def wav_tensor" in worker_source and "pipeline(wav_tensor(wav)" in worker_source
+assert "def wav_tensor" in worker_source and "audio = wav_tensor(wav)" in worker_source and "pipeline(audio" in worker_source
 assert "pyannote\\.audio\\.core\\.io" in worker_source
+assert all(token in worker_source for token in (
+    "load_embedding_inference", "match_voice_profiles", "score >= 0.68",
+    'request.get("command") == "enroll"',
+))
 
 print("Anonymous speakers remain stable until user-confirmed mapping")

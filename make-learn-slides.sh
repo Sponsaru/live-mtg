@@ -61,6 +61,8 @@ PY
 if [ "${AI_PROVIDER:-claude}" = "codex" ]; then
   AI_OUT="$SDIR/.ai-learn-slides.out"
   codex exec --ephemeral --sandbox read-only --skip-git-repo-check -C "$SDIR" \
+    --model "${CODEX_QUALITY_MODEL:-gpt-5.6-sol}" \
+    -c "model_reasoning_effort=\"${CODEX_QUALITY_EFFORT:-high}\"" \
     --color never -o "$AI_OUT" - < "$PROMPT" >/dev/null 2>&1
   out=$(cat "$AI_OUT" 2>/dev/null || true)
   rm -f "$AI_OUT"

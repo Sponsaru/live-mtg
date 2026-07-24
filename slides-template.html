@@ -293,8 +293,8 @@
       flows[owner].lines.push('  '+t);
     }
     var wrap=document.createElement('div'); wrap.className='relflows';
-    flows.forEach(function(f){
-      var col=document.createElement('div'); col.className='relflow';
+    flows.forEach(function(f,flowIndex){
+      var col=document.createElement('div'); col.className='relflow tone-'+(flowIndex%5);
       var title=f.title,mm=title.match(/\[(.*)\]\s*$/); if(mm)title=mm[1];
       title=title.replace(/^"+|"+$/g,'');
       var h=document.createElement('div'); h.className='rf-title'; h.textContent=title; col.appendChild(h);
@@ -354,7 +354,10 @@
   window.addEventListener('load',drawTrees);
   requestAnimationFrame(drawTrees);
   // 生成済みページも、会議中のdata.json更新を検知して自動更新する。
-  if(location.protocol==='http:'||location.protocol==='https:'){
+  // サーバーの図版撮影中は対象会議をsidで固定している。表示中の別会議
+  // /data.json を見てリロードすると、撮影が永久に安定しないため自動更新を止める。
+  var captureParams=new URLSearchParams(location.search);
+  if((location.protocol==='http:'||location.protocol==='https:')&&!captureParams.has('sw-render')&&!captureParams.has('figure')){
     let reloadPending=false;
     setInterval(async function(){if(reloadPending)return;try{
       const r=await fetch('/data.json?t='+Date.now(),{cache:'no-store'}),d=await r.json();

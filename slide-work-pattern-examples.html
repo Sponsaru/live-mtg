@@ -1,28 +1,41 @@
 <!-- ===== P01 表紙 ===== -->
-<div class="slide cover center">
+<div class="slide cover center" id="pat-P01">
   <div class="corp-logo"></div>
   <div class="pt">P01·B｜表紙</div>
   <div class="stage">
     <div style="width:4.5rem;height:0.3125rem;border-radius:0.1875rem;background:var(--accent);"></div>
     <h1 class="bigstmt">タイトルは、<br>2行まで。</h1>
-    <p class="substmt">サブタイトル ― 誰に・何の話かを1行で</p>
+    <p class="substmt" style="max-width:none">サブタイトル ― 誰に・何の話かを1行で</p>
     <div style="font-size:1.1875rem;color:var(--gray);letter-spacing:.12em;">2026.07</div>
   </div>
 </div>
 
+<!-- ===== P02 章扉 ===== -->
+<div class="slide center" id="pat-P02">
+  <div class="corp-logo"></div>
+  <div class="pt">P02·B｜章扉</div>
+  <div class="page">02</div>
+  <div class="chnum">01</div>
+  <div class="stage">
+    <span class="chip blue"><span class="ib"><svg class="ic"><use href="#i-globe"/></svg></span>章1 ｜ 章のテーマ</span>
+    <div class="bigstmt">章の主張を、<br><span class="pink">ここで言い切る。</span></div>
+    <p class="substmt">補足は1文だけ。<b>キーワード</b>は太字で。</p>
+  </div>
+</div>
+
 <!-- ===== P03 センター主張 ===== -->
-<div class="slide center">
+<div class="slide center" id="pat-P03">
   <div class="corp-logo"></div>
   <div class="pt">P03·M｜センター主張</div>
   <div class="page">03</div>
   <div class="stage">
-    <div class="bigstmt">いちばん大事な一言は<br><span class="pink">1枚を独占</span>させる。</div>
+    <div class="bigstmt">待たせない現場を、<br><span class="pink">あたりまえ</span>にする。</div>
     <p class="substmt">前後の文脈はこの1文に集約。<b>読ませず、見せる</b>。</p>
   </div>
 </div>
 
 <!-- ===== P03b センター主張（反転版）：class="invert" を足すだけ ===== -->
-<div class="slide center invert">
+<div class="slide center invert" id="pat-P03b">
   <div class="corp-logo"></div>
   <div class="pt">P03b·M｜センター主張（反転）</div>
   <div class="page">03</div>
@@ -33,7 +46,7 @@
 </div>
 
 <!-- ===== P04 3カード ===== -->
-<div class="slide">
+<div class="slide" id="pat-P04">
   <div class="corp-logo"></div>
   <div class="pt">P04·M｜3カード</div>
   <div class="head">
@@ -52,7 +65,7 @@
 </div>
 
 <!-- ===== P05 2カラム対比 ===== -->
-<div class="slide">
+<div class="slide" id="pat-P05">
   <div class="corp-logo"></div>
   <div class="pt">P05·M｜2カラム対比</div>
   <div class="head">
@@ -71,7 +84,7 @@
           <li>1行を短く。読ませない</li>
         </ul>
       </div>
-      <div class="panel">
+      <div class="panel focus">
         <div class="kick" style="font-size:1.3125rem;">今回</div>
         <h3><span class="ib"><svg class="ic"><use href="#i-target"/></svg></span>新しいやり方の要約</h3>
         <ul>
@@ -85,7 +98,7 @@
 </div>
 
 <!-- ===== P07 KPIバンド ===== -->
-<div class="slide">
+<div class="slide" id="pat-P07">
   <div class="corp-logo"></div>
   <div class="pt">P07·M｜KPIバンド</div>
   <div class="head">
@@ -105,7 +118,7 @@
 </div>
 
 <!-- ===== P10 指針ロー ===== -->
-<div class="slide">
+<div class="slide" id="pat-P10">
   <div class="corp-logo"></div>
   <div class="pt">P10·I｜指針ロー</div>
   <div class="head">
@@ -137,7 +150,7 @@
 </div>
 
 <!-- ===== P12 引用 ===== -->
-<div class="slide">
+<div class="slide" id="pat-P12">
   <div class="corp-logo"></div>
   <div class="pt">P12·M｜引用</div>
   <div class="head">
@@ -147,14 +160,14 @@
   </div>
   <div class="page">12</div>
   <div class="stage">
-    <div class="quote">引用文は短く、いちばん強い一文だけを</div>
-    <div class="qby">― 発言者名・肩書き（いつ・どこで）</div>
+    <div class="quote">変化を生んだのは、特別な仕組みではなく、毎日の小さな判断だった</div>
+    <div class="qby">― 氏名 太郎・代表取締役（2026年7月・社内報）</div>
     <div class="take"><span class="ib"><svg class="ic"><use href="#i-bulb"/></svg></span><b>ここがポイント：</b>この発言が意味することを1〜2文で補足。</div>
   </div>
 </div>
 
 <!-- ===== P17 図解（構造） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P17">
   <div class="corp-logo"></div>
   <div class="pt">P17·I｜図解（構造）</div>
   <div class="head">
@@ -179,7 +192,7 @@
 </div>
 
 <!-- ===== P22 比較表 ===== -->
-<div class="slide">
+<div class="slide" id="pat-P22">
   <div class="corp-logo"></div>
   <div class="pt">P22·I｜比較表</div>
   <div class="head">
@@ -203,7 +216,7 @@
       <div class="c"><span class="mk">○</span></div>
       <div class="c me"><span class="mk">◎</span></div>
       <div class="c l">観点4（例：導入の手間）</div>
-      <div class="c"><span class="mk">×</span></div>
+      <div class="c"><span class="mk">✕</span></div>
       <div class="c me"><span class="mk">○</span></div>
     </div>
     <div class="take"><span class="ib"><svg class="ic"><use href="#i-bulb"/></svg></span><b>結論：</b>表から言えることを1文で。</div>
@@ -211,7 +224,7 @@
 </div>
 
 <!-- ===== P23 タイムライン ===== -->
-<div class="slide">
+<div class="slide" id="pat-P23">
   <div class="corp-logo"></div>
   <div class="pt">P23·M｜タイムライン</div>
   <div class="head">
@@ -232,7 +245,7 @@
 </div>
 
 <!-- ===== P31 チェックリスト ===== -->
-<div class="slide">
+<div class="slide" id="pat-P31">
   <div class="corp-logo"></div>
   <div class="pt">P31·I｜チェックリスト</div>
   <div class="head">
@@ -252,31 +265,31 @@
 </div>
 
 <!-- ===== P33 締め ===== -->
-<div class="slide center">
+<div class="slide center" id="pat-P33">
   <div class="corp-logo"></div>
   <div class="pt">P33·M｜締め</div>
   <div class="page">33</div>
   <div class="stage">
     <div style="width:4.5rem;height:0.3125rem;border-radius:0.1875rem;background:var(--accent);"></div>
-    <div class="bigstmt">締めは、<br><b>行動喚起で終わる。</b></div>
-    <p class="substmt">次に何をしてほしいか ― <b>相手への一言</b>で結ぶ。</p>
+    <div class="bigstmt">まずは案Bで、<br><b>小さく始めませんか。</b></div>
+    <p class="substmt">次に何をしてほしいか ―<br><b>相手への一言</b>で結ぶ。</p>
   </div>
 </div>
 
 <!-- ===== P33b 締め（反転版）：class="invert" を足すだけ。飾りバーは白系に ===== -->
-<div class="slide center invert">
+<div class="slide center invert" id="pat-P33b">
   <div class="corp-logo"></div>
   <div class="pt">P33b·M｜締め（反転）</div>
   <div class="page">33</div>
   <div class="stage">
     <div style="width:4.5rem;height:0.3125rem;border-radius:0.1875rem;background:rgba(255,255,255,.6);"></div>
-    <div class="bigstmt">最後の1枚を、<br><b>いちばん強く。</b></div>
+    <div class="bigstmt">決めるのは、<br><b>今日のこの場で。</b></div>
     <p class="substmt">締めを反転させると、<b>余韻が残る</b>。行動喚起との相性◎。</p>
   </div>
 </div>
 
 <!-- ===== P34 目次（アジェンダ）：左に大タイトル・右に番号リスト ===== -->
-<div class="slide">
+<div class="slide" id="pat-P34">
   <div class="corp-logo"></div>
   <div class="pt">P34·I｜目次</div>
   <div class="page">34</div>
@@ -295,27 +308,70 @@
 </div>
 
 <!-- ===== P35 統計カード（アイコン＋ラベル＋大数字） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P35">
   <div class="corp-logo"></div>
   <div class="pt">P35·I｜統計カード</div>
   <div class="head">
     <div class="kick">章1 ｜ セクション名</div>
-    <h1>数字は「なぜ大事か」まで添える</h1>
+    <h1>受付改善を、3つの数字で</h1>
     <div class="hsub">アイコン丸＋ラベル＋大数字＋補足の3点セット。出典・時点を必ず併記</div>
   </div>
   <div class="page">35</div>
   <div class="stage">
     <div class="stats">
-      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-alert"/></svg></div><div class="lb">ラベル１</div><div class="num">67<small>%</small></div><div class="ds">数字の説明を2行以内で。出典は右上かhsubに</div></div>
-      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-mail"/></svg></div><div class="lb">ラベル２</div><div class="num">1,847<small>件</small></div><div class="ds">数字の説明を2行以内で</div></div>
-      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-shield"/></svg></div><div class="lb">ラベル３</div><div class="num">24<small>時間</small></div><div class="ds">数字の説明を2行以内で</div></div>
+      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-alert"/></svg></div><div class="lb">待ち時間</div><div class="num">83<small>%</small></div><div class="ds">平均30分→5分に短縮。出典も添える</div></div>
+      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-mail"/></svg></div><div class="lb">受付件数</div><div class="num">1,847<small>件</small></div><div class="ds">月間の受付件数。処理は滞らない</div></div>
+      <div class="stat"><div class="icb"><svg class="ic"><use href="#i-shield"/></svg></div><div class="lb">残業時間</div><div class="num">−24<small>%</small></div><div class="ds">受付スタッフの月間残業も減少</div></div>
     </div>
-    <div class="why">数字3つから導かれる<strong>結論をここで一言</strong>。</div>
+    <div class="why"><strong>結論：</strong>待たせない受付は、働き方も変えた。</div>
+  </div>
+</div>
+
+<!-- ===== P36 循環図解（左リスト×右リング図） ===== -->
+<div class="slide" id="pat-P36">
+  <div class="corp-logo"></div>
+  <div class="pt">P36·I｜循環図解</div>
+  <div class="head">
+    <div class="kick">章1 ｜ セクション名</div>
+    <h1>3要素の関係は、リングで一目に</h1>
+    <div class="hsub">左＝各要素の説明、右＝循環図（要素は3〜4つまで）</div>
+  </div>
+  <div class="page">36</div>
+  <div class="stage">
+    <div class="cyc">
+      <div>
+        <div class="spec"><h4>要素A（正式名称）</h4><p>要素の説明を1〜2行。左のリストと右の図が同じ3要素を指す。</p></div>
+        <div class="spec"><h4>要素B（正式名称）</h4><p>要素の説明を1〜2行。</p></div>
+        <div class="spec"><h4>要素C（正式名称）</h4><p>要素の説明を1〜2行。</p></div>
+      </div>
+      <div>
+      <svg viewBox="0 0 560 520" role="img" aria-label="循環図">
+        <!-- 飾りリング（中心を少しずらして重ねる） -->
+        <circle cx="288" cy="282" r="216" fill="none" stroke="var(--bar)" stroke-width="2" stroke-dasharray="2 7"/>
+        <circle cx="272" cy="296" r="206" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+        <!-- ノード間を繋ぐ3色の太いアーク（円周に沿う・端はノードの下に隠れる） -->
+        <g fill="none" stroke-width="14">
+          <path d="M 280 100 A 190 190 0 0 1 444.5 385" stroke="var(--accent)"/>
+          <path d="M 444.5 385 A 190 190 0 0 1 115.5 385" stroke="var(--bar)"/>
+          <path d="M 115.5 385 A 190 190 0 0 1 280 100" stroke="var(--accent-ink)"/>
+        </g>
+        <text x="280" y="305" font-size="48" font-weight="800" fill="var(--strong)" text-anchor="middle">中核</text>
+        <g text-anchor="middle" font-weight="700">
+          <circle cx="280" cy="100" r="80" fill="var(--strong)"/>
+          <text x="280" y="96" font-size="26" fill="#fff">要素A</text><text x="280" y="124" font-size="15" fill="rgba(255,255,255,.75)">(Element A)</text>
+          <circle cx="115.5" cy="385" r="80" fill="var(--strong)"/>
+          <text x="115.5" y="381" font-size="26" fill="#fff">要素B</text><text x="115.5" y="409" font-size="15" fill="rgba(255,255,255,.75)">(Element B)</text>
+          <circle cx="444.5" cy="385" r="80" fill="var(--strong)"/>
+          <text x="444.5" y="381" font-size="26" fill="#fff">要素C</text><text x="444.5" y="409" font-size="15" fill="rgba(255,255,255,.75)">(Element C)</text>
+        </g>
+      </svg>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- ===== P37 詳細リスト（高密度でも読める行型） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P37">
   <div class="corp-logo"></div>
   <div class="pt">P37·I｜詳細リスト</div>
   <div class="head">
@@ -335,7 +391,7 @@
 </div>
 
 <!-- ===== P41 DO/DON'T ===== -->
-<div class="slide">
+<div class="slide" id="pat-P41">
   <div class="corp-logo"></div>
   <div class="pt">P41·I｜DO/DON'T</div>
   <div class="head">
@@ -353,7 +409,7 @@
 </div>
 
 <!-- ===== P43 経過タイムライン（Dayチップ＋アイコン円） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P43">
   <div class="corp-logo"></div>
   <div class="pt">P43·I｜経過タイムライン</div>
   <div class="head">
@@ -381,49 +437,49 @@
 </div>
 
 <!-- ===== P44 Before/After（改善事例） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P44">
   <div class="corp-logo"></div>
   <div class="pt">P44·I｜Before/After</div>
   <div class="head">
     <div class="kick">章3 ｜ セクション名</div>
-    <h1>改善は、前後2枚のカードで</h1>
+    <h1>受付改善の前後を、2枚で</h1>
     <div class="hsub">中央にアクション（何をしたか）。Beforeは濃色・Afterはアクセント色</div>
   </div>
   <div class="page">44</div>
   <div class="stage">
     <div class="ba">
       <div class="bac before"><div class="hd3">Before</div>
-        <section><h5>状態</h5><p>改善前の状態を2行で。事実だけを書く。</p></section>
-        <section><h5>問題点</h5><p>何が危なかったか・困っていたかを2行で。</p></section>
+        <section><h5>状態</h5><p>受付が1本化され、平均30分待ちだった。</p></section>
+        <section><h5>問題点</h5><p>ピーク時に列が伸び、離脱が発生していた。</p></section>
       </div>
-      <div class="act">アクション<span class="ar">→</span>実施したことを<br>2行で</div>
+      <div class="act"><span class="lab">ACTION</span>何を変えたか<span class="ar">→</span>受付を2段階化し、<br>事前入力を導入</div>
       <div class="bac after"><div class="hd3">After</div>
-        <section><h5>状態</h5><p>改善後の状態を2行で。</p></section>
-        <section><h5>効果</h5><p>何がどう良くなったかを2行で。数字があれば数字で。</p></section>
+        <section><h5>状態</h5><p>平均待ち時間は5分になった。</p></section>
+        <section><h5>効果</h5><p>待合の離脱が半減した。数字で言い切る。</p></section>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ===== P46 ステップ別チェックリスト（列型） ===== -->
-<div class="slide">
+<div class="slide" id="pat-P46">
   <div class="corp-logo"></div>
   <div class="pt">P46·I｜ステップ列チェック</div>
   <div class="head">
     <div class="kick">章3 ｜ セクション名</div>
-    <h1>タイミング別に、やることを積む</h1>
+    <h1>導入前後の段取りを、列で積む</h1>
     <div class="hsub">3列×各3項目まで。列の色の濃さで時間の近さを表す</div>
   </div>
   <div class="page">46</div>
   <div class="stage">
     <div class="stepcols">
-      <div class="sc"><div class="pill2" style="background:var(--bar);">Step1 - 7日前</div><div class="ckc">やること1-1 を1〜2行で</div><div class="ckc">やること1-2 を1〜2行で</div><div class="ckc">やること1-3 を1〜2行で</div></div><div class="sar">▶</div><div class="sc"><div class="pill2" style="background:var(--accent);">Step2 - 3日前</div><div class="ckc">やること2-1 を1〜2行で</div><div class="ckc">やること2-2 を1〜2行で</div><div class="ckc">やること2-3 を1〜2行で</div></div><div class="sar">▶</div><div class="sc"><div class="pill2" style="background:var(--strong);">Step3 - 当日</div><div class="ckc">やること3-1 を1〜2行で</div><div class="ckc">やること3-2 を1〜2行で</div><div class="ckc">やること3-3 を1〜2行で</div></div>
+      <div class="sc"><div class="pill2" style="background:color-mix(in srgb,var(--accent) 40%,#fff);color:#1d1d1f;">Step1 - 7日前</div><div class="ckc">新フローの手順を確定する</div><div class="ckc">案内掲示を準備する</div><div class="ckc">スタッフ説明会を実施する</div></div><div class="sar">▶</div><div class="sc"><div class="pill2" style="background:color-mix(in srgb,var(--accent) 70%,#fff);">Step2 - 3日前</div><div class="ckc">事前入力ページを公開する</div><div class="ckc">窓口でリハーサルを行う</div><div class="ckc">予備の受付を確保する</div></div><div class="sar">▶</div><div class="sc"><div class="pill2" style="background:var(--accent);">Step3 - 当日</div><div class="ckc">2段階受付で運用を開始</div><div class="ckc">待ち時間を計測する</div><div class="ckc">夕会でふりかえる</div></div>
     </div>
   </div>
 </div>
 
 <!-- ===== P47 ポイントまとめ＋FAQ ===== -->
-<div class="slide">
+<div class="slide" id="pat-P47">
   <div class="corp-logo"></div>
   <div class="pt">P47·I｜ポイント＋FAQ</div>
   <div class="head">
@@ -439,5 +495,131 @@
       <div class="pt3"><span class="n">3</span><div class="st">覚えて帰ってほしいポイントを、<br>言い切りで書く。</div><div class="sp">補足・理由をこちらに2行で。左の言い切りを支える。</div></div>
     </div>
     <div class="faqb"><span class="fq">FAQ</span><div class="qa2"><b>Q. よくある質問を1つだけ載せる？</b><p>A. 回答を2行以内で。詳細は配布資料や問い合わせ先へ誘導する。</p></div></div>
+  </div>
+</div>
+
+<!-- ===== P57 締め＋次アクション ===== -->
+<div class="slide" id="pat-P57">
+  <div class="corp-logo"></div>
+  <div class="pt">P57·I｜締め＋次アクション</div>
+  <div class="head">
+    <div class="kick">まとめ</div>
+    <h1>締めは、次の一歩とセットで</h1>
+    <div class="hsub">締めの一言＋次アクション3つまで。担当と期限を必ず添える</div>
+  </div>
+  <div class="page">57</div>
+  <div class="stage">
+    <div class="nsteps">
+      <div class="lead4">まずは案Bで、小さく始める。</div>
+      <div class="ns"><span class="n">1</span><span class="t">1窓口で試行を開始する</span><span class="w">受付チーム ― 7月末</span></div>
+      <div class="ns"><span class="n">2</span><span class="t">効果を計測し、全社へ共有する</span><span class="w">企画 ― 8月中旬</span></div>
+      <div class="ns"><span class="n">3</span><span class="t">全窓口への展開を判断する</span><span class="w">経営会議 ― 9月頭</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ID01 数字×実写×根拠 ===== -->
+<div class="slide dyn idnum-slide" id="pat-ID01">
+  <div class="corp-logo"></div><div class="pt">ID01·I｜数字×写真根拠</div><div class="page">ID01</div>
+  <div class="idnum">
+    <div class="photo dph"><div><span class="ib"><svg class="ic"><use href="#i-img"/></svg></span><br>数字の背景にある現場写真へ差し替え</div></div>
+    <section class="hero"><div class="d-kicker">KEY FACT</div><div class="num">83<small>%</small></div><div class="claim">待ち時間を、<br>6分の1に短縮した。</div><div class="meaning">受付を2段階化し、事前入力を導入。ピーク時でも5分で受付が終わる。</div></section>
+    <div class="facts"><div class="fact"><b>SOURCE</b><span>調査名／2026年7月<br>対象 n=000</span></div><div class="fact"><b>TARGET</b><span>対象・条件を<br>短く明記</span></div><div class="fact"><b>COMPARE</b><span>導入前比<br><strong>−25分</strong></span></div><div class="fact"><b>MEANING</b><span>待たせない窓口が<br>標準になった</span></div></div>
+  </div>
+</div>
+
+<!-- ===== MD02 大胆Before/After ===== -->
+<div class="slide dyn mdba-slide" id="pat-MD02">
+  <div class="corp-logo"></div><div class="pt" style="color:rgba(255,255,255,.65)">MD02·M｜大胆Before/After</div><div class="page" style="color:rgba(255,255,255,.6)">MD02</div>
+  <div class="mdba"><div class="before-plane"></div><div class="title">待ち時間を、<br>6分の1へ。</div>
+    <div class="change"><section class="state before"><span class="word">BEFORE</span><span class="value">30<small>分</small></span></section><section class="state after"><span class="word">AFTER</span><span class="value">5<small>分</small></span></section></div>
+  </div>
+</div>
+
+<!-- ===== ID02 写真Before/After ===== -->
+<div class="slide dyn idba-slide" id="pat-ID02">
+  <div class="corp-logo"></div><div class="pt">ID02·I｜写真Before/After</div><div class="page">ID02</div>
+  <div class="idba">
+    <div class="visuals"><div class="photo before-photo dph"><div><span class="ib"><svg class="ic"><use href="#i-img"/></svg></span><br>改善前の現場写真</div></div><div class="photo after-photo dph"><div><span class="ib"><svg class="ic"><use href="#i-img"/></svg></span><br>改善後の現場写真</div></div></div>
+    <div class="titlebox"><div class="d-kicker">CASE STUDY</div><h2>受付の変化を、<br>写真で証明する。</h2></div>
+    <div class="seam-arrow">→</div>
+    <div class="result-mark"><span>MEASURED RESULT</span><strong>83<small>%</small></strong><p>平均待ち時間を削減</p></div>
+    <div class="d-source">出典：事例名／実施期間／計測条件</div>
+    <div class="info-band"><div class="info"><b>BEFORE｜課題</b><p>受付が1本に集中し、ピーク時は30分待ちが起きていた。</p></div><div class="info action"><b>WHAT CHANGED｜実施した施策</b><p><strong>① 受付を2段階化</strong>　<strong>② 事前入力を導入</strong><br>期間・対象・実施規模を1行で補足する。</p></div><div class="info"><b>AFTER｜効果と残課題</b><p>平均5分に短縮。次は混雑日のばらつきを抑える。</p></div></div>
+  </div>
+</div>
+
+<!-- ===== MD03 流れる3ステップ ===== -->
+<div class="slide dyn mdflow-slide" id="pat-MD03">
+  <div class="corp-logo"></div><div class="pt" style="color:rgba(255,255,255,.65)">MD03·M｜流れる3ステップ</div><div class="page" style="color:rgba(29,29,31,.55)">MD03</div>
+  <div class="mdflow"><div class="head3"><div class="d-kicker" style="color:rgba(255,255,255,.5)">GROWTH STORY</div><h2>進むほど、価値が大きくなる。</h2></div>
+    <div class="steps"><section class="step"><div class="n">01</div><h3>知る</h3><p>紙運用の現状を測る。</p></section><section class="step"><div class="n">02</div><h3>試す</h3><p>1窓口で新フローを検証。</p></section><section class="step"><div class="n">03</div><h3>広げる</h3><p>全窓口へ広げ、5分に。</p></section></div>
+  </div>
+</div>
+
+<!-- ===== ID03 判断付きプロセス ===== -->
+<div class="slide dyn" id="pat-ID03">
+  <div class="corp-logo"></div><div class="pt">ID03·I｜判断付きプロセス</div><div class="page">ID03</div>
+  <div class="idflow"><section class="lead"><div class="d-kicker">PROCESS & GATE</div><h2>工程だけでなく、判断条件まで示す。</h2><p>工程は1行に抑え、進む条件と戻り先という「判断」を主役に読ませる。後読み資料のプロセス説明に。</p><div class="legend"><span class="dia"></span>＝ 次へ進む判断ポイント</div><div class="d-source" style="margin-top:1.2rem">前提：期間・担当・対象範囲を併記</div></section>
+    <section class="rail">
+      <div class="prow"><span class="pn">1</span><div><h3>準備</h3><p>情報収集・要件整理</p></div></div>
+      <div class="gate"><span class="dia"></span><div class="lbl"><i>GATE</i><b>要件承認</b><span>満たせば検証へ</span></div></div>
+      <div class="prow"><span class="pn">2</span><div><h3>検証</h3><p>小さく試し、結果を測る</p></div></div>
+      <div class="gate"><span class="dia"></span><div class="lbl"><i>GATE</i><b>基準達成</b><span>満たせば展開へ</span></div></div>
+      <div class="prow"><span class="pn">3</span><div><h3>展開</h3><p>対象を広げ、運用へ移す</p></div></div>
+      <div class="gate key"><span class="dia"></span><div class="lbl"><i>GATE</i><b>継続判断</b><span>達成なら定着へ／未達なら検証へ戻す</span></div></div>
+      <div class="prow"><span class="pn">4</span><div><h3>定着</h3><p>効果測定・改善を続ける</p></div></div>
+      <div class="gate"><span class="dia"></span><div class="lbl"><i>GATE</i><b>KPI確認</b><span>定期的に効果を点検し続ける</span></div></div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== MD04 人物巨大引用 ===== -->
+<div class="slide dyn" id="pat-MD04">
+  <div class="corp-logo"></div><div class="pt" style="color:rgba(255,255,255,.65)">MD04·M｜人物巨大引用</div><div class="page" style="color:rgba(255,255,255,.6)">MD04</div>
+  <div class="mdperson"><div class="photo dph"><div><span class="ib"><svg class="ic"><use href="#i-user"/></svg></span><br>人物が右にいる写真へ差し替え</div></div><div class="copy"><div class="d-kicker" style="color:rgba(255,255,255,.5)">PERSONAL MESSAGE</div><blockquote>変化を生んだのは、<br>毎日の小さな判断だった。</blockquote><div class="who"><div><b>氏名　太郎</b><span>代表取締役／受付改善を主導</span></div></div></div></div>
+</div>
+
+<!-- ===== MD05 活動全面フォト ===== -->
+<div class="slide dyn mdact-slide" id="pat-MD05">
+  <div class="corp-logo"></div><div class="pt">MD05·M｜活動全面フォト</div><div class="page">MD05</div>
+  <div class="mdact">
+    <div class="photo dph"><div><span class="ib"><svg class="ic"><use href="#i-img"/></svg></span><br>見学会の全景写真へ差し替え</div></div>
+    <div class="meta"><span class="chip3">見学会 12回目</span><span class="chip3">参加 240名</span></div>
+    <div class="copy"><div class="d-kicker">OPEN SITE</div><h2>現場を開くと、<br>仲間が増える。</h2><div class="cap3">2段階受付の見学会 ― 2026年7月</div></div>
+  </div>
+</div>
+
+<!-- ===== ID05 推奨スポットライト ===== -->
+<div class="slide dyn" id="pat-ID05">
+  <div class="corp-logo"></div><div class="pt">ID05·I｜推奨スポットライト</div><div class="page">ID05</div>
+  <div class="iddecision"><div class="topline"><div><div class="d-kicker">DECISION</div><h2>推奨案を主役にし、代替案も残す。</h2></div></div>
+    <section class="reco"><div class="tag2">RECOMMEND</div><div class="main"><h3>案B｜段階導入</h3><p>効果を確保しながら、初期リスクと学習コストを抑えられるため。</p></div><div class="criteria"><div class="criterion">効果<b>●●●</b></div><div class="criterion">速度<b>●●<i>●</i></b></div><div class="criterion">コスト<b>●●<i>●</i></b></div></div></section>
+    <section class="alts"><div class="alt"><div class="tag3">ALTERNATIVE</div><h4>案A｜現状維持</h4><p>開始は速いが、期待効果が限定的。</p></div><div class="alt"><div class="tag3">ALTERNATIVE</div><h4>案C｜一括導入</h4><p>効果は高いが、初期リスクが大きい。</p></div></section>
+  </div>
+</div>
+
+<!-- ===== MD07 大胆推奨 ===== -->
+<div class="slide dyn mdreco-slide" id="pat-MD07">
+  <div class="corp-logo"></div><div class="pt">MD07·M｜大胆推奨</div><div class="page">MD07</div>
+  <div class="mdreco">
+    <div class="d-kicker">RECOMMEND</div>
+    <h2>案Bで、いく。</h2>
+    <div class="lead2">段階導入 ― 効果を確保しながら、初期リスクと学習コストを抑える。</div>
+    <div class="ghost"><span>案A｜現状維持 ― 見送り</span><span>案C｜一括導入 ― 見送り</span></div>
+  </div>
+</div>
+
+<!-- ===== MD06 全面引用 ===== -->
+<div class="slide dyn" id="pat-MD06">
+  <div class="corp-logo"></div><div class="pt" style="color:rgba(255,255,255,.65)">MD06·M｜全面引用</div><div class="page" style="color:rgba(255,255,255,.6)">MD06</div>
+  <div class="mdquote"><div class="d-kicker">VOICE / PRIMARY SOURCE</div><blockquote>変化を生んだのは、<br>特別な仕組みではなく、<br><span>毎日の小さな判断</span>だった。</blockquote><div class="by">― 発言者名・役職／出典・2026年7月</div></div>
+</div>
+
+<!-- ===== ID06 エディトリアル根拠 ===== -->
+<div class="slide dyn" id="pat-ID06">
+  <div class="corp-logo"></div><div class="pt">ID06·I｜エディトリアル根拠</div><div class="page">ID06</div>
+  <div class="ideditorial"><section class="quote2"><div class="d-kicker">EVIDENCE</div><blockquote>変化を生んだのは、特別な仕組みではなく、<mark>毎日の小さな判断</mark>だった。</blockquote><div class="d-source">出典：資料名／発行主体／2026年7月／p.12</div></section>
+    <section class="side"><div class="photo dph"><div><span class="ib"><svg class="ic"><use href="#i-img"/></svg></span><br>出典に関係する写真・資料</div></div><div class="notes"><div class="nlabel">READING｜読み解き</div><p class="note"><b>言えること</b>この引用から直接言えることを、1〜2文で言い切る。</p><p class="note"><b>判断とのつながり</b>今回の提案・判断とどう接続するかを短く示す。</p><div class="caveat">引用できない推測は、引用に混ぜずこの解説側に分けて書く。</div></div></section>
   </div>
 </div>

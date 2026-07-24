@@ -5,6 +5,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$global:OutputEncoding = $utf8
 
 function Invoke-Step([string]$Command, [string[]]$Arguments) {
   if ($DryRun) { Write-Host "+ $Command $($Arguments -join ' ')"; return }

@@ -1,6 +1,6 @@
 {
   "name": "live-mtg",
-  "version": "0.1.0-beta.71",
+  "version": "0.1.0-beta.72",
   "description": "Real-time bilingual meeting minutes and AI meeting copilot for Claude Code or Codex",
   "type": "module",
   "bin": {
@@ -10,7 +10,10 @@
     "cli/",
     "defaults/",
     "scripts/live-diarize-worker.py",
+    "scripts/run-slide-ai.py",
     "server.py",
+    "meeting_flow.py",
+    "meeting_flow_ai.py",
     "index.html",
     "brand-logo.png",
     "slide-bg.jpg",
@@ -23,6 +26,7 @@
     "make-map-slide.py",
     "slides-template.html",
     "slide-work-template.html",
+    "minutes-paper-template.html",
     "slide-work-pattern-examples.html",
     "slide-work-guide.md",
     "README.md",
@@ -33,7 +37,7 @@
     "VERSION"
   ],
   "scripts": {
-    "test": "node --check cli/live-mtg.mjs && node scripts/check-index-js.mjs && python3 -m py_compile server.py make-mindmap.py scripts/sync-slide-work.py && python3 scripts/test-i18n.py && python3 scripts/test-branding.py && python3 scripts/test-ui.py && python3 scripts/test-cli-home.py && python3 scripts/test-parallel-analysis.py && python3 scripts/test-cancellable-jobs.py && python3 scripts/test-strategy-identity.py && python3 scripts/test-speaker-diarization.py && python3 scripts/test-slide-work.py",
+    "test": "node --check cli/live-mtg.mjs && node scripts/test-cli-onboarding.mjs && node scripts/test-cli-supervisor.mjs && node scripts/check-index-js.mjs && python3 -m py_compile server.py meeting_flow.py meeting_flow_ai.py make-mindmap.py make-minutes-deck.py scripts/sync-slide-work.py && python3 scripts/test-meeting-flow.py && python3 scripts/test-meeting-flow-ai.py && python3 scripts/test-meeting-flow-integration.py && python3 scripts/test-i18n.py && python3 scripts/test-branding.py && python3 scripts/test-ui.py && python3 scripts/test-cli-home.py && python3 scripts/test-parallel-analysis.py && python3 scripts/test-analysis-coverage.py && python3 scripts/test-audio-import.py && python3 scripts/test-recording-integrity.py && python3 scripts/test-transcript-sanitization.py && python3 scripts/test-finalize-corrections.py && python3 scripts/test-cancellable-jobs.py && python3 scripts/test-strategy-identity.py && python3 scripts/test-speaker-diarization.py && python3 scripts/test-minutes-deck.py && python3 scripts/test-slide-work.py",
     "build:package": "node scripts/build-npm-package.mjs",
     "pack:check": "npm run build:package && npm pack --dry-run ./dist/npm"
   },

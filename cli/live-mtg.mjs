@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, statfsSync, writeFileSync } from "node:fs";
+import { appendFileSync, constants as fsConstants, accessSync, cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, statfsSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -55,6 +57,8 @@ const server = join(root, "server.py");
 const pidFile = join(home, "server.pid");
 const configFile = join(home, "config.json");
 const logFile = join(home, "server.log");
+const serverLogMaxBytes = 5 * 1024 * 1024;
+const serverLogBackups = 3;
 const isMac = platform() === "darwin";
 const isWindows = platform() === "win32";
 // mlx（既定の文字起こし）はApple Silicon専用。Intel Macはwhisper.cpp経路（Windowsと同じ）を使う
@@ -189,21 +193,68 @@ function commandEnv() {
   return { ...process.env, PATH: effectivePath() };
 }
 
+// シェル経由で引数配列を渡すとNode 24でDEP0190となり、引数がシェル解釈される。
+// PATHから実体を解決し、Windowsの.cmd/.batシムだけをcmd.exeへ限定的に渡す。
+function resolveCommand(command) {
+  const hasSeparator = /[\\/]/.test(command);
+  const dirs = hasSeparator ? [""] : effectivePath().split(isWindows ? ";" : ":").filter(Boolean);
+  const hasWindowsExt = /\.[A-Za-z0-9]+$/.test(command);
+  const extensions = isWindows && !hasWindowsExt
+    ? String(process.env.PATHEXT || ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)
+    : [""];
+  for (const dir of dirs) {
+    for (const ext of extensions) {
+      const candidate = dir ? join(dir, `${command}${ext}`) : `${command}${ext}`;
+      try {
+        accessSync(candidate, isWindows ? fsConstants.F_OK : fsConstants.X_OK);
+        return candidate;
+      } catch {}
+    }
+  }
+  return null;
+}
+
+function runCommandSync(command, args = [], options = {}) {
+  const resolved = resolveCommand(command) || command;
+  const base = { ...options, shell: false, env: options.env || commandEnv() };
+  if (isWindows && /\.(cmd|bat)$/i.test(resolved)) {
+    // cmd.exeは引数配列で起動し、バッチ内で再解釈される文字は拒否する。
+    // 現在の呼び出しは固定のnpm/AI CLI引数と検証済みversionのみ。
+    const values = [resolved, ...args].map(value => String(value));
+    if (values.some(value => /[\0\r\n"%\^!]/.test(value))) {
+      throw new Error(t("Windowsコマンドに安全でない引数が含まれています", "A Windows command contains an unsafe argument"));
+    }
+    // Nodeの既定クォート（内部の"を\"へ変換）はcmd.exeが解釈できず、
+    // スペースを含むパスで引数が化ける。/d /s /c と外側の引用符を
+    // 自前で組み立て、windowsVerbatimArgumentsで逐語のまま渡す。
+    const commandLine = values.map(value => `"${value}"`).join(" ");
+    return spawnSync(process.env.ComSpec || "cmd.exe",
+      ["/d", "/s", "/c", `"${commandLine}"`],
+      { ...base, windowsVerbatimArguments: true });
+  }
+  return spawnSync(resolved, args, base);
+}
+
 function commandExists(command) {
-  const checker = isWindows ? "where" : "command";
-  const args = isWindows ? [command] : ["-v", command];
-  return spawnSync(checker, args, { shell: !isWindows, stdio: "ignore", env: commandEnv() }).status === 0;
+  return Boolean(resolveCommand(command));
 }
 
 function runInteractive(command, args, extraEnv = {}) {
-  return spawnSync(command, args, {
-    stdio: "inherit", shell: isWindows, env: { ...commandEnv(), ...extraEnv }
+  return runCommandSync(command, args, {
+    stdio: "inherit", env: { ...commandEnv(), ...extraEnv }
   }).status === 0;
+}
+
+class UsageError extends Error {
+  constructor(message) { super(message); this.exitCode = 2; }
 }
 
 async function confirmStep(question, assumeYes = false) {
   if (assumeYes) return true;
-  if (!process.stdin.isTTY) return false;
+  if (!process.stdin.isTTY) {
+    throw new UsageError(t("非対話環境では確認に回答できません。live-mtg onboard --yes を実行してください。",
+                           "Cannot answer setup prompts in a non-interactive environment. Run live-mtg onboard --yes."));
+  }
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const answer = (await rl.question(`${question} [Y/n]: `)).trim().toLowerCase();
   rl.close();
@@ -215,8 +266,8 @@ function isAiLoggedIn(provider) {
   if (!commandExists(command)) return false;
   // Windowsのclaude/codexは.cmdシム。shell無しのspawnSyncは.cmdを起動できず
   // 「未ログイン」誤判定になる（2026-07-18 PC109実機レポート）
-  return spawnSync(command, provider === "codex" ? ["login", "status"] : ["auth", "status"],
-    { stdio: "ignore", shell: isWindows, env: commandEnv() }).status === 0;
+  return runCommandSync(command, provider === "codex" ? ["login", "status"] : ["auth", "status"],
+    { stdio: "ignore", env: commandEnv() }).status === 0;
 }
 
 async function prepareAi(provider, assumeYes) {
@@ -335,7 +386,7 @@ async function prepareRuntime(assumeYes) {
   }
   if (isWindows && !commandExists("whisper-cli") && !windowsWhisperExe()) {
     if (await confirmStep(t("Windows用whisper.cppをダウンロードしますか？（約8MB）", "Download whisper.cpp for Windows (about 8 MB)?"), assumeYes)) {
-      installWindowsWhisper();
+      await installWindowsWhisper();
     }
   }
   if (isWindows && !existsSync(preferredGgmlModel())) {
@@ -343,7 +394,7 @@ async function prepareRuntime(assumeYes) {
     const dest = preferredGgmlModel();
     const size = dest === windowsModelSmall ? "0.5" : "1.6";
     if (await confirmStep(t(`文字起こしモデルをダウンロードしますか？（約${size}GB）`, `Download the transcription model (about ${size} GB)?`), assumeYes)) {
-      downloadWindowsModel(dest);
+      await downloadWindowsModel(dest);
     }
   }
 }
@@ -360,14 +411,66 @@ async function chooseGgmlBySpace(assumeYes) {
 }
 
 function powershell(script) {
-  return runInteractive("powershell.exe", ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script]);
+  const utf8 = "$u=New-Object System.Text.UTF8Encoding($false);[Console]::InputEncoding=$u;[Console]::OutputEncoding=$u;$OutputEncoding=$u;";
+  return runInteractive("powershell.exe", ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", utf8 + script]);
 }
 
-function installWindowsWhisper() {
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  return `${String(minutes).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+}
+
+function formatDownloadProgress(received, total, elapsedSeconds) {
+  const receivedMb = received / 1_000_000;
+  const totalText = total > 0 ? ` / ${(total / 1_000_000).toFixed(1)} MB` : " MB";
+  const percent = total > 0 ? ` (${Math.min(100, received / total * 100).toFixed(1)}%)` : "";
+  const speed = elapsedSeconds > 0 ? receivedMb / elapsedSeconds : 0;
+  return t(`受信 ${receivedMb.toFixed(1)}${totalText}${percent} ・ 経過 ${formatDuration(elapsedSeconds)} ・ ${speed.toFixed(1)} MB/s`,
+           `Received ${receivedMb.toFixed(1)}${totalText}${percent} · elapsed ${formatDuration(elapsedSeconds)} · ${speed.toFixed(1)} MB/s`);
+}
+
+async function downloadFileWithProgress(url, dest) {
+  const partial = `${dest}.download`;
+  rmSync(partial, { force: true });
+  const started = Date.now();
+  let received = 0;
+  let lastShown = started;
+  try {
+    const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(60 * 60 * 1000) });
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+    const total = Number(response.headers.get("content-length")) || 0;
+    console.log(formatDownloadProgress(0, total, 0));
+    const counter = new Transform({
+      transform(chunk, _encoding, callback) {
+        received += chunk.byteLength;
+        const now = Date.now();
+        if (now - lastShown >= 5000) {
+          const line = formatDownloadProgress(received, total, (now - started) / 1000);
+          if (process.stdout.isTTY) process.stdout.write(`\r${line}`);
+          else console.log(line);
+          lastShown = now;
+        }
+        callback(null, chunk);
+      }
+    });
+    await pipeline(response.body, counter, createWriteStream(partial, { flags: "w" }));
+    if (process.stdout.isTTY) process.stdout.write("\r");
+    console.log(formatDownloadProgress(received, total, (Date.now() - started) / 1000));
+    rmSync(dest, { force: true });
+    renameSync(partial, dest);
+    return true;
+  } catch (error) {
+    rmSync(partial, { force: true });
+    console.log(t(`ダウンロード失敗: ${error.message}`, `Download failed: ${error.message}`));
+    return false;
+  }
+}
+
+async function installWindowsWhisper() {
   const zip = join(home, `whisper-${whisperWindowsRelease.version}.zip`);
   mkdirSync(windowsWhisperRoot, { recursive: true });
   console.log(t(`whisper.cpp ${whisperWindowsRelease.version} を取得しています…`, `Downloading whisper.cpp ${whisperWindowsRelease.version}…`));
-  const downloaded = powershell(`$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri '${whisperWindowsRelease.url}' -OutFile '${zip.replaceAll("'", "''")}'`);
+  const downloaded = await downloadFileWithProgress(whisperWindowsRelease.url, zip);
   if (!downloaded || !existsSync(zip)) {
     console.log(t("whisper.cppをダウンロードできませんでした。", "Could not download whisper.cpp."));
     console.log(t(`手動での回避策: ブラウザで ${whisperWindowsRelease.url} を取得し、zipを展開して中身を ${windowsWhisperRoot} に置いてください（社内プロキシやウイルス対策が自動ダウンロードを妨げることがあります）`,
@@ -402,14 +505,12 @@ function downloadGgmlModelMac(dest = preferredGgmlModel()) {
   return false;
 }
 
-function downloadWindowsModel(dest = preferredGgmlModel()) {
+async function downloadWindowsModel(dest = preferredGgmlModel()) {
   mkdirSync(dirname(dest), { recursive: true });
-  const partial = `${dest}.download`;
   const url = ggmlUrl(dest);
   console.log(t("文字起こしモデルを取得しています。回線によって数分かかります…", "Downloading the transcription model. This may take several minutes…"));
-  const ok = powershell(`$ProgressPreference='Continue'; Invoke-WebRequest -UseBasicParsing -Uri '${url}' -OutFile '${partial.replaceAll("'", "''")}'; Move-Item -LiteralPath '${partial.replaceAll("'", "''")}' -Destination '${dest.replaceAll("'", "''")}' -Force`);
+  const ok = await downloadFileWithProgress(url, dest);
   if (!ok || !existsSync(dest) || statSync(dest).size < 100_000_000) {
-    rmSync(partial, { force: true });
     rmSync(dest, { force: true });
     console.log(t("文字起こしモデルを正しく取得できませんでした。もう一度onboardを実行してください。", "The transcription model download failed. Run live-mtg onboard again."));
     manualFetchHint(url, dest);
@@ -482,6 +583,19 @@ async function serviceHealth() {
   const isLiveMtg = legacy && typeof legacy === "object" && "recording" in legacy
     && "current" in legacy && Array.isArray(legacy.sessions);
   return isLiveMtg ? { ok: true, version: null, service: "live-mtg", legacy: true } : null;
+}
+
+async function confirmedServiceHealth(probe = serviceHealth, attempts = 3, delayMs = 250) {
+  // 再起動直後やAI高負荷中の1回だけの遅延で「再起動中」と誤報しない。
+  // PIDは補助情報に留め、最終判定は実際の /api/health 応答で行う。
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const health = await probe();
+    if (health) return health;
+    if (attempt + 1 < attempts && delayMs > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  return null;
 }
 
 async function desktopHealth() {
@@ -572,9 +686,9 @@ function doctor(provider = selectedProvider()) {
   const aiCommand = provider === "codex" ? "codex" : "claude";
   const aiLabel = provider === "codex" ? "Codex" : "Claude Code";
   const aiInstalled = commandExists(aiCommand);
-  const aiLoggedIn = aiInstalled && spawnSync(aiCommand,
+  const aiLoggedIn = aiInstalled && runCommandSync(aiCommand,
     provider === "codex" ? ["login", "status"] : ["auth", "status"],
-    { stdio: "ignore", shell: isWindows, env: commandEnv() }).status === 0;
+    { stdio: "ignore", env: commandEnv() }).status === 0;
   const checks = [
     ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
     ["Python 3", Boolean(pythonCommand()), "python3"],
@@ -657,17 +771,180 @@ async function createReport() {
   console.log(t("文字起こし本文・会議資料・APIキーは含めていません。送付前に内容を確認してください。", "The report excludes transcripts, meeting files, and API keys. Review it before sharing."));
 }
 
-function serve() {
+function rotateServerLogs(path = logFile, backups = serverLogBackups) {
+  for (let index = backups; index >= 1; index--) {
+    const source = index === 1 ? path : `${path}.${index - 1}`;
+    const target = `${path}.${index}`;
+    if (!existsSync(source)) continue;
+    rmSync(target, { force: true });
+    renameSync(source, target);
+  }
+}
+
+function createRotatingLogWriter(path = logFile, maxBytes = serverLogMaxBytes, backups = serverLogBackups) {
+  mkdirSync(dirname(path), { recursive: true });
+  let bytes = existsSync(path) ? statSync(path).size : 0;
+  return {
+    write(value) {
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(String(value));
+      if (bytes > 0 && bytes + chunk.byteLength > maxBytes) {
+        rotateServerLogs(path, backups);
+        bytes = 0;
+      }
+      appendFileSync(path, chunk);
+      bytes += chunk.byteLength;
+    },
+    line(value) {
+      this.write(`[${new Date().toISOString()}] ${value}\n`);
+    }
+  };
+}
+
+function restartDelayMs(failureCount, baseMs = 1_000, maxMs = 30_000) {
+  return Math.min(maxMs, baseMs * (2 ** Math.max(0, failureCount - 1)));
+}
+
+function superviseProcess(command, args, options = {}) {
+  const {
+    env = process.env,
+    stdio = "inherit",
+    onOutput,
+    onEvent = () => {},
+    restartBaseMs = 1_000,
+    restartMaxMs = 30_000,
+    stableMs = 60_000,
+  } = options;
+  let child = null;
+  let restartTimer = null;
+  let stopping = false;
+  let failures = 0;
+  let resolveStopped;
+  let stoppedResolved = false;
+  const stopped = new Promise(resolve => { resolveStopped = resolve; });
+  const emitEvent = event => { try { onEvent(event); } catch {} };
+  const emitOutput = (chunk, stream) => { try { onOutput?.(chunk, stream); } catch {} };
+
+  const finishStop = () => {
+    if (stoppedResolved) return;
+    stoppedResolved = true;
+    resolveStopped();
+  };
+
+  const launch = () => {
+    if (stopping) return finishStop();
+    restartTimer = null;
+    const startedAt = Date.now();
+    let settled = false;
+    const finish = (code, signal, error) => {
+      if (settled) return;
+      settled = true;
+      child = null;
+      if (stopping) return finishStop();
+      const runtimeMs = Date.now() - startedAt;
+      failures = runtimeMs >= stableMs ? 1 : failures + 1;
+      const delayMs = restartDelayMs(failures, restartBaseMs, restartMaxMs);
+      emitEvent({ type: "restart", code, signal, error, delayMs, failureCount: failures, runtimeMs });
+      restartTimer = setTimeout(launch, delayMs);
+    };
+    try {
+      child = spawn(command, args, { env, stdio, windowsHide: true });
+      emitEvent({ type: "start", pid: child.pid });
+      if (onOutput && child.stdout) child.stdout.on("data", chunk => emitOutput(chunk, "stdout"));
+      if (onOutput && child.stderr) child.stderr.on("data", chunk => emitOutput(chunk, "stderr"));
+      child.once("error", error => finish(null, null, error));
+      child.once("exit", (code, signal) => finish(code, signal, null));
+    } catch (error) {
+      finish(null, null, error);
+    }
+  };
+
+  const stop = (signal = "SIGTERM") => {
+    if (stopping) return stopped;
+    stopping = true;
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+      restartTimer = null;
+    }
+    if (child && child.exitCode === null) {
+      try {
+        if (child.kill(signal)) return stopped;
+      } catch {}
+    }
+    finishStop();
+    return stopped;
+  };
+
+  launch();
+  return { stop, stopped };
+}
+
+function processIsRunning(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error?.code === "EPERM"; }
+}
+
+function supervisorIsRunning() {
+  if (!existsSync(pidFile)) return false;
+  try { return processIsRunning(Number(readFileSync(pidFile, "utf8"))); }
+  catch { return false; }
+}
+
+function removeOwnPidFile() {
+  try {
+    if (Number(readFileSync(pidFile, "utf8")) === process.pid) rmSync(pidFile, { force: true });
+  } catch {}
+}
+
+function serviceStatusText(running, recovering = false) {
+  if (running) return t("LiveMTGは起動中です", "LiveMTG is running");
+  if (recovering) return t(
+    "LiveMTGサーバーは再起動を試行中です。live-mtg logs で状況を確認してください。",
+    "The LiveMTG server is restarting. Run live-mtg logs to inspect its status."
+  );
+  return t(
+    "LiveMTGは停止中です。live-mtg start で起動できます。原因を確認する場合は live-mtg logs を実行してください。",
+    "LiveMTG is stopped. Run live-mtg start to start it, or live-mtg logs to inspect the cause."
+  );
+}
+
+function serve(background = false) {
   resolvePortConflict();   // 常駐起動時もポート衝突を自力で回避する
   const python = pythonCommand();
   if (!python) throw new Error(t("Python 3がありません。live-mtg doctorで確認してください。", "Python 3 is missing. Run live-mtg doctor."));
   const args = python === "py" ? ["-3", "-u", server] : ["-u", server];
+  const logger = background ? createRotatingLogWriter() : null;
+  const describeEvent = event => {
+    if (event.type === "start") return `server started (pid=${event.pid})`;
+    const reason = event.error ? `error=${event.error.message}` : `code=${event.code ?? "null"} signal=${event.signal || "none"}`;
+    return `server exited unexpectedly (${reason}); restarting in ${event.delayMs}ms`;
+  };
+  const recordEvent = event => {
+    const message = describeEvent(event);
+    if (logger) logger.line(message);
+    else if (event.type === "restart") console.error(`LiveMTG: ${message}`);
+  };
   writeFileSync(pidFile, String(process.pid));
-  const child = spawn(python, args, { env: runtimeEnv(), stdio: "inherit" });
-  const stop = signal => { if (!child.killed) child.kill(signal); };
-  process.on("SIGINT", () => stop("SIGINT"));
-  process.on("SIGTERM", () => stop("SIGTERM"));
-  child.on("exit", code => { rmSync(pidFile, { force: true }); process.exit(code ?? 0); });
+  if (logger) logger.line(`supervisor started (pid=${process.pid})`);
+  const supervisor = superviseProcess(python, args, {
+    env: runtimeEnv(),
+    stdio: background ? ["ignore", "pipe", "pipe"] : "inherit",
+    onOutput: background ? chunk => logger.write(chunk) : undefined,
+    onEvent: recordEvent,
+  });
+  let shuttingDown = false;
+  const stop = signal => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    if (logger) logger.line(`supervisor stopping (${signal})`);
+    supervisor.stop(signal).finally(() => {
+      removeOwnPidFile();
+      process.exit(0);
+    });
+  };
+  process.once("SIGINT", () => stop("SIGINT"));
+  process.once("SIGTERM", () => stop("SIGTERM"));
+  process.once("exit", removeOwnPidFile);
 }
 
 function macPlistPath() { return join(homedir(), "Library", "LaunchAgents", "com.rakuhub.live-mtg.plist"); }
@@ -675,6 +952,12 @@ function macPlistPath() { return join(homedir(), "Library", "LaunchAgents", "com
 function windowsStartupVbs() {
   if (!process.env.APPDATA) return "";
   return join(process.env.APPDATA, "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "LiveMTG.vbs");
+}
+
+function windowsDaemonRegistered() {
+  const vbs = windowsStartupVbs();
+  if (vbs && existsSync(vbs)) return true;
+  return spawnSync("schtasks", ["/Query", "/TN", "LiveMTG"], { stdio: "ignore" }).status === 0;
 }
 
 function installDaemon() {
@@ -685,7 +968,7 @@ function installDaemon() {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>com.rakuhub.live-mtg</string>
-<key>ProgramArguments</key><array><string>${process.execPath}</string><string>${fileURLToPath(import.meta.url)}</string><string>serve</string></array>
+<key>ProgramArguments</key><array><string>${process.execPath}</string><string>${fileURLToPath(import.meta.url)}</string><string>serve</string><string>--daemon</string></array>
 <key>EnvironmentVariables</key><dict><key>LIVE_MTG_HOME</key><string>${home}</string></dict>
 <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
 <key>StandardOutPath</key><string>${join(home, "server.log")}</string>
@@ -696,11 +979,16 @@ function installDaemon() {
     const result = spawnSync("launchctl", ["bootstrap", `gui/${process.getuid()}`, plist], { stdio: "inherit" });
     if (result.status !== 0) throw new Error(t("LaunchAgentを登録できませんでした", "Could not register the LaunchAgent"));
   } else if (isWindows) {
-    const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve`;
+    const task = `\"${process.execPath}\" \"${fileURLToPath(import.meta.url)}\" serve --daemon`;
     // 標準ユーザーでは「アクセスが拒否されました」が出るのが正常系（→フォールバック）。
     // エラー文をそのまま見せると失敗に見えるため出力は抑制し、結果だけ1行で伝える
     const result = spawnSync("schtasks", ["/Create", "/F", "/SC", "ONLOGON", "/TN", "LiveMTG", "/TR", task], { stdio: "ignore" });
-    if (result.status === 0) console.log(t("自動起動を登録しました（タスクスケジューラ）", "Auto-start registered (Task Scheduler)."));
+    if (result.status === 0) {
+      const oldVbs = windowsStartupVbs();
+      if (oldVbs) rmSync(oldVbs, { force: true });
+      saveConfigKey("daemonSupervisorVersion", 1);
+      console.log(t("自動起動を登録しました（タスクスケジューラ）", "Auto-start registered (Task Scheduler)."));
+    }
     if (result.status !== 0) {
       // 標準ユーザーではONLOGONタスクの作成が「アクセスが拒否されました」になる
       // （2026-07-18 PC41実機・壁⑤）。管理者権限を要求せず、ユーザー権限で書ける
@@ -708,8 +996,9 @@ function installDaemon() {
       const vbsPath = windowsStartupVbs();
       try {
         if (!vbsPath) throw new Error("APPDATA not set");
-        const vbs = `CreateObject("WScript.Shell").Run """${process.execPath}"" ""${fileURLToPath(import.meta.url)}"" serve", 0, False\r\n`;
+        const vbs = `CreateObject("WScript.Shell").Run """${process.execPath}"" ""${fileURLToPath(import.meta.url)}"" serve --daemon", 0, False\r\n`;
         writeFileSync(vbsPath, vbs);
+        saveConfigKey("daemonSupervisorVersion", 1);
         console.log(t("自動起動を登録しました（スタートアップ・ユーザー権限。管理者権限は不要です）",
                       "Auto-start registered (user Startup folder; no admin rights needed)."));
       } catch {
@@ -717,7 +1006,7 @@ function installDaemon() {
                       "Could not register auto-start. Run live-mtg onboard from an admin PowerShell to register it. Continuing with a manual start."));
       }
       // どちらの場合も今回は今すぐ起動する（スタートアップ登録は次回ログオンから効く）
-      spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" }).unref();
+      spawn(process.execPath, [fileURLToPath(import.meta.url), "serve", "--daemon"], { detached: true, stdio: "ignore", windowsHide: true }).unref();
       return;
     }
     spawnSync("schtasks", ["/Run", "/TN", "LiveMTG"], { stdio: "ignore" });
@@ -730,31 +1019,43 @@ async function start() {
   resolvePortConflict();
   let running = await serviceHealth();
   const hadMacDaemon = isMac && existsSync(macPlistPath());
+  const hadWindowsDaemon = isWindows && windowsDaemonRegistered();
   let currentMacDaemon = false;
   if (hadMacDaemon) {
     try {
       const plist = readFileSync(macPlistPath(), "utf8");
       currentMacDaemon = plist.includes(fileURLToPath(import.meta.url))
-        && plist.includes("<key>LIVE_MTG_HOME</key>");
+        && plist.includes("<key>LIVE_MTG_HOME</key>")
+        && plist.includes("<string>--daemon</string>");
     } catch {}
   }
+  const currentWindowsDaemon = !hadWindowsDaemon || readConfig().daemonSupervisorVersion === 1;
+  const currentDaemon = (!hadMacDaemon || currentMacDaemon) && currentWindowsDaemon;
+  if (!running && supervisorIsRunning() && currentDaemon) {
+    for (let i = 0; i < 20 && !running; i++) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      running = await serviceHealth();
+    }
+    if (running) return console.log(t("LiveMTGが自動復旧しました", "LiveMTG recovered automatically"));
+    throw new Error(t("LiveMTGサーバーは再起動を試行中です。live-mtg logs で原因を確認してください。",
+                      "The LiveMTG server is restarting. Run live-mtg logs to inspect the cause."));
+  }
   const currentServer = running && !running.legacy && running.version === pkg.version;
-  if (currentServer && (!hadMacDaemon || currentMacDaemon)) {
+  if (currentServer && currentDaemon) {
     return console.log(t("LiveMTGは起動済みです", "LiveMTG is already running"));
   }
-  if (running) {
+  if (running || supervisorIsRunning()) {
     console.log(currentServer
       ? t("旧自動起動設定を現行CLIへ切り替えます…", "Updating the legacy auto-start configuration…")
-      : t(`旧サーバー（${running.version || "不明"}）を ${pkg.version} へ切り替えます…`, `Restarting the old server (${running.version || "unknown"}) with ${pkg.version}…`));
+      : t(`旧サーバー（${running?.version || "不明"}）を ${pkg.version} へ切り替えます…`, `Restarting the old server (${running?.version || "unknown"}) with ${pkg.version}…`));
     stop();
     for (let i = 0; i < 20 && await serviceHealth(); i++) await new Promise(resolve => setTimeout(resolve, 250));
   }
-  if (hadMacDaemon) {
-    // 旧手動版も同じplist名を使う。内容を現行CLIへ書き換え、
-    // 次回ログインで旧server.pyがKeepAlive復活するのも防ぐ。
+  if (hadMacDaemon || hadWindowsDaemon) {
+    // 既存の自動起動定義を現行CLIの監視・ログ保存付き定義へ移行する。
     installDaemon();
   } else {
-    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve"], { detached: true, stdio: "ignore" });
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), "serve", "--daemon"], { detached: true, stdio: "ignore", windowsHide: true });
     child.unref();
   }
   for (let i = 0; i < 20; i++) {
@@ -773,7 +1074,14 @@ function stop() {
   }
   if (existsSync(pidFile)) {
     const pid = Number(readFileSync(pidFile, "utf8"));
-    try { process.kill(pid, "SIGTERM"); } catch {}
+    if (isWindows && Number.isInteger(pid) && pid > 0) {
+      // WindowsのSIGTERMはハンドラを通らず親だけ終了する場合があるため、
+      // watchdogとPythonを同じプロセスツリーとして確実に停止する。
+      const result = spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+      if (result.status !== 0) try { process.kill(pid, "SIGTERM"); } catch {}
+    } else {
+      try { process.kill(pid, "SIGTERM"); } catch {}
+    }
     rmSync(pidFile, { force: true });
   }
   console.log(t("LiveMTGを停止しました", "LiveMTG stopped"));
@@ -810,6 +1118,12 @@ async function chooseLanguage(requested) {
 }
 
 async function onboard(install, requestedProvider, requestedLanguage, assumeYes = false) {
+  if (!process.stdin.isTTY && !assumeYes) {
+    throw new UsageError(t(
+      "非対話環境のため初期設定を開始できません。確認を自動承認する場合は live-mtg onboard --yes を実行してください。",
+      "Setup cannot start in a non-interactive environment. Run live-mtg onboard --yes to approve setup prompts automatically."
+    ));
+  }
   await chooseLanguage(requestedLanguage);
   console.log(t("LiveMTG 初期設定\n", "LiveMTG setup\n"));
   const provider = await chooseProvider(requestedProvider);
@@ -870,8 +1184,8 @@ async function update() {
   const channel = pkg.version.includes("-") ? "beta" : "latest";
   const wasRunning = Boolean(await serviceHealth());
   console.log(t(`LiveMTGを${channel}チャンネルの最新版へ更新します…`, `Updating LiveMTG from the ${channel} channel…`));
-  const result = spawnSync("npm", ["install", "-g", `live-mtg@${channel}`],
-    { stdio: "inherit", shell: isWindows });
+  const result = runCommandSync("npm", ["install", "-g", `live-mtg@${channel}`],
+    { stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (isMac && existsSync(macPlistPath())) installDaemon();
   else if (wasRunning) {
@@ -886,8 +1200,8 @@ async function rollback(requestedVersion) {
   let version = requestedVersion;
   if (version && !/^[0-9A-Za-z.+-]+$/.test(version)) throw new Error(t("バージョンの形式が正しくありません", "Invalid version format"));
   if (!version) {
-    const result = spawnSync("npm", ["view", "live-mtg", "versions", "--json"],
-      { encoding: "utf8", shell: isWindows });
+    const result = runCommandSync("npm", ["view", "live-mtg", "versions", "--json"],
+      { encoding: "utf8" });
     if (result.status !== 0) throw new Error(t("公開済みバージョンを取得できませんでした", "Could not retrieve published versions"));
     const versions = JSON.parse(result.stdout || "[]");
     const index = versions.lastIndexOf(pkg.version);
@@ -895,8 +1209,8 @@ async function rollback(requestedVersion) {
   }
   if (!version) throw new Error(t("戻せる旧バージョンがありません", "No previous version is available"));
   console.log(t(`LiveMTGを ${version} へ戻します…`, `Rolling LiveMTG back to ${version}…`));
-  const result = spawnSync("npm", ["install", "-g", `live-mtg@${version}`],
-    { stdio: "inherit", shell: isWindows });
+  const result = runCommandSync("npm", ["install", "-g", `live-mtg@${version}`],
+    { stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status ?? 1);
   if (isMac && existsSync(macPlistPath())) installDaemon();
   console.log(t(`ロールバックしました。live-mtg doctor で状態を確認してください。`, `Rollback complete. Run live-mtg doctor to verify the installation.`));
@@ -907,6 +1221,7 @@ function help() {
 
 Usage:
   live-mtg onboard                     Choose AI and prepare dependencies
+  live-mtg onboard --yes               Auto-approve prompts (for non-interactive use)
   live-mtg dashboard                   Open the dashboard
   live-mtg doctor                      Check required dependencies
   live-mtg config --provider codex     Switch AI (claude is also supported)
@@ -926,6 +1241,7 @@ Issues: https://github.com/Sponsaru/live-mtg/issues` : `LiveMTG
 
 使い方:
   live-mtg onboard                   AI選択・必要環境の準備・常駐化
+  live-mtg onboard --yes             確認を自動承認（非対話環境向け）
   live-mtg dashboard                 画面を開く
   live-mtg doctor                    必要環境を診断
   live-mtg config --provider codex   AIをCodexへ変更（claudeも可）
@@ -971,8 +1287,9 @@ if (requestedLanguage !== undefined && !["ja", "en", "japanese", "english", "日
 const linesAt = args.indexOf("--lines");
 const requestedLines = linesAt >= 0 ? Number(args[linesAt + 1] || 120) : 120;
 try {
-  if (command === "doctor") process.exitCode = doctor() ? 0 : 1;
-  else if (command === "serve") serve();
+  if (args.includes("--help") || args.includes("-h")) help();
+  else if (command === "doctor") process.exitCode = doctor() ? 0 : 1;
+  else if (command === "serve") serve(args.includes("--daemon"));
   else if (command === "start") await start();
   else if (command === "stop") stop();
   else if (command === "restart") {
@@ -980,12 +1297,15 @@ try {
     for (let i = 0; i < 20 && await serviceHealth(); i++) await new Promise(resolve => setTimeout(resolve, 250));
     await start();
   }
-  else if (command === "status") console.log(await serviceHealth() ? t("LiveMTGは起動中です", "LiveMTG is running") : t("LiveMTGは停止中です", "LiveMTG is stopped"));
+  else if (command === "status") {
+    const running = await confirmedServiceHealth();
+    console.log(serviceStatusText(Boolean(running), !running && supervisorIsRunning()));
+  }
   else if (command === "dashboard") {
     // `npm install -g live-mtg && live-mtg` must not open a dashboard that only
     // looks usable. On first launch, choose the AI and verify every required
     // runtime before recording can begin.
-    if (!setupComplete()) await onboard(true, requestedProvider, requestedLanguage);
+    if (!setupComplete()) await onboard(true, requestedProvider, requestedLanguage, args.includes("--yes"));
     else { await start(); openUrl(`http://127.0.0.1:${port}`); }
   }
   else if (command === "onboard") await onboard(!args.includes("--no-daemon"), requestedProvider, requestedLanguage, args.includes("--yes"));
@@ -999,6 +1319,19 @@ try {
   else help();
 } catch (error) {
   console.error(`LiveMTG: ${error.message}`);
-  process.exitCode = 1;
+  process.exitCode = error.exitCode || 1;
 }
 }
+
+export {
+  createRotatingLogWriter,
+  confirmedServiceHealth,
+  downloadFileWithProgress,
+  formatDownloadProgress,
+  restartDelayMs,
+  resolveCommand,
+  rotateServerLogs,
+  runCommandSync,
+  serviceStatusText,
+  superviseProcess,
+};

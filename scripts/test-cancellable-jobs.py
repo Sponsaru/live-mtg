@@ -43,6 +43,22 @@ with tempfile.TemporaryDirectory() as tmp:
     assert not thread.is_alive(), "cancel must terminate the child process immediately"
     assert result == ["cancelled"]
 
+    # スライドのような長時間処理はHTTPスレッドを占有せず、状態をポーリングできる。
+    started_at = time.time()
+    assert server.start_background_long_job(
+        "test-session", "deck", lambda: (time.sleep(0.08) or (True, "generated"))
+    )
+    assert time.time() - started_at < 0.05
+    assert not server.start_background_long_job("test-session", "deck", lambda: (True, "duplicate"))
+    deadline = time.time() + 2
+    while time.time() < deadline:
+        with server.long_job_lock:
+            status = server.long_job_results.get(("test-session", "deck"), {}).get("status")
+        if status != "running":
+            break
+        time.sleep(0.02)
+    assert status == "complete"
+
     sid = server.new_session("Live note test")
     ok, notes = server.add_live_note(sid, "相手はA社ではなくB社。https://example.com")
     assert ok and notes[-1]["text"].startswith("相手はA社ではなくB社")

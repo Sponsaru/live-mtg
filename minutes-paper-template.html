@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ink: #1d1d1f;
+    --ink2: #3a3a3d;
+    --gray: #86868b;
+    --panel: #f4f4f5;
+    --line: #d9d9de;
+    --accent: #1d1d1f;
+    --accent-ink: #2b2b2e;
+    --accent-soft: #ececef;
+    --accent2: #5c5c63;
+    --accent2-soft: #f1f1f3;
+    --mark: #e2e2e6;
+    --bar: #b9b9bf;
+    --strong: #1d1d1f;
+    --bg-image: none;
+    --logo: none;
+    --logo-invert: none;
+
+    --radius-card: 1.375rem;
+    --radius-small: 0.625rem;
+    --radius-pill: 61.25rem;
+    --shadow-card: none;
+
+    --sheet-pad: 2.6rem 3.2rem 2.6rem;  /* 下端5.5mm＝プリンタ非印字領域(約5mm)を確保 */
+    --block-gap: 1.5rem;
+
+    --screen-sheet-width: min(100vw, calc(100vh * 210 / 297));
+    --screen-sheet-height: min(100vh, calc(100vw * 297 / 210));
+  }
+  html {
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    font-size: clamp(4px, min(1vw, calc(1vh * 210 / 297)), 24px);
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  body {
+    font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: #eef0f3;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1, h2, h3 { word-break: auto-phrase; overflow-wrap: break-word; }
+  p, li, td, th, dd, dt { word-break: auto-phrase; text-wrap: pretty; overflow-wrap: break-word; }
+
+  .sheet {
+    width: var(--screen-sheet-width); height: var(--screen-sheet-height);
+    margin: calc((100vh - var(--screen-sheet-height)) / 2)
+            calc((100vw - var(--screen-sheet-width)) / 2);
+    background: #fff; position: relative; padding: var(--sheet-pad);
+    display: flex; flex-direction: column; gap: var(--block-gap);
+    scroll-snap-align: start; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .blk { position: relative; }
+  .bt { position: absolute; top: -1.05rem; right: 0; font-size: 0.95rem; color: var(--gray);
+        font-weight: 600; letter-spacing: .06em; }
+  .sheet-tag { position: absolute; top: 0.7rem; right: 1.2rem; font-size: 1rem; color: var(--gray);
+               font-weight: 600; letter-spacing: .06em; z-index: 3; }
+  b, strong { color: var(--ink); font-weight: 700; }
+  .muted { color: var(--gray); }
+
+  /* ============================================================
+     B00 文書ヘッダー：右肩メタ＋件名＋所要判断。飾りなし
+     ============================================================ */
+  .blk-hd { border-bottom: 0.3rem solid var(--ink); padding-bottom: 1rem; }
+  .blk-hd .meta { display: flex; justify-content: space-between; font-size: 1.45rem; color: var(--ink2); }
+  .blk-hd .meta .r { text-align: right; color: var(--gray); }
+  .blk-hd h1 { font-size: 2.9rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.3;
+               margin-top: 0.6rem; }
+  .blk-hd .ask { display: flex; gap: 0.8rem; align-items: center; margin-top: 0.7rem; }
+  .blk-hd .chip { flex: none; font-size: 1.3rem; font-weight: 700; padding: 0.25rem 0.9rem;
+                  border-radius: 0.3rem; letter-spacing: .08em; }
+  .chip.decide { background: var(--strong); color: #fff; }
+  .chip.report { border: 1px solid var(--ink); color: var(--ink); }
+  .chip.propose { background: var(--accent-soft); color: var(--accent-ink); }
+  .blk-hd .ask p { font-size: 1.75rem; font-weight: 700; color: var(--ink); }
+  /* 企業ロゴ：ブランド設定時のみ表示（neutralは--logo:noneで消える）。社内紙では省略可 */
+  .blk-hd .doc-logo { width: 10rem; height: 1.8rem; margin-left: auto; flex: none;
+                      background: var(--logo) right center / contain no-repeat; }
+
+  /* セクション見出し：番号＋日本語のみ。細罫1本（番号は文書ごとに振り直す） */
+  .sec h2 { font-size: 1.95rem; font-weight: 800; color: var(--ink);
+            border-bottom: 1px solid var(--ink); padding-bottom: 0.35rem; margin-bottom: 0.75rem; }
+  .sec h2 small { font-weight: 600; color: var(--ink2); font-size: 0.8em; margin-left: 0.8rem; }
+  /* 直後に枠・上罫を持つ要素（結論ボックス・表・数字行・依頼枠）が来るときは
+     見出しの下線を消し、要素側の線に任せる（二重線の防止） */
+  .sec h2:has(+ .sum), .sec h2:has(+ table), .sec h2:has(+ .kpis), .sec h2:has(+ .askbox) {
+    border-bottom: none; padding-bottom: 0; margin-bottom: 0.55rem; }
+
+  /* ============================================================
+     B01 結論サマリー：淡面ボックス（強調その1）。全幅可・2文以内に絞る
+     ============================================================ */
+  .sum { border: 1px solid var(--ink); padding: 1rem 1.3rem; background: var(--panel); }
+  .sum p { font-size: 1.85rem; line-height: 1.65; color: var(--ink); font-weight: 600; }
+  .sum p b { background: linear-gradient(transparent 62%, var(--mark) 62%); padding: 0 .05em; }
+  .sum .sub { font-size: 1.65rem; font-weight: 500; color: var(--ink2); margin-top: 0.45rem; line-height: 1.6; }
+
+  /* ============================================================
+     B02 本文プレーン：背景・経緯（2段組の中で使う。全幅の長文は禁止）
+     ============================================================ */
+  .tx { font-size: 1.75rem; color: var(--ink2); line-height: 1.65; }
+  .tx b { color: var(--ink); }
+  .tx + .tx { margin-top: 0.45rem; }
+
+  /* ============================================================
+     B03 数字行：2〜4個（上下細罫・控えめな数字）
+     ============================================================ */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr);
+          border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .kpis.n4 { grid-template-columns: repeat(4, 1fr); }
+  .kpis .k { text-align: center; padding: 0.9rem 0.8rem 0.8rem; border-left: 1px solid var(--line); }
+  .kpis .k:first-child { border-left: none; }
+  .kpis .v { font-size: 3.2rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; line-height: 1; }
+  .kpis .v small { font-size: 0.45em; font-weight: 700; margin-left: 0.1em; }
+  .kpis .l { font-size: 1.55rem; font-weight: 600; color: var(--ink2); margin-top: 0.45rem; }
+  .kfoot { font-size: 1.45rem; color: var(--gray); text-align: right; margin-top: 0.35rem; }
+
+  /* ============================================================
+     B04 番号付き箇条書き：論点・理由・リスク・影響（2段組の中で使う）
+     ============================================================ */
+  .nl { list-style: none; }
+  .nl li { display: grid; grid-template-columns: auto 1fr; gap: 0.7rem; font-size: 1.75rem;
+           color: var(--ink2); line-height: 1.6; margin-bottom: 0.45rem; }
+  .nl li:last-child { margin-bottom: 0; }
+  .nl li .n { font-weight: 800; color: var(--ink); }
+  .nl li b { color: var(--ink); }
+
+  /* ============================================================
+     B05 表：比較・計画・概況の共通スタイル（セル詰め・罫線細）
+     ============================================================ */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid var(--line); padding: 0.6rem 0.9rem; font-size: 1.65rem;
+           line-height: 1.55; text-align: left; color: var(--ink2); vertical-align: top; }
+  thead th { background: var(--panel); color: var(--ink); font-weight: 700;
+             border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+  tbody th { background: #fff; color: var(--ink); font-weight: 700; width: 11rem; font-size: 1.6rem; }
+  td.rec { background: var(--accent-soft); color: var(--ink); }
+  thead th.rec { border-top: 0.35rem solid var(--ink); }
+  .mk { font-weight: 800; color: var(--ink); margin-right: 0.35rem; }
+  .tag { display: inline-block; font-size: 1.2rem; background: var(--strong); color: #fff;
+         border-radius: 0.3rem; padding: 0.12rem 0.6rem; margin-left: 0.5rem; }
+  .tfoot { font-size: 1.45rem; color: var(--gray); margin-top: 0.35rem; }
+  .st-chip { display: inline-block; font-size: 1.35rem; font-weight: 700; letter-spacing: .04em;
+             padding: 0.15rem 0.7rem; border-radius: 0.3rem; }
+  .st-chip.ok { background: var(--accent-soft); color: var(--accent-ink); }
+  .st-chip.ng { background: var(--strong); color: #fff; }
+  .st-chip.wt { border: 1px solid var(--bar); color: var(--gray); }
+
+  /* 2段組：長文はここに入れて1行45文字以内へ */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.8rem; }
+
+  /* ============================================================
+     B09 依頼事項：細枠ボックス（強調その2）
+     ============================================================ */
+  .askbox { border: 1.5px solid var(--ink); padding: 0.9rem 1.2rem; }
+  .askbox li { display: grid; grid-template-columns: auto 1fr; gap: 0.7rem; list-style: none;
+               font-size: 1.75rem; font-weight: 600; color: var(--ink); line-height: 1.6;
+               margin-bottom: 0.35rem; }
+  .askbox li:last-child { margin-bottom: 0; }
+  .askbox li .n { font-weight: 800; }
+  .askbox li small { font-weight: 500; color: var(--ink2); }
+
+  /* ============================================================
+     B10 出典・添付：最下行（margin-top:auto で紙の底へ）
+     ============================================================ */
+  .src { font-size: 1.45rem; color: var(--gray); line-height: 1.6; border-top: 1px solid var(--line);
+         padding-top: 0.5rem; margin-top: auto; }
+
+  /* ============================================================
+     B11 グラフ枠：棒・折れ線（スライドP15/P16の紙版）
+     規律も移植：1グラフ=1メッセージ・単系列は凡例なし・グリッド極薄・出典必須
+     ============================================================ */
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart .cmsg { font-size: 1.55rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; }
+
+  /* ============================================================
+     B12 内訳帯：100%横帯（スライドP21/P39円グラフの紙版。紙では帯が実務的）
+     ============================================================ */
+  .bar100 { display: flex; height: 4rem; border: 1px solid var(--line); }
+  .bar100 .seg { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 border-left: 1px solid #fff; line-height: 1.3; }
+  .bar100 .seg:first-child { border-left: none; }
+  .bar100 .seg .sl { font-size: 1.3rem; font-weight: 700; }
+  .bar100 .seg .sv { font-size: 1.2rem; }
+  .bar100 .seg.a { background: var(--strong); color: #fff; }
+  .bar100 .seg.a .sl, .bar100 .seg.a .sv { color: #fff; }
+  .bar100 .seg.b { background: var(--accent-soft); color: var(--ink); }
+  .bar100 .seg.c { background: var(--panel); color: var(--ink2); }
+
+  /* ============================================================
+     B13 期間帯：月×施策の簡易ガント（スライドP23/P49の紙版）
+     .gbar の位置は style="grid-column: 開始月+1 / 終了月+2" で指定
+     ============================================================ */
+  .gantt .grow { display: grid; grid-template-columns: 17rem repeat(6, 1fr); align-items: center;
+                 border-bottom: 1px solid var(--line); padding: 0.5rem 0; column-gap: 0.15rem; }
+  .gantt .grow.ghead { border-bottom: 1.5px solid var(--ink); padding: 0.3rem 0; }
+  .gantt .glabel { font-size: 1.5rem; font-weight: 700; color: var(--ink); padding-right: 1rem; }
+  .gantt .gm { font-size: 1.3rem; color: var(--gray); text-align: center; font-weight: 600; }
+  .gantt .gbar { height: 2.2rem; background: var(--accent-soft); border: 1px solid var(--bar);
+                 border-radius: 0.2rem; display: flex; align-items: center; justify-content: center;
+                 font-size: 1.25rem; color: var(--ink); font-weight: 600; }
+  .gantt .gbar.now { background: var(--strong); color: #fff; border-color: var(--strong); }
+
+  /* ============================================================
+     B14 想定問答：会議前の想定QA（スライドP42の紙版）
+     ============================================================ */
+  .qaitem { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; margin-bottom: 0.7rem; }
+  .qaitem:last-child { margin-bottom: 0; }
+  .qaitem .qn { font-size: 1.5rem; font-weight: 800; color: var(--ink); }
+  .qaitem .q { font-size: 1.65rem; font-weight: 700; color: var(--ink); line-height: 1.55; }
+  .qaitem .a { font-size: 1.6rem; color: var(--ink2); line-height: 1.6; margin-top: 0.25rem; }
+
+  /* ============================================================
+     B15 原文引用：契約・規程・議事の原文抜粋（スライドP50の紙版。出典・時点必須）
+     ============================================================ */
+  .quote { border-left: 0.45rem solid var(--bar); padding: 0.5rem 1.2rem; }
+  .quote p { font-size: 1.65rem; color: var(--ink2); line-height: 1.65; }
+  .quote .qsrc { font-size: 1.4rem; color: var(--gray); margin-top: 0.4rem; }
+
+  /* ============================================================
+     B16 図版枠：写真・図面・地図（スライドP13/P24の紙版）
+     画像は「証拠」のときだけ使う（飾り・イラストは会議紙では禁止）。
+     写真=cover、スクショ・図面=contain＋枠線。キャプションに撮影日・出典必須
+     ============================================================ */
+  .fig { border: 1px solid var(--line); background: #fff; overflow: hidden; }
+  .fig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fig.fit img { object-fit: contain; }
+  .fig .ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+             background: repeating-linear-gradient(45deg, var(--panel), var(--panel) 0.8rem, #fff 0.8rem, #fff 1.6rem);
+             color: var(--gray); font-size: 1.3rem; font-weight: 600; letter-spacing: .06em; }
+  .figcap { font-size: 1.4rem; color: var(--ink2); margin-top: 0.4rem; line-height: 1.5; }
+  .figcap .fsrc { color: var(--gray); }
+  .figpair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; }
+  .figpair .flabel { font-size: 1.45rem; font-weight: 700; color: var(--ink); margin-bottom: 0.4rem; }
+
+  /* ============================================================
+     B17 画面注釈：スクリーンショット＋番号注釈（スライドP48の紙版）
+     番号チップは style="top:%; left:%" で画面上に置き、右の注釈リストと対応させる
+     ============================================================ */
+  .shotbox { position: relative; }
+  .shotbox .mkr { position: absolute; width: 2.4rem; height: 2.4rem; border-radius: 50%;
+                  background: var(--strong); color: #fff; font-size: 1.3rem; font-weight: 800;
+                  display: flex; align-items: center; justify-content: center;
+                  box-shadow: 0 0 0 0.2rem #fff; }
+  .mklist { list-style: none; }
+  .mklist li { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; align-items: baseline;
+               font-size: 1.6rem; color: var(--ink2); line-height: 1.6; margin-bottom: 0.55rem; }
+  .mklist li:last-child { margin-bottom: 0; }
+  .mklist .mn { width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--strong);
+                color: #fff; font-size: 1.2rem; font-weight: 800; display: inline-flex;
+                align-items: center; justify-content: center; transform: translateY(0.25rem); }
+
+  /* 索引シート用 */
+  .index-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem 2rem; }
+  .index-list .row { display: grid; grid-template-columns: 4rem 1fr; gap: 0.7rem;
+                     font-size: 1.6rem; line-height: 1.55; color: var(--ink2);
+                     padding-bottom: 0.45rem; border-bottom: 1px solid var(--line); }
+  .index-list .row .no { font-weight: 800; color: var(--ink); }
+
+  @media print {
+    @page { size: 210mm 297mm; margin: 0; }
+    html { font-size: 2.1mm; }
+    body { background: #fff; display: block; }
+    .sheet { width: 210mm; height: 297mm; margin: 0; border-bottom: none; break-after: page; }
+    .bt, .sheet-tag { display: none; }
+  }
+</style>
+
+<style id="livemtg-document-theme">
+
+body[data-theme="live-mtg"] {
+  --ink: #12151b;
+  --ink2: #343942;
+  --gray: #68717d;
+  --panel: #f5f8fc;
+  --line: #dbe3ed;
+  --accent: #0071e3;
+  --accent-ink: #0066cc;
+  --accent-soft: #eaf3fd;
+  --accent2: #1d1d1f;
+  --accent2-soft: #f1f1f3;
+  --mark: #d9e8fb;
+  --bar: #9ec8f0;
+  --strong: #12151b;
+  --bg-image: none;
+  --logo: url("brand-logo.png");
+  --logo-invert: none;
+}
+
+</style>
+
+<style id="livemtg-document-controls">
+  .sw-back,.sw-pdf{position:fixed;z-index:1000;border:1px solid var(--line);border-radius:.75rem;
+    background:rgba(255,255,255,.96);color:var(--ink);font:700 14px -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+    padding:11px 18px;text-decoration:none;box-shadow:0 4px 18px rgba(0,0,0,.09);cursor:pointer}
+  .sw-back{left:20px;top:20px}.sw-pdf{right:20px;bottom:20px}
+  html.sw-render .sw-back,html.sw-render .sw-pdf{display:none!important}
+  @media print{.sw-back,.sw-pdf{display:none!important}}
+</style>
+<style id="livemtg-minutes-paper-layout">
+  .doc-page-number{position:absolute;right:3.2rem;bottom:1.1rem;color:var(--gray);font-size:1.25rem;font-weight:600}
+  .paper-list{list-style:none;display:grid;gap:.55rem}
+  .paper-list li{display:grid;grid-template-columns:auto 1fr;gap:.75rem;font-size:1.75rem;line-height:1.6;color:var(--ink2)}
+  .paper-list .n{font-weight:800;color:var(--accent-ink)}
+  .paper-list .label{font-weight:800;color:var(--ink);margin-right:.35rem}
+  .agenda-status{display:flex;gap:.65rem;flex-wrap:wrap}
+  .agenda-status .st-chip{font-size:1.35rem}
+  .map-canvas{position:relative;flex:1;min-height:0;border:1px solid var(--line);background:#fff;overflow:hidden}
+  .radial-lines{position:absolute;inset:0;width:100%;height:100%}
+  .radial-lines line{stroke:var(--bar);stroke-width:.45}
+  .radial-center,.radial-node{position:absolute;transform:translate(-50%,-50%);border:1px solid var(--line);background:#fff;
+    padding:.8rem 1rem;text-align:center;color:var(--ink);line-height:1.35}
+  .radial-center{left:50%;top:50%;width:25rem;border:.25rem solid var(--accent);font-size:1.7rem;font-weight:800;background:var(--accent-soft)}
+  .radial-node{width:23rem;font-size:1.5rem;font-weight:700}
+  .radial-node small{display:block;margin-top:.35rem;color:var(--gray);font-size:1.25rem;font-weight:600}
+  .relation-list{display:grid;gap:.65rem}
+  .relation-row{display:grid;grid-template-columns:1fr 15rem 1fr;gap:.7rem;align-items:center}
+  .relation-node{border:1px solid var(--line);padding:.65rem .8rem;font-size:1.5rem;line-height:1.4;font-weight:700;color:var(--ink)}
+  .relation-arrow{position:relative;text-align:center;color:var(--accent-ink);font-size:1.25rem;font-weight:700;padding-bottom:.7rem}
+  .relation-arrow:after{content:'→';position:absolute;left:0;right:0;bottom:-.35rem;font-size:2.2rem;line-height:1;color:var(--accent)}
+  .map-figure{height:25rem}
+  .map-figure .map-canvas{height:100%;border:0}
+  .map-figure .radial-center{width:23rem;font-size:1.55rem;border-width:.18rem;padding:.65rem}
+  .map-figure .radial-node{width:20rem;font-size:1.45rem;padding:.55rem .65rem}
+  .relation-figure{padding:1rem;display:flex;align-items:center;min-height:15rem}
+  .relation-figure .relation-list{width:100%;gap:1rem}
+  .relation-figure .relation-row{grid-template-columns:1fr 15rem 1fr;gap:.7rem}
+  .relation-figure .relation-node{font-size:1.65rem;padding:.6rem .8rem;line-height:1.45}
+  .relation-figure .relation-arrow{font-size:1.4rem}
+  .minutes-map-shot{height:40rem;background:#fff}
+  .fig.fit.minutes-map-shot img{object-fit:contain;object-position:center}
+  @media print{.doc-page-number{bottom:1.1rem}}
+</style>
+</head>
+<body data-theme="live-mtg" data-design-system="slide-worker-doc-canonical">
+<a class="sw-back" href="/">ダッシュボード</a>
+<button class="sw-pdf" onclick="window.print()">PDF保存</button>
+{{SHEETS}}
+
+<script>
+(function(){
+  if(new URLSearchParams(location.search).has('sw-render')) document.documentElement.classList.add('sw-render');
+  const sheets=[...document.querySelectorAll('.sheet')], total=sheets.length;
+  sheets.forEach((sheet,index)=>{
+    const page=document.createElement('div');
+    page.className='doc-page-number';
+    page.textContent=String(index+1)+' / '+String(total);
+    sheet.appendChild(page);
+  });
+})();
+</script>
+<!-- slide-worker-browser-editor:begin -->
+<style id="sw-browser-editor-style">
+  #sw-browser-editor { position:fixed; right:16px; bottom:16px; z-index:2147483647; display:flex; align-items:center; gap:8px; padding:8px; border:1px solid #d9d9df; border-radius:12px; background:rgba(255,255,255,.96); box-shadow:0 8px 28px rgba(0,0,0,.18); font:600 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#202124; backdrop-filter:blur(10px); }
+  #sw-browser-editor button { appearance:none; border:1px solid #c9c9d1; border-radius:8px; padding:8px 11px; background:#fff; color:#202124; font:inherit; cursor:pointer; }
+  #sw-browser-editor button:hover { background:#f3f4f6; }
+  #sw-browser-editor [data-action="save"], #sw-browser-editor [data-action="finish"] { border-color:#1769e0; background:#1769e0; color:#fff; }
+  #sw-browser-editor [data-action="save"]:hover, #sw-browser-editor [data-action="finish"]:hover { background:#0f57c4; }
+  #sw-browser-editor.is-idle:not(:hover):not(:focus-within) { opacity:0; }
+  #sw-browser-editor .sw-editor-tools { display:none; align-items:center; gap:8px; }
+  #sw-browser-editor.is-editing .sw-editor-tools { display:flex; }
+  #sw-browser-editor .sw-editor-status { max-width:270px; color:#5f6368; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body.sw-browser-editing [data-sw-editor-editable="true"] { cursor:text; outline:1px dashed transparent; outline-offset:2px; }
+  body.sw-browser-editing [data-sw-editor-editable="true"]:hover { outline-color:#1769e0; }
+  body.sw-browser-editing [data-sw-editor-editable="true"]:focus { outline:2px solid #1769e0; }
+  body.sw-browser-editing [data-sw-editor-image="true"] { cursor:pointer; outline:2px dashed transparent; outline-offset:-3px; }
+  body.sw-browser-editing [data-sw-editor-image="true"]:hover { outline-color:#1769e0; filter:brightness(.94); }
+  body.sw-browser-editing [data-sw-editor-svg-text="true"] { cursor:text; outline:1px dashed transparent; outline-offset:2px; }
+  body.sw-browser-editing [data-sw-editor-svg-text="true"]:hover { outline-color:#1769e0; }
+  .sw-editor-svg-input { position:fixed; z-index:2147483646; box-sizing:border-box; margin:0; padding:0 .12em;
+    appearance:none; border:0; border-bottom:2px solid #1769e0; border-radius:0; outline:none;
+    background:rgba(255,255,255,.12); text-align:center; }
+  body.sw-browser-editing .sw-editor-overflow { box-shadow:inset 0 0 0 4px #d93025 !important; }
+  @media print { #sw-browser-editor { display:none !important; } }
+</style>
+<script id="sw-browser-editor-script">
+(() => {
+  'use strict';
+  const params = new URLSearchParams(location.search);
+  if (params.has('sw-render') || (navigator.webdriver && !params.has('edit'))) return;
+
+  const state = { editing:false, dirty:false, imageTarget:null, svgInput:null, svgTarget:null,
+    svgOriginalText:'', svgOriginalOpacity:'', svgWasDirty:false };
+  const ui = document.createElement('div');
+  ui.id = 'sw-browser-editor';
+  ui.dataset.swEditorUi = 'true';
+  ui.innerHTML = '<button type="button" data-action="toggle">編集</button><div class="sw-editor-tools"><span class="sw-editor-status">文字または画像をクリック</span><button type="button" data-action="save">HTMLを保存</button><button type="button" data-action="finish" hidden>保存して終了</button></div>';
+  const imageInput = document.createElement('input');
+  imageInput.type = 'file';
+  imageInput.accept = 'image/*';
+  imageInput.hidden = true;
+  imageInput.dataset.swEditorUi = 'true';
+  document.body.append(ui, imageInput);
+
+  const toggle = ui.querySelector('[data-action="toggle"]');
+  const save = ui.querySelector('[data-action="save"]');
+  const finish = ui.querySelector('[data-action="finish"]');
+  const status = ui.querySelector('.sw-editor-status');
+  const saveBridge = window.__SLIDE_WORKER_SAVE_BRIDGE__ || null;
+  if (saveBridge) {
+    save.textContent = '保存';
+    save.style.background = '#fff';
+    save.style.color = '#202124';
+    finish.hidden = false;
+  }
+  const containers = () => [...document.querySelectorAll('.slide, .sheet')];
+  const blocked = 'script,style,noscript,svg,canvas,video,audio,iframe,[data-sw-edit="off"],[data-sw-editor-ui]';
+
+  function setStatus(message) { status.textContent = message; }
+  function hasDirectText(el) {
+    return [...el.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+  }
+  function editableElements() {
+    const found = new Set();
+    containers().forEach(container => {
+      container.querySelectorAll('*').forEach(el => {
+        if (el.matches(blocked) || el.closest(blocked)) return;
+        if (hasDirectText(el)) found.add(el);
+      });
+    });
+    const all = [...found];
+    return all.filter(el => !all.some(parent => parent !== el && parent.contains(el)));
+  }
+  function imageElements() {
+    const found = new Set();
+    containers().forEach(container => {
+      container.querySelectorAll('img').forEach(el => found.add(el));
+      container.querySelectorAll('[style*="background-image"]').forEach(el => found.add(el));
+    });
+    return [...found];
+  }
+  function svgTextElements() {
+    const found = [];
+    containers().forEach(container => {
+      container.querySelectorAll('svg text, svg tspan').forEach(el => {
+        if (!hasDirectText(el)) return;
+        if (el.querySelector('tspan')) return;
+        found.push(el);
+      });
+    });
+    return found;
+  }
+  function finishSvgTextEdit(commit = true) {
+    if (!state.svgInput || !state.svgTarget) return;
+    const input = state.svgInput;
+    const target = state.svgTarget;
+    const changed = input.value !== state.svgOriginalText;
+    if (commit && changed) target.textContent = input.value;
+    target.style.opacity = state.svgOriginalOpacity;
+    if (!state.svgOriginalOpacity) target.style.removeProperty('opacity');
+    input.remove();
+    state.svgInput = null;
+    state.svgTarget = null;
+    if (commit && changed) markDirty();
+    if (!commit) {
+      state.dirty = state.svgWasDirty;
+      setStatus(state.dirty ? '未保存の変更あり' : '変更を取り消しました');
+    }
+  }
+  function beginSvgTextEdit(target) {
+    finishSvgTextEdit(true);
+    const rect = target.getBoundingClientRect();
+    const computed = window.getComputedStyle(target);
+    const input = document.createElement('input');
+    const width = Math.max(180, rect.width + 96);
+    const anchor = computed.textAnchor || target.getAttribute('text-anchor') || 'start';
+    let left = rect.left - 8;
+    if (anchor === 'middle') left = rect.left + rect.width / 2 - width / 2;
+    if (anchor === 'end') left = rect.right - width + 8;
+    input.type = 'text';
+    input.className = 'sw-editor-svg-input';
+    input.dataset.swEditorUi = 'true';
+    input.value = target.textContent || '';
+    Object.assign(input.style, {
+      left:`${Math.max(4, left)}px`, top:`${Math.max(4, rect.top - 4)}px`,
+      width:`${Math.max(80, Math.min(width, window.innerWidth - Math.max(4, left) - 4))}px`,
+      height:`${Math.max(32, rect.height + 8)}px`,
+      color:computed.fill === 'none' ? computed.color : computed.fill,
+      fontFamily:computed.fontFamily, fontWeight:computed.fontWeight, fontStyle:computed.fontStyle,
+      fontSize:`${Math.max(16, rect.height * .9)}px`, lineHeight:`${Math.max(32, rect.height + 8)}px`,
+      textAlign:anchor === 'middle' ? 'center' : (anchor === 'end' ? 'right' : 'left')
+    });
+    state.svgInput = input;
+    state.svgTarget = target;
+    state.svgOriginalText = input.value;
+    state.svgOriginalOpacity = target.style.opacity;
+    state.svgWasDirty = state.dirty;
+    target.style.opacity = '0';
+    document.body.appendChild(input);
+    input.addEventListener('input', () => {
+      state.dirty = true;
+      setStatus('未保存の変更あり');
+    });
+    input.addEventListener('blur', () => finishSvgTextEdit(true), { once:true });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        finishSvgTextEdit(true);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        finishSvgTextEdit(false);
+      }
+    });
+    input.focus();
+    input.select();
+  }
+  function checkOverflow() {
+    let count = 0;
+    containers().forEach(el => {
+      const overflow = el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2;
+      el.classList.toggle('sw-editor-overflow', overflow);
+      if (overflow) count += 1;
+    });
+    if (count) setStatus(`はみ出し ${count}ページ`);
+    return count;
+  }
+  function markDirty() {
+    state.dirty = true;
+    window.clearTimeout(markDirty.timer);
+    markDirty.timer = window.setTimeout(() => {
+      if (!checkOverflow()) setStatus('未保存の変更あり');
+    }, 120);
+  }
+  function setEditing(on) {
+    if (!on) finishSvgTextEdit(true);
+    state.editing = on;
+    document.body.classList.toggle('sw-browser-editing', on);
+    ui.classList.toggle('is-editing', on);
+    toggle.textContent = on ? '編集終了' : '編集';
+    editableElements().forEach(el => {
+      if (on) {
+        el.contentEditable = 'true';
+        el.spellcheck = true;
+        el.dataset.swEditorEditable = 'true';
+      } else {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('spellcheck');
+        delete el.dataset.swEditorEditable;
+      }
+    });
+    imageElements().forEach(el => {
+      if (on) {
+        el.dataset.swEditorImage = 'true';
+      } else {
+        delete el.dataset.swEditorImage;
+      }
+    });
+    svgTextElements().forEach(el => {
+      if (on) el.dataset.swEditorSvgText = 'true';
+      else delete el.dataset.swEditorSvgText;
+    });
+    containers().forEach(el => el.classList.remove('sw-editor-overflow'));
+    setStatus(on ? (saveBridge ? '直接更新モード｜文字または画像をクリック' : '文字または画像をクリック') : '');
+  }
+  function cleanClone() {
+    finishSvgTextEdit(true);
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[data-sw-editor-ui]').forEach(el => el.remove());
+    clone.querySelectorAll('[data-sw-editor-editable]').forEach(el => {
+      el.removeAttribute('data-sw-editor-editable');
+      el.removeAttribute('contenteditable');
+      el.removeAttribute('spellcheck');
+    });
+    clone.querySelectorAll('[data-sw-editor-image]').forEach(el => {
+      el.removeAttribute('data-sw-editor-image');
+    });
+    clone.querySelectorAll('[data-sw-editor-svg-text]').forEach(el => {
+      el.removeAttribute('data-sw-editor-svg-text');
+    });
+    clone.querySelectorAll('.sw-editor-overflow').forEach(el => el.classList.remove('sw-editor-overflow'));
+    clone.querySelector('body')?.classList.remove('sw-browser-editing');
+    return '<!doctype html>\n' + clone.outerHTML + '\n';
+  }
+  function suggestedName() {
+    const raw = decodeURIComponent(location.pathname.split('/').pop() || 'slide-worker.html');
+    return raw.toLowerCase().endsWith('.html') ? raw : `${raw}.html`;
+  }
+  async function saveHtml(closeAfter = false) {
+    const html = cleanClone();
+    try {
+      if (saveBridge) {
+        const saveUrl = closeAfter ? `${saveBridge.saveUrl}?close=1` : saveBridge.saveUrl;
+        const response = await fetch(saveUrl, {
+          method:'POST',
+          headers:{
+            'Content-Type':'text/html; charset=utf-8',
+            'X-Slide-Worker-Token':saveBridge.token
+          },
+          body:html
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) throw new Error(result.error || '直接更新に失敗しました');
+        state.dirty = false;
+        if (closeAfter) {
+          setEditing(false);
+          setStatus('保存完了。このタブは閉じてOKです');
+          save.disabled = true;
+          finish.disabled = true;
+          window.setTimeout(() => window.close(), 300);
+        } else {
+          setStatus('元ファイルを更新しました');
+        }
+        return;
+      }
+      if ('showSaveFilePicker' in window) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: suggestedName(),
+          types: [{ description:'HTML', accept:{ 'text/html':['.html'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(html);
+        await writable.close();
+        state.dirty = false;
+        setStatus('保存しました');
+        return;
+      }
+      const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = suggestedName();
+      link.dataset.swEditorUi = 'true';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      state.dirty = false;
+      setStatus('編集済みHTMLをダウンロードしました');
+    } catch (error) {
+      if (error?.name !== 'AbortError') setStatus(error?.message || '保存できませんでした');
+    }
+  }
+
+  const idleTimer = window.setTimeout(() => ui.classList.add('is-idle'), 2500);
+  toggle.addEventListener('click', () => {
+    window.clearTimeout(idleTimer);
+    ui.classList.remove('is-idle');
+    setEditing(!state.editing);
+  });
+  save.addEventListener('click', () => saveHtml(false));
+  finish.addEventListener('click', () => saveHtml(true));
+  document.addEventListener('input', event => {
+    if (state.editing && event.target.closest('[data-sw-editor-editable]')) markDirty();
+  });
+  document.addEventListener('click', event => {
+    if (!state.editing) return;
+    const svgText = event.target.closest('[data-sw-editor-svg-text]');
+    if (svgText) {
+      event.preventDefault();
+      event.stopPropagation();
+      beginSvgTextEdit(svgText);
+      return;
+    }
+    const target = event.target.closest('[data-sw-editor-image]');
+    if (!target) return;
+    event.preventDefault();
+    event.stopPropagation();
+    state.imageTarget = target;
+    imageInput.value = '';
+    imageInput.click();
+  }, true);
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files?.[0];
+    if (!file || !state.imageTarget) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (state.imageTarget.tagName === 'IMG') state.imageTarget.src = reader.result;
+      else state.imageTarget.style.backgroundImage = `url("${reader.result}")`;
+      markDirty();
+    };
+    reader.readAsDataURL(file);
+  });
+  document.addEventListener('keydown', event => {
+    const typing = event.target.closest('input,textarea,[contenteditable="true"]');
+    if (!typing && event.key.toLowerCase() === 'e' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      event.preventDefault();
+      setEditing(!state.editing);
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+      event.preventDefault();
+      saveHtml();
+    }
+    if (event.key === 'Escape' && state.editing && !typing) setEditing(false);
+  });
+  window.addEventListener('beforeunload', event => {
+    if (!state.dirty) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+  if (saveBridge?.disconnectUrl) {
+    window.addEventListener('pagehide', () => {
+      const url = `${saveBridge.disconnectUrl}?token=${encodeURIComponent(saveBridge.token)}`;
+      navigator.sendBeacon(url, '');
+    });
+  }
+  if (saveBridge?.pingUrl) {
+    const ping = () => fetch(saveBridge.pingUrl, {
+      method:'POST',
+      headers:{ 'X-Slide-Worker-Token':saveBridge.token }
+    }).catch(() => {});
+    ping();
+    window.setInterval(ping, 2000);
+  }
+  if (params.has('edit')) setEditing(true);
+})();
+</script>
+<!-- slide-worker-browser-editor:end -->
+</body>
+</html>

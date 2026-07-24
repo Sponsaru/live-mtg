@@ -32,6 +32,24 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-i18n-") as runtime:
     assert server.desktop_health()["language"] == "en"
     assert server.desktop_health()["version"] != "0.1.0-beta.1"
 
+    # 10-second browser monitoring uses a dedicated cached auth check, so
+    # multiple tabs do not spawn one CLI process each.
+    original_which, original_run = server.shutil.which, server.subprocess.run
+    auth_calls = []
+    class AuthResult:
+        returncode = 1
+        stdout = "signed out"
+        stderr = ""
+    server.shutil.which = lambda name: "/tmp/" + name
+    server.subprocess.run = lambda *args, **kwargs: (auth_calls.append(args[0]) or AuthResult())
+    server._ai_auth_cache.update({"at": 0.0, "provider": "", "value": None})
+    try:
+        first = server.ai_auth_status(); second = server.ai_auth_status()
+    finally:
+        server.shutil.which, server.subprocess.run = original_which, original_run
+    assert first["aiInstalled"] is True and first["aiLoggedIn"] is False
+    assert second == first and len(auth_calls) == 1
+
     assert server.set_language("ja") is True
     config = json.loads((pathlib.Path(runtime) / "config.json").read_text(encoding="utf-8"))
     assert config["language"] == "ja"

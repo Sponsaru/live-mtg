@@ -19,6 +19,14 @@ live-mtg
 
 初回の `live-mtg` が自動でオンボーディングを開始し、AI選択、選択したCLIのインストールとログイン、ffmpeg・文字起こし環境の準備、常駐起動まで順番に案内する。設定をやり直す場合だけ `live-mtg onboard` を使う。
 
+CIやAIエージェントなどstdinが使えない非対話環境では、意図しないインストールを防ぐため初期設定を自動承認しない。必要なツールの導入・モデル取得・常駐化を承認する場合は次を使う（AI CLIへのログインは事前に完了させる）。
+
+```bash
+live-mtg onboard --yes --provider claude --language ja
+# 常駐化しない場合
+live-mtg onboard --yes --no-daemon --provider codex --language ja
+```
+
 初期設定で **Claude Code / Codex** を選ぶ。選択は `~/.live-mtg/config.json` に保存され、会議のライブ整理・事前準備・Web調査・清書・成果物生成のすべてで同じAIを使う。
 
 ```bash
@@ -54,7 +62,17 @@ Windows PowerShell:
 iwr -useb https://<配布ドメイン>/install.ps1 | iex
 ```
 
-日常操作は `live-mtg dashboard`、診断は `live-mtg doctor`、更新は `live-mtg update`。不具合時は `live-mtg logs`、会議本文を含まない診断書は `live-mtg report`、旧版へ戻すには `live-mtg rollback`。npm公開前はこのフォルダで `npm link` すれば同じ導線をローカル検証できる。
+Windows PowerShell 5.1で日本語出力をパイプやファイルに渡す場合は、実行前に出力エンコーディングをUTF-8にする。`install.ps1` 経由では自動設定される。
+
+```powershell
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
+live-mtg doctor | Out-File -Encoding utf8 .\live-mtg-doctor.txt
+```
+
+日常操作は `live-mtg dashboard`、診断は `live-mtg doctor`、更新は `live-mtg update`。不具合時は `live-mtg logs`、会議本文を含まない診断書は `live-mtg report`、旧版へ戻すには `live-mtg rollback`。バックグラウンド起動ではMac・Windowsともサーバー出力を `~/.live-mtg/server.log` に保存し、5MBごとに3世代ローテーションする。Windowsでは監視プロセスがサーバーの異常終了を検知し、最大30秒間隔で自動復旧する。npm公開前はこのフォルダで `npm link` すれば同じ導線をローカル検証できる。
 
 作者のリリースは、初回のみnpmへ手動公開してパッケージ名を作成する。以後はnpm側でGitHub Actionsの `npm-release.yml` をTrusted Publisherに指定し、`package.json`のversionを上げて同じversionのGitタグをpushする。長期保存の`NPM_TOKEN`は使わない。
 
@@ -66,6 +84,7 @@ iwr -useb https://<配布ドメイン>/install.ps1 | iex
 - **リアルタイム議事整理**：発話の切れ目ごとに議題・論点・決定・ToDo・未解決へ自動仕分け
 - **可変長チャンク（VAD）**：固定秒で切らず、**無音を検知した所で区切る**（文の途中で切らない＝文字起こし精度↑。無音区間は送らない）
 - **会議後の一括清書**：保存した全音声を1本に結合し、**分断なしで whisper→claude 整理し直す高精度版**（📋 清書）。ライブは進行の目安、清書は正式議事録の二段構え。※結合後の文字起こしは**15分超なら5分刻みに分割して独立デコード**（v54〜。長尺を1本でデコードすると途中で脱線し以降が反復崩壊する whisper の癖への対策。2026-07-14 実障害）
+- **終了済み録音の取り込み**：m4a・mp3・wav・webm等を新しい会議として追加し、通常の文字起こし・議題整理・決定／次の行動・4種類の可視化へ自動投入。長時間ファイルはメモリへ全展開せず保存し、アップロード進捗と解析状況を画面に表示する
 - **AIサポート（💡）**：会話から「〜って一般的に何？」「他社はどうしてる？」等の**疑問・要調査・意見が欲しそうな論点を自動検出し、補足を表示**。断定せず「一般には〜と言われる」の留保付き、固有・最新・数字は「⚠要確認」明示。バブルの「🔎Web検索で確認」で出典付き裏取りも可
 - **🎯 商談ガイド（参謀モード）**：会議に**目標**と**背景フォルダ**を設定すると、①開始時にAIがフォルダをClaude Code式に探索してダイジェスト＋ファイルマップ化 ②会話の流れ×目標×背景を踏まえた**次の質問の提案（意図つき）**と**相手の発言の解析（本音・懸念・シグナル）**を常時更新 ③回答に資料の詳細が要るとAIが判断したら**自動で背景フォルダへ調べに行く**（並行実行・ライブは止まらない・結果は次サイクルで合流）。画面は畳んだ「🎯ガイド」バー→困った時にタップで展開
 - **プロフィール（私は誰か・2026-07-13）**：メニュー「プロフィール」で**一問一答**（名前／会社・役職／補足）に答えるだけ（回答=`profile.json`・AI注入用=`profile.md`・全会議共通）。プロフィールは依頼主の文脈と助言に使うが、音声内の話者名を確定する根拠にはしない
@@ -199,10 +218,11 @@ audio/ の全webmを時系列結合 → 1本の16k wav（分断なし）
 | `MODEL` | `~/.cache/whisper-cpp/…turbo.bin` | cpp(whisper-cli)用モデルのパス |
 | `MIC` | `1` | マイク番号。`ffmpeg -f avfoundation -list_devices true -i ""` で確認（1=MacBook Proのマイク） |
 | `CHUNK` | `30` | （旧・固定チャンク秒）現在の録音は**可変長(VAD)**で無音区切り。VADの区切り閾値（無音700ms/最小6秒/最大40秒）は index.html 内 `VAD` で調整。CHUNKはVADが効かない環境向けの目安値 |
-| `CLAUDE_MODEL` | `opus` | 議事整理モデル。速度優先なら `sonnet`／`haiku` |
+| `CLAUDE_MODEL` | `haiku` | Claude利用時のライブ議事整理モデル |
 | `SLIDE_MODEL` | `opus` | スライド生成モデル（品質優先）。速くしたいなら `sonnet` |
 | `AI_PROVIDER` | 設定ファイル（未設定時`claude`） | `claude` または `codex`。通常は `live-mtg config --provider ...` で変更 |
-| `CODEX_MODEL` | 空（Codex CLIの既定） | Codex利用時だけモデルを明示したい場合に設定 |
+| `CODEX_PROFILE` | `recommended` | Codexの用途別構成。`recommended`／`speed`／`quality`。通常は画面の「AI・音声の接続診断」で変更 |
+| `CODEX_MODEL` | 空 | 互換用の全レーン固定指定。空なら用途別にSol/Terraを選択するため、通常は設定しない |
 | `PORT` | `8777` | 表示サーバのポート |
 
 例（会議に合わせて辞書ヒントを差し替え・整理をsonnetで高速化）:
@@ -235,9 +255,9 @@ CLAUDE_MODEL=sonnet bash /path/to/live-mtg/live-mtg.sh
 - 停止時は worker.sh が ffmpeg を道連れで確実に終了する（旧版で起きた「Ctrl+C後もffmpegが録音し続ける」孤児化バグは対策済み）
 
 ## トラブル対処
-- **画面が「⚠ サーバ停止」/ずっと「待機中」/スライド化が失敗する** → サーバ(server.py)が落ちている。ターミナルで `live-mtg.sh` を起動し直す。
+- **画面が「⚠ サーバ停止」/ずっと「待機中」/スライド化が失敗する** → `live-mtg status` で状態を確認し、停止中なら `live-mtg start` で起動する。
   - よくある原因：**録音を止めようとしてターミナルで Ctrl+C を押した**。Ctrl+C はサーバごと終了する。録音停止は必ず画面の「■ 録音停止」ボタンで。
-  - 原因調査：`~/mtg-live/server.log`（サーバの標準出力・エラーを記録）を見る。
+  - 原因調査：`live-mtg logs`（保存先は `~/.live-mtg/server.log`）を実行する。
 - 会議データ（議事・全文・スライド）はサーバが落ちても `meetings/<会議ID>/` に残るので消えない。
 ```
 

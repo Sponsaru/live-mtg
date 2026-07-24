@@ -82,12 +82,12 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
 
     # Prove the two AI lanes overlap in wall-clock time, not merely that two queues exist.
     (meeting / "transcript.txt").write_text("会議の新しい発言です。" * 30, encoding="utf-8")
-    server.applied[sid] = 0
+    server.analysis_coverage.pop(sid, None)
     server.detail_applied[sid] = 0
 
     def fake_ai(prompt, **_kwargs):
         time.sleep(0.4)
-        if "最新発話を即時整理" in prompt:
+        if "最新発話だけを即時整理" in prompt:
             return json.dumps({"summary": "latest fast", "decision": "parallel decision"}, ensure_ascii=False)
         return json.dumps({"mindmap_add": [{"topic": "parallel detail", "groups": []}], "lookups": []}, ensure_ascii=False)
 
@@ -112,6 +112,9 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     server.request_detail(sid)
     server.request_detail(sid)
     assert server.detail_q.qsize() == 1
+    server.request_flow_update(sid)
+    server.request_flow_update(sid)
+    assert server.flow_q.qsize() == 1
 
     # Starting a recording defers heavy detail work instead of competing with the live lane.
     queued_before = server.detail_q.qsize()
@@ -127,6 +130,11 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     before_view = server.view_q.qsize()
     server.request_active_view_update(sid, force=True)
     assert (sid, "map") in server.view_pending and server.view_q.qsize() == before_view + 1
+    # シートを閉じているときは、既定値listのために見えないAIを起動しない。
+    server.view_clients.clear(); server.view_pending.clear()
+    hidden_before = server.view_q.qsize()
+    server.request_active_view_update(sid, force=True)
+    assert server.view_q.qsize() == hidden_before and not server.view_pending
 
     # A background CLI already running at record-start is preemptible.
     class FakeProcess:
@@ -142,14 +150,16 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
         server._kill_process_tree = original_kill
 
 source = Path(server.__file__).read_text(encoding="utf-8")
-assert "最新発話を即時整理" in server.LIVE_PATCH_PROMPT
+assert "議題の追加・状態・合意・結果分類は別レーン" in server._compact_fast_prompt("会議", "発話", {})
+assert "進行ボードだけ" in server._compact_flow_prompt("会議", "発話", {})
 assert "mindmap_add" not in server.LIVE_PATCH_PROMPT
 assert '"relation"' in server.LIVE_PATCH_PROMPT and "_normalize_fast_patch" in source
 assert "mindmap_add" in server.DETAIL_PATCH_PROMPT
 assert "threading.Thread(target=detail_worker" in source
 assert "with background_ai_lock:" in source
-assert "len(transcript) - off > 2700" in source and "off + 500" in source
-assert "end - 3000" in source
+assert "with flow_ai_lock:" in source, "the live agenda board must not wait behind visualization/research AI"
+assert "end - 3000" not in source and "off + 3000" in source, \
+    "detail analysis must advance from the oldest unprocessed text instead of jumping to the tail"
 assert 'capture = kw.pop("capture_output", True)' in source
 
 print("Parallel fast/detail analysis preserves both results")

@@ -8,10 +8,11 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 
 for (const path of [
-  "cli", "defaults", "server.py", "index.html", "brand-logo.png", "slide-bg.jpg", "app-icon.png", "mermaid.min.js",
+  "cli", "defaults", "server.py", "meeting_flow.py", "meeting_flow_ai.py", "index.html", "brand-logo.png", "slide-bg.jpg",
+  "app-icon.png", "mermaid.min.js",
   "make-mindmap.py", "make-slides.sh", "make-learn-slides.sh", "make-minutes-deck.py", "make-map-slide.py", "slides-template.html",
-  "slide-work-template.html", "slide-work-pattern-examples.html", "slide-work-guide.md", "install.sh",
-  "install.ps1", "scripts/live-diarize-worker.py", "LICENSE", "VERSION"
+  "slide-work-template.html", "minutes-paper-template.html", "slide-work-pattern-examples.html", "slide-work-guide.md", "install.sh",
+  "install.ps1", "scripts/live-diarize-worker.py", "scripts/run-slide-ai.py", "LICENSE", "VERSION"
 ]) {
   const target = join(out, path);
   mkdirSync(dirname(target), { recursive: true });

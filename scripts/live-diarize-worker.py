@@ -67,6 +67,62 @@ def load_pipeline():
     return pipeline
 
 
+def load_embedding_inference():
+    """Load the embedding model vendored inside the community diarization model."""
+    token = credential_token()
+    import torch
+    from pyannote.audio import Inference, Model
+    model = Model.from_pretrained(
+        "pyannote/speaker-diarization-community-1", subfolder="embedding", token=token
+    )
+    device = torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+    model.to(device)
+    return Inference(model, window="whole", device=device)
+
+
+def voice_embedding(inference, audio):
+    import numpy as np
+    value = np.asarray(inference(audio), dtype=float).reshape(-1)
+    norm = float(np.linalg.norm(value))
+    if not norm:
+        raise RuntimeError("Voice embedding was empty")
+    return (value / norm).tolist()
+
+
+def match_voice_profiles(inference, audio, turns, profiles):
+    import numpy as np
+    import torch
+    waveform, rate = audio["waveform"], int(audio["sample_rate"])
+    matches = {}
+    for speaker in sorted({turn["speaker"] for turn in turns}):
+        pieces = []
+        for turn in turns:
+            if turn["speaker"] != speaker:
+                continue
+            start, end = max(0, int(turn["start"] * rate)), min(waveform.shape[1], int(turn["end"] * rate))
+            if end - start >= rate // 2:
+                pieces.append(waveform[:, start:end])
+        if not pieces:
+            continue
+        joined = torch.cat(pieces, dim=1)[:, : rate * 30]
+        if joined.shape[1] < rate * 2:
+            continue
+        probe = np.asarray(voice_embedding(inference, {"waveform": joined, "sample_rate": rate}))
+        scored = []
+        for profile in profiles:
+            enrolled = np.asarray(profile.get("embedding") or [], dtype=float)
+            if enrolled.shape == probe.shape:
+                scored.append((float(np.dot(probe, enrolled)), profile))
+        if not scored:
+            continue
+        score, profile = max(scored, key=lambda item: item[0])
+        # 誤認より「不明」を優先。十分似ている場合だけ本人名へ確定する。
+        if score >= 0.68:
+            matches[speaker] = {"name": str(profile.get("name") or "本人"),
+                                "confidence": round(score, 3)}
+    return matches
+
+
 def wav_tensor(path):
     """Read the PCM WAV produced by LiveMTG without torchcodec/FFmpeg bindings."""
     import torch
@@ -88,7 +144,7 @@ def wav_tensor(path):
     return {"waveform": waveform, "sample_rate": rate}
 
 
-def diarize(pipeline, request):
+def diarize(pipeline, request, inference=None):
     wav = str(request.get("wav") or "")
     if not wav or not os.path.isfile(wav):
         raise RuntimeError("Audio file is missing")
@@ -101,27 +157,45 @@ def diarize(pipeline, request):
         kwargs["max_speakers"] = maximum
     # pyannote 4 delegates file decoding to torchcodec.  Homebrew FFmpeg and the
     # bundled torch/torchcodec versions can diverge, so pass decoded PCM memory.
-    output = pipeline(wav_tensor(wav), **kwargs)
+    audio = wav_tensor(wav)
+    output = pipeline(audio, **kwargs)
     annotation = getattr(output, "speaker_diarization", output)
     turns = []
     for turn, _, speaker in annotation.itertracks(yield_label=True):
         turns.append({"speaker": str(speaker), "start": round(float(turn.start), 3),
                       "end": round(float(turn.end), 3)})
+    profiles = request.get("voiceProfiles") if isinstance(request.get("voiceProfiles"), list) else []
+    if profiles and inference is not None:
+        matches = match_voice_profiles(inference, audio, turns, profiles)
+        for turn in turns:
+            match = matches.get(turn["speaker"])
+            if match:
+                turn["profileName"] = match["name"]
+                turn["profileConfidence"] = match["confidence"]
     return {"ok": True, "id": request.get("id"), "turns": turns}
 
 
 def main():
     pipeline = None
+    inference = None
     for line in sys.stdin:
         request = {}
         try:
             request = json.loads(line)
             if request.get("command") == "ping":
                 response = {"ok": True, "id": request.get("id"), "platform": platform.system()}
+            elif request.get("command") == "enroll":
+                if inference is None:
+                    inference = load_embedding_inference()
+                response = {"ok": True, "id": request.get("id"),
+                            "embedding": voice_embedding(inference, wav_tensor(str(request.get("wav") or "")))}
             else:
                 if pipeline is None:
                     pipeline = load_pipeline()
-                response = diarize(pipeline, request)
+                profiles = request.get("voiceProfiles") if isinstance(request.get("voiceProfiles"), list) else []
+                if profiles and inference is None:
+                    inference = load_embedding_inference()
+                response = diarize(pipeline, request, inference)
         except Exception as error:
             response = {"ok": False, "id": request.get("id") if isinstance(request, dict) else None,
                         "error": str(error)[:500]}
