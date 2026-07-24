@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/live-mtg?label=npm&color=0071e3)](https://www.npmjs.com/package/live-mtg) [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](LICENSE) [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
-![LiveMTG — 会議が、その場で前に進む。](docs/hero.jpg)
+![LiveMTG — 会議が、その場で前に進む。](docs/hero-v2.png)
 
 ![デモ：会議前の準備、会議中のAI支援、会議後の可視化と共有PDF](docs/demo.gif)
 

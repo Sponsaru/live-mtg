@@ -224,6 +224,37 @@ def review_script():
 """
 
 
+def cover_script():
+    """High-density real product state for the cover device mockup."""
+    flow = meeting_flow(False)
+    return BASE + f"""
+(async()=>{{
+  setPhase('live',false);meetingFlow={js(flow)};meetingFlowRebuilding=false;flowExpanded=new Set(['current']);flowLastCurrentId='current';
+  renderMeetingFlow(true);recording=true;capturing=true;captureKind='meeting';lastStateSnap={{recording:true,queue:0,analyzing:true,detailing:false,researching:0,exploring:false,aiProvider:'codex'}};
+  $('rec').textContent='録音停止';$('rec').classList.add('on');renderPill();
+  const style=document.createElement('style');style.id='public-cover-style';style.textContent=`
+    .flow-target,.flow-view-label,.flow-view-buttons,.flow-board-head,.flow-question-block,.flow-actions{{display:none!important}}
+    body:not(.phase-prep):not(.phase-review) .mainpane{{max-width:1240px!important;padding:20px 18px 24px!important}}
+    .agenda-flow-list{{gap:12px!important}}.flow-agenda-head{{padding:13px 16px!important}}
+    .flow-title{{font-size:21px!important}}.flow-summary-line{{font-size:15px!important;margin-top:4px!important;-webkit-line-clamp:1!important}}
+    .flow-agenda-body{{padding:12px 15px 14px!important}}.flow-cols{{gap:9px!important}}
+    .flow-now{{font-size:15px!important;padding:0!important}}.flow-result-grid,.flow-result-column{{gap:9px!important}}
+    .flow-result-section{{padding:10px 13px!important}}.flow-result-kind{{font-size:15px!important;margin-bottom:3px!important}}
+    .flow-result-text{{font-size:14px!important;line-height:1.45!important;padding:5px 0 5px 15px!important}}
+    .flow-result-text::before{{top:12px!important}}.flow-result-text:first-child::before{{top:9px!important}}
+    .flow-agenda-suggestions{{gap:5px!important}}.flow-agenda-suggestions>h3{{font-size:16px!important;margin:1px 0!important}}
+    .flow-agenda-suggestion{{padding:11px 13px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;align-items:center!important;gap:4px 12px!important}}
+    .flow-suggestion-kind{{margin:0!important;font-size:13px!important;grid-row:1/3!important}}
+    .flow-suggestion-text{{font-size:16px!important;line-height:1.35!important}}
+    .flow-suggestion-reason{{font-size:14px!important;line-height:1.35!important;margin:0!important}}
+    .flow-suggestion-actions{{grid-column:3!important;grid-row:1/3!important;margin:0!important;flex-wrap:nowrap!important}}
+    .flow-suggestion-actions button{{min-height:36px!important;padding:6px 11px!important;font-size:14px!important}}
+  `;document.head.appendChild(style);
+  await new Promise(r=>setTimeout(r,350));window.scrollTo(0,0);return true;
+}})()
+"""
+
+
 async def capture(ws, seq, path):
     result = await command(ws, seq, "Page.captureScreenshot", {
         "format": "png", "fromSurface": True, "captureBeyondViewport": False,
@@ -231,11 +262,11 @@ async def capture(ws, seq, path):
     path.write_bytes(base64.b64decode(result["data"]))
 
 
-async def main(output):
+async def main(output, hide_caption=False, cover=False):
     output.mkdir(parents=True, exist_ok=True)
     pages = json.load(urllib.request.urlopen(CDP_LIST))
     page = next(row for row in pages if row.get("type") == "page")
-    scripts = [prep_script(), live_script(False), live_script(True), map_script("radial"), map_script("relation"), review_script()]
+    scripts = [cover_script()] if cover else [prep_script(), live_script(False), live_script(True), map_script("radial"), map_script("relation"), review_script()]
     async with websockets.connect(page["webSocketDebuggerUrl"], max_size=30_000_000) as ws:
         seq = 1
         await command(ws, seq, "Page.enable"); seq += 1
@@ -248,11 +279,18 @@ async def main(output):
         for index, expression in enumerate(scripts, 1):
             await command(ws, seq, "Runtime.evaluate", {"expression": expression, "awaitPromise": True}); seq += 1
             await asyncio.sleep(0.25)
-            await capture(ws, seq, output / f"{index:02d}.png"); seq += 1
+            if hide_caption:
+                await command(ws, seq, "Runtime.evaluate", {
+                    "expression": "document.getElementById('public-demo-caption').style.display='none'",
+                }); seq += 1
+            filename = "cover.png" if cover else f"{index:02d}.png"
+            await capture(ws, seq, output / filename); seq += 1
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
+    parser.add_argument("--hide-caption", action="store_true")
+    parser.add_argument("--cover", action="store_true")
     args = parser.parse_args()
-    asyncio.run(main(args.output))
+    asyncio.run(main(args.output, args.hide_caption, args.cover))

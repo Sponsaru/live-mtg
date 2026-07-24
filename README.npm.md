@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/badge/license-MIT-1d1d1f)](https://github.com/Sponsaru/live-mtg/blob/main/LICENSE)
 [![GitHub Sponsors](https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?logo=githubsponsors)](https://github.com/sponsors/Sponsaru)
 
-![LiveMTG — live meeting intelligence](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/hero.jpg)
+![LiveMTG — live meeting intelligence](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/hero-v2.png)
 
 ![Demo: prepare with AI, follow the active agenda live, visualize the conversation, and create shareable PDFs](https://raw.githubusercontent.com/Sponsaru/live-mtg/main/docs/demo.gif)
 
