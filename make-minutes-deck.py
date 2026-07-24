@@ -694,4 +694,4 @@ doc = template.replace("{{TITLE}}", esc(TITLE + tr(" ｜ 議事録", " | Minutes
 doc = doc.replace("{{SHEETS}}", "\n".join(sheets))
 with open(out, "w", encoding="utf-8") as target:
     target.write(doc)
-print("生成:", out, "／Slide Worker正典A4会議ペーパー／ページ数:", len(sheets))
+print("generated:", out, "/ canonical A4 meeting paper / pages:", len(sheets))

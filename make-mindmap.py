@@ -207,4 +207,4 @@ out = (template.replace("{{TITLE}}", title + tr(" ｜ 議事マインドマッ�
                .replace("{{SLIDES}}", body))
 with open(os.path.join(sdir, "mindmap.html"), "w", encoding="utf-8") as f:
     f.write(out)
-print("生成:", os.path.join(sdir, "mindmap.html"), "／マインドマップ: 1画面")
+print("generated:", os.path.join(sdir, "mindmap.html"), "/ mindmap: 1 page")

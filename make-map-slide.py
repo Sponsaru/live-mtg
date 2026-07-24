@@ -197,4 +197,4 @@ doc = doc.replace("</body>", extra + "</body>") if "</body>" in doc else doc + e
 out = os.path.join(SDIR, "map-slide-%s.html" % VIEW)
 with open(out, "w", encoding="utf-8") as f:
     f.write(doc)
-print("生成:", out)
+print("generated:", out)
