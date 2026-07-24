@@ -200,8 +200,11 @@
   .prep-eyebrow{display:block;color:var(--blue-d);font-size:15px;font-weight:750;letter-spacing:.02em;margin-bottom:4px}
   #prepview .prep-heading h2,#prepview .brief-title h2{font-size:clamp(25px,2.5vw,32px);font-weight:740;line-height:1.35;color:var(--ink);margin:0}
   .prep-heading p{font-size:16px;font-weight:530;line-height:1.65;color:#5b5e64;margin:7px 0 0;max-width:720px}
-  #prepview .prep-rec{min-height:46px;padding:10px 15px;font-size:15px;font-weight:700;flex:none;margin-top:4px}
-  #prepview .prep-rec .inline-icon{width:19px;height:19px}
+  .prep-tools{display:flex;justify-content:flex-end;align-items:center;gap:9px;flex-wrap:wrap;flex:none;margin-top:4px}
+  #prepview .prep-tools .prep-rec,#prepview .prep-tools .linklike{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;margin:0;padding:10px 14px;border:1px solid #d2d2d7;border-radius:12px;background:#fff;color:#33363b;font-family:inherit;font-size:15px;font-weight:700;line-height:1.25;text-decoration:none;white-space:nowrap;cursor:pointer}
+  #prepview .prep-tools .prep-rec:hover,#prepview .prep-tools .linklike:hover{background:#e9e9ed;text-decoration:none}
+  #prepview .prep-tools .prep-rec.on{border-color:#ff453a;background:#fff2f1;color:#c52b22}
+  #prepview .prep-tools .inline-icon{width:19px;height:19px}
   .prep-chat-panel{display:flex;flex-direction:column;min-height:0;flex:1}
   .prep-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 2px 9px}
   .prep-section-head h3{font-size:18px;font-weight:720;line-height:1.4;margin:0;color:var(--ink)}
@@ -239,9 +242,9 @@
   .brief-field-help{font-size:13px;font-weight:530;line-height:1.5;color:var(--sub);margin:6px 1px 0}
   .gprojhint{font-size:13px;font-weight:600;color:var(--sub);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .brief-import{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
-  #prepview .brief-import .linklike,#prepview .prep-utility .linklike{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:0;padding:8px 12px;border:1px solid #d2d2d7;border-radius:999px;background:#fff;color:#33363b;font-size:14px;font-weight:680;text-decoration:none}
-  #prepview .brief-import .linklike:hover,#prepview .prep-utility .linklike:hover{background:#e5e6e9}
-  #prepview .brief-import .inline-icon,#prepview .prep-utility .inline-icon{width:18px;height:18px}
+  #prepview .brief-import .linklike{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:0;padding:8px 12px;border:1px solid #d2d2d7;border-radius:999px;background:#fff;color:#33363b;font-size:14px;font-weight:680;text-decoration:none}
+  #prepview .brief-import .linklike:hover{background:#e5e6e9}
+  #prepview .brief-import .inline-icon{width:18px;height:18px}
   .brief-board-section{margin-top:22px}.brief-board-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 2px 10px}.brief-board-head h3{font-size:19px;font-weight:730;line-height:1.4;margin:0}.brief-board-head span{font-size:13px;font-weight:600;color:var(--sub)}
   .brief-board{display:flex;flex-direction:column;gap:11px}
   #prepview .pbcard{background:#fff;border:1px solid #d5d6da;border-radius:14px;padding:15px 16px;margin:0}
@@ -261,11 +264,6 @@
   #prepview .prep-accept.primary:hover{background:#414247;border-color:#414247}
   #prepview .prep-accept .flow-button-icon{width:18px;height:18px}
   #prepview .prep-question-row .prep-accept{min-height:36px;padding:7px 10px;font-size:13px;background:#fff}
-  #prepview .briefinner .prep-save{margin-top:16px}
-  #prepview .prep-save{padding:12px 13px;background:#fff;border:1px solid #d5d6da;border-radius:12px}
-  #prepview .prep-save .save-info span{font-size:12px}#prepview .prep-save .save-info strong{font-size:14px}#prepview .prep-save .save-info small{font-size:12px}
-  #prepview .prep-save button{min-height:38px;padding:8px 11px;font-size:13px;border-radius:9px}
-  .prep-utility{display:flex;justify-content:flex-start;gap:9px;flex-wrap:wrap;margin-top:11px}
   /* 学びレポート（個人向け気づき） */
   .learn-insights{background:#f6f9fc;border:1px solid var(--line);border-radius:12px;padding:14px 16px;
     font-size:14px;line-height:1.8;color:var(--ink);max-height:46vh;overflow-y:auto;margin:10px 0 4px}
@@ -283,7 +281,7 @@
     .briefinner{position:static;max-height:none;padding:24px 22px 34px}
   }
   @media(max-width:620px){
-    .prep-main{padding:20px 16px 23px}.chathead{display:block}.prep-heading p{font-size:15px}#prepview .prep-rec{margin-top:13px}.prep-section-head{display:block}.prep-section-head span{display:block;margin-top:3px}#prepview .strategy-log{padding:13px}#prepview .smsg{max-width:94%;font-size:16px}.prep-quick-label{margin-top:1px}#prepview .strategy-send{display:block}#prepview .strategy-send .send-btn{width:100%;min-height:48px;margin-top:9px}.prep-input-hint{display:none}.briefinner{padding:22px 16px 30px}.brief-row{grid-template-columns:1fr}.brief-form{padding:15px}.brief-board-head{display:block}.brief-board-head span{display:block;margin-top:3px}#prepview .pbcard li.prep-question-row{grid-template-columns:1fr}#prepview .prep-question-row .prep-accept{justify-self:start}
+    .prep-main{padding:20px 16px 23px}.chathead{display:block}.prep-heading p{font-size:15px}.prep-tools{justify-content:flex-start;margin-top:13px}.prep-section-head{display:block}.prep-section-head span{display:block;margin-top:3px}#prepview .strategy-log{padding:13px}#prepview .smsg{max-width:94%;font-size:16px}.prep-quick-label{margin-top:1px}#prepview .strategy-send{display:block}#prepview .strategy-send .send-btn{width:100%;min-height:48px;margin-top:9px}.prep-input-hint{display:none}.briefinner{padding:22px 16px 30px}.brief-row{grid-template-columns:1fr}.brief-form{padding:15px}.brief-board-head{display:block}.brief-board-head span{display:block;margin-top:3px}#prepview .pbcard li.prep-question-row{grid-template-columns:1fr}#prepview .prep-question-row .prep-accept{justify-self:start}
   }
   /* 状態ピル：固定幅・4状態のみ。詳細はクリックでポップオーバー */
   .pillwrap{position:relative;flex:none}
@@ -479,10 +477,6 @@
   .pbcard .pbv{font-size:13px;line-height:1.65;color:var(--ink)}.pbcard ul{margin:0;padding:0;list-style:none}
   .pbcard li{font-size:13px;padding:4px 0 4px 13px;border:none;line-height:1.6;position:relative}
   .pbcard li::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;left:1px;top:12px;background:#8ba3c0}
-  .prep-save{display:flex;align-items:center;gap:9px;margin-top:8px;padding:9px 10px;background:#f3f7fb;border:1px solid #dbe5ed;border-radius:10px;min-width:0}
-  .prep-save .save-icon{font-size:18px;flex:none}.prep-save .save-info{min-width:0;flex:1}.prep-save .save-info span{display:block;font-size:10px;font-weight:900;color:#71869b;letter-spacing:.05em}
-  .prep-save .save-info strong{display:block;font-size:12px;color:#314c68;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.prep-save .save-info small{display:block;font-size:10px;color:#8595a5}
-  .prep-save button{flex:none;border:1px solid #b9cbda;background:#fff;color:#315b7a;border-radius:8px;padding:6px 8px;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
   /* AIサポート（会話から疑問・要調査を検出して補足。議事＝青と区別するため黄系） */
   .assist{margin:0; display:none; flex-direction:column; gap:9px}
   .assist.show{display:flex}
@@ -923,7 +917,6 @@
   .modal .cancel{background:#e9e9ed;color:var(--ink);border-color:transparent;border-radius:999px}
   .prep-quick button{background:#fff;border-color:#d2d2d7;color:var(--ink);font-weight:600}.prep-quick button:hover{background:#f0f0f2}
   .smsg.user{background:var(--blue)}.smsg.assistant{border-color:var(--line)}
-  .prep-save{background:#fff;border-color:var(--line);border-radius:14px}.prep-save .save-icon{display:none}
   #deck .ds{background:#fff}#deck .dhead{border-bottom-color:#d2d2d7}#deck .dkick{color:var(--sub)}
   #deck .tree-lines path{stroke:#8e8e93}#deck .tree-node{box-shadow:none;border:1px solid #d2d2d7;color:var(--ink)}
   #deck .tree-node.root{background:var(--ink);color:#fff}#deck .tree-node.branch{background:#e8e8ed}
@@ -1258,7 +1251,11 @@
     <main class="prep-main">
       <div class="chathead">
         <div class="prep-heading"><span class="prep-eyebrow">会議前の壁打ち</span><h2>AIと会議を準備</h2><p>頭にあることをそのまま伝えると、着地点・議題・聞くことを右のブリーフへ整理します。</p></div>
-        <button class="prep-rec" id="preprec"><svg class="inline-icon"><use href="#i-mic"/></svg><span>準備会話を録音</span></button>
+        <div class="prep-tools" aria-label="準備用ツール">
+          <button class="prep-rec" id="preprec"><svg class="inline-icon"><use href="#i-mic"/></svg><span>準備会話を録音</span></button>
+          <button class="linklike" data-proxy="profbtn"><svg class="inline-icon" aria-hidden="true"><use href="#i-mic"/></svg><span>参加者の声を登録</span></button>
+          <button class="linklike" data-proxy="runtimebtn"><svg class="inline-icon" aria-hidden="true"><use href="#i-settings"/></svg><span>マイク・AIの接続診断</span></button>
+        </div>
       </div>
       <section class="prep-chat-panel" aria-labelledby="prepchatheading">
         <div class="prep-section-head"><h3 id="prepchatheading">AIとの壁打ち</h3><span>入力するたび、会議ブリーフも更新</span></div>
@@ -1310,8 +1307,6 @@
         </div>
       </div>
       <section class="brief-board-section" aria-labelledby="prepboardheading"><div class="brief-board-head"><h3 id="prepboardheading">AIが整理した準備</h3><span>壁打ちの内容から自動更新</span></div><div class="brief-board" id="sboard"></div></section>
-      <div class="prep-save" id="spath"></div>
-      <div class="prep-utility"><button class="linklike" data-proxy="profbtn"><svg class="inline-icon" aria-hidden="true"><use href="#i-mic"/></svg><span>参加者の声を登録</span></button><button class="linklike" data-proxy="runtimebtn"><svg class="inline-icon" aria-hidden="true"><use href="#i-settings"/></svg><span>マイク・AIの接続診断</span></button></div>
       </div>
     </aside>
   </div>
@@ -3314,7 +3309,7 @@ async function importNotes(kind){
     const r=await api('/api/import_notes',body);
     hideToast();
     if(r.ok){
-      drawStrategy(r.messages||[], r.board||{}, r.exportPath, r.folderMode);
+      drawStrategy(r.messages||[], r.board||{});
       toast(tr('取り込みました。チャットにAIの理解レポートが届いています（答え合わせをどうぞ）','Imported — check the AI understanding report in the chat.'));
       await pollState();
     }else if(r.msg && r.msg!=='キャンセル'){
@@ -3349,7 +3344,7 @@ function renderProjHint(){
 $('gproj').addEventListener('input',renderProjHint);
 $('gproj').addEventListener('change',renderProjHint);
 // 会議事前準備室：壁打ちと準備ボードを同時更新し、選択フォルダ＋ライブAIに反映
-let strategyExportPath='',strategyFolderMode=false,prepBoardCache={};
+let prepBoardCache={};
 function drawPrepBoard(board){
   const b=board||{};prepBoardCache=b;const list=(title,a)=>a&&a.length?`<div class="pbcard"><div class="pbt">${title}</div><ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
   let h='';
@@ -3372,32 +3367,17 @@ function drawPrepBoard(board){
   $('sboard').querySelectorAll('[data-prep-question-add]').forEach(x=>x.onclick=async()=>{const text=prompt(tr('追加する質問を入力してください','Enter a question'));if(text&&text.trim()&&await meetingFlowAction('question.create',{agendaId:x.dataset.prepQuestionAdd,text:text.trim()}))drawPrepBoard(prepBoardCache)});
   $('sboard').querySelectorAll('[data-prep-question-accept]').forEach(x=>x.onclick=async()=>{if(await meetingFlowAction('question.accept',{questionId:x.dataset.prepQuestionAccept}))drawPrepBoard(prepBoardCache)});
 }
-function drawStrategy(msgs,board,exportPath,folderMode){
+function drawStrategy(msgs,board){
   const a=msgs||[];
   $('slog').innerHTML=a.length ? a.map(x=>`<div class="smsg ${x.role==='user'?'user':'assistant'}">${esc(x.text||'')}</div>`).join('')
     : `<div class="smsg assistant">${tr('今回の会議について、頭にあることをそのまま話してください。整理しながら、仮説や別の切り口を返します。','Tell me what you have in mind for this meeting. I will organize it and suggest hypotheses and alternative angles.')}</div>`;
   $('slog').scrollTop=$('slog').scrollHeight;
   drawPrepBoard(board||{});
-  if(exportPath!==undefined) strategyExportPath=exportPath||'';
-  if(folderMode!==undefined) strategyFolderMode=!!folderMode;
-  if(strategyExportPath){
-    const project=(curProj||'').split('/').filter(Boolean).pop()||tr('選択フォルダ','Selected folder');
-    const meeting=strategyExportPath.split('/').filter(Boolean).pop().replace(/^\d{8}-\d{6}\s+/, '');
-    $('spath').innerHTML=`<div class="save-info"><span>${strategyFolderMode?tr('AI資料参照 ON · 自動更新先','AI source access ON · Auto-save location'):tr('自動更新先','Auto-save location')}</span><strong>${esc(project+' › '+tr('会議準備','Meeting prep')+' › '+meeting)}</strong><small>${tr('事前準備.md を毎回更新','Updates meeting-prep.md after every message')}</small></div><button onclick="openStrategyFolder()">${tr('Finderで開く','Open folder')}</button>`;
-    $('spath').title=strategyExportPath+'/事前準備.md';
-  }else{
-    $('spath').innerHTML=`<div class="save-info"><span>${tr('保存先','Save location')}</span><strong>${tr('背景フォルダが未設定です','No context folder selected')}</strong><small>${tr('設定すると事前準備.mdを自動更新','Select one to auto-update meeting-prep.md')}</small></div><button onclick="openGoalFromPrep()">${tr('設定する','Set up')}</button>`;
-    $('spath').title='';
-  }
 }
-async function openStrategyFolder(){
-  const r=await api('/api/strategy_open',{}); toast(r.ok?tr('保存先をFinderで開きました','Opened the save location.'):tr('開けません：','Could not open it: ')+localizeMessage(r.msg||''));
-}
-function openGoalFromPrep(){ setPhase('prep'); setTimeout(()=>$('ggoal').focus(),80); }
 // 準備フェーズに入るたびにチャット履歴と準備ボードを読み込む（旧コパイロットモーダルの中身）
 async function loadCopilot(){
-  drawStrategy([],{},'',false);
-  try{ const r=await api('/api/strategy?sid='+encodeURIComponent(currentSessionId)); if(r.ok) drawStrategy(r.messages||[],r.board||{},r.exportPath||'',r.folderMode); }catch(e){}
+  drawStrategy([],{});
+  try{ const r=await api('/api/strategy?sid='+encodeURIComponent(currentSessionId)); if(r.ok) drawStrategy(r.messages||[],r.board||{}); }catch(e){}
 }
 function strategyRequestsUrl(message){return /(?:この|以下の|次の)\s*URL\s*(?:を|も)?\s*(?:調べ|確認|読)|(?:research|check|review)\s+(?:this\s+|the\s+following\s+)?url/i.test(message)}
 function strategyHasUrl(message){return /https?:\/\/[^\s<>"'）】]+/i.test(message)}
@@ -3456,7 +3436,7 @@ $('ssend').onclick=async()=>{
   try{
     const r=await api('/api/strategy',{sid:currentSessionId,message,jobId});
     if(r.ok){
-      drawStrategy(r.messages||[],r.board||{},r.exportPath,r.folderMode);
+      drawStrategy(r.messages||[],r.board||{});
       await pollState();
     }
     else { $('sthinking').textContent=tr('失敗：','Failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')); }

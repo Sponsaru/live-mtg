@@ -340,6 +340,11 @@ assert '汎用的な「結論を確定」' not in html and '>結論を確定<' n
 assert 'renderConfirm' in html and '"confirm"' in server, "live interpretation checks (confirm) must stay wired"
 assert 'id="importfile"' in html and '/api/import_notes' in server, "prep notes import must stay wired"
 assert 'id="preprec"' in html and "if(capturing)doStop();else openRecordingSetup('prep')" in html and 'id="sreset"' not in html
+prep_tools = html[html.index('<div class="prep-tools"'):html.index('</div>', html.index('<div class="prep-tools"'))]
+assert all(token in prep_tools for token in ('id="preprec"', 'data-proxy="profbtn"', 'data-proxy="runtimebtn"')), \
+    "prep recording, voice enrollment, and diagnostics must share the top action group"
+assert 'id="spath"' not in html and '背景フォルダが未設定です' not in html, \
+    "prep must not show a redundant save-location footer"
 assert all(token in html for token in ("speaker-review", "speaker-in", "speakerMap", "hftoken")), \
     "polishing must review anonymous speakers before assigning names"
 assert "hasSavedAnswer?answers[id]:(x.guess||'')" in html and "const resolved=hasSavedAnswer&&" in html, \
