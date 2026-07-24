@@ -288,6 +288,11 @@ assert all(token in html for token in (
     "$('mcancel').onclick = async ()=>{ startupPending=false;", 'await pollMeetingContent()',
     'if(recording){ startupPending=false; await pollMeetingContent(); return; }'
 )), "the existing agenda board must load immediately with data.json after startup and session transitions"
+assert all(token in html for token in (
+    'class="modal-import-audio" id="mimportaudio"',
+    '#mbg .row button{flex:1;white-space:nowrap;justify-content:center;text-align:center}',
+    '終了済みの録音ファイルから作る'
+)), "finished-recording import must stay separate from the two-button new-meeting action row"
 assert ".flow-visual-list{display:none}" in html and \
        ".visual-sheet>.visual-scroll>.summary,.visual-sheet>.visual-scroll>.grid{display:none!important}" not in html, \
     "the Organize view must keep showing the complete legacy data.json summary"

@@ -677,7 +677,10 @@
   .fnote{color:var(--sub);font-size:14px;padding:6px 0}
   .modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
   .modal .row button{font-family:inherit;font-size:15px;font-weight:800;border:none;border-radius:10px;
-    padding:10px 18px;cursor:pointer}
+    padding:10px 18px;cursor:pointer;min-width:0}
+  .modal-import-audio{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin-top:14px;border:1px solid #cfd1d6;border-radius:10px;background:#f5f5f7;color:var(--ink);padding:10px 14px;font:750 15px/1.35 inherit;cursor:pointer}
+  .modal-import-audio:hover{background:#eaeaee}.modal-import-audio .inline-icon{width:19px;height:19px;flex:none}
+  #mbg .row button{flex:1;white-space:nowrap;justify-content:center;text-align:center}
   .modal .ok{background:var(--blue);color:#fff}
   .modal .cancel{background:#eef3f7;color:var(--sub)}
   #diagbg .modal{box-sizing:border-box;width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
@@ -1365,8 +1368,8 @@
     <h3>新しい会議を始める</h3>
     <p>いま録音中なら停止し、新しい会議として整理を始めます。用途・目標・背景フォルダは作成後の「準備」で設定できます。</p>
     <input id="mtitle" placeholder="会議名（例：DX部 定例 7/9）" autocomplete="off">
+    <button class="modal-import-audio" id="mimportaudio"><svg class="inline-icon" aria-hidden="true"><use href="#i-file"/></svg><span>終了済みの録音ファイルから作る</span></button>
     <div class="row">
-      <button class="cancel" id="mimportaudio"><svg class="inline-icon" aria-hidden="true"><use href="#i-file"/></svg>録音から作る</button>
       <button class="cancel" id="mcancel">キャンセル</button>
       <button class="ok" id="mok">開始</button>
     </div>
@@ -1582,7 +1585,7 @@ const EN_TEXT=new Map([
   ['共有用資料の形式','Shareable output format'],['会議ペーパー','Meeting paper'],['A4・1〜4ページ｜読む・配る','A4, 1–4 pages | Read and share'],
   ['プレゼン用スライド','Presentation slides'],['16:9｜投影して説明する','16:9 | Present and explain'],['ペーパーを作る','Create paper'],
   ['スライドを作る','Create slides'],['ペーパー保存済み','Paper saved'],['スライド作成済み','Slides ready'],['2形式完成','Both ready'],
-  ['終了済みの録音から会議を作る','Create a meeting from a recording'],['録音ファイルを選ぶ','Choose recording'],['録音から作る','Create from recording'],
+  ['終了済みの録音から会議を作る','Create a meeting from a recording'],['録音ファイルを選ぶ','Choose recording'],['終了済みの録音ファイルから作る','Create from a finished recording'],
   ['m4a・mp3・wav・webmなどの録音を取り込み、文字起こし後に議題・決定・次の行動と可視化を自動作成します。','Import m4a, mp3, wav, webm, and other recordings to automatically create a transcript, agendas, decisions, next actions, and visualizations.'],
   ['会議の事実をあなたの立場と着地点に照らし、客観的な示唆、見落とした視点、次回までに進めることを整理します。','Review the meeting facts through your role and desired outcome to identify objective insights, missed perspectives, and next actions.'],
   ['推奨の順番：高精度清書（話者名・固有名詞の確認つき）→ 学びの抽出 → 学びを含む議事録PDF。','Suggested order: polished conversation (with speaker and term checks) → learnings → minutes PDF including those learnings.'],
