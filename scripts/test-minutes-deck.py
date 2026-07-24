@@ -37,6 +37,10 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-minutes-") as raw:
         "todos": [{"who": "佐藤", "what": "資料を送る", "due": "金曜"}],
         "points": ["回答A", "清書だけの追加論点"],
         "open": ["未解決A", "清書だけの追加確認"],
+        "conversationMap": {"status": "final", "basis": "ai_estimated_volume", "types": [
+            {"type": "進捗・事実共有", "share": 65, "topics": [{"label": "開発進捗"}]},
+            {"type": "意思決定・合意形成", "share": 35, "topics": [{"label": "試作判断"}]},
+        ]},
         "diagram": "flowchart LR\n  A[現状を把握] -->|課題を特定| B[対応案を比較]\n  B -->|合意| C[試作する]",
     }
     flow = {
@@ -68,6 +72,11 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-minutes-") as raw:
 
     compact = generate(folder, maps=True)
     assert compact.count('class="sheet') == 4, "rich minutes with maps must use four pages"
+    first_start = compact.index('<div class="sheet')
+    first_end = compact.index('<div class="sheet', first_start + 1)
+    first_page = compact[first_start:first_end]
+    assert "決定A" in first_page and "清書だけの追加決定" in first_page and '<h2>1. 結論</h2>' in first_page, \
+        "the paper opening must show multiple conclusions when the meeting produced them"
     for expected in ("会議成果", "学びと次の一手", "議題ごとの記録", "会議の全体図", "詳細議事録に収録"):
         assert expected in compact, "compact minutes lost: %s" % expected
     assert 'src="minutes-map-radial.png"' in compact and 'src="minutes-map-relation.png"' in compact
@@ -90,6 +99,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-minutes-") as raw:
     assert "result-card" not in doc and "overview-grid" not in doc and "mermaid" not in doc
     assert 'class="radial-center"' in doc and 'class="relation-row"' in doc, \
         "radial and relationship maps must be embedded in the minutes"
+    for expected in ("会話タイプ別の構成", "進捗・事実共有 65%", "意思決定・合意形成 35%"):
+        assert expected in doc, "conversation-type radial map lost: %s" % expected
     for expected in ("現状を把握", "課題を特定", "対応案を比較", "合意"):
         assert expected in doc, "relationship map lost: %s" % expected
     assert '<!-- slide-worker-browser-editor:begin -->' in doc

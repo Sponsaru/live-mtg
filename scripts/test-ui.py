@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Guard meeting-critical UI against accidental text truncation."""
 
+import json
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -127,6 +131,32 @@ assert all(token in slides for token in (
 assert 'str(data.get("diagram") or "").strip()' in mindmap, "generated Mermaid must preserve line breaks"
 assert 'radial_lines = ["mindmap"' in mindmap and 'data-generated-map="radial"' in mindmap, \
     "generated output must contain the separate radial mind map"
+assert all(token in html for token in ("conversationTypes", "conversation-balance", "会話の配分", "会話の構成")), \
+    "the live/final radial map must visualize conversation types and their shares"
+assert all(token in mindmap for token in ("conversationMap", "radial_branches", "generated-conversation-balance")), \
+    "the saved radial artifact must preserve the same conversation-type semantics"
+finalize_route = server[server.index('if p == "/api/finalize"'):server.index('if p == "/api/finalize_prep"')]
+assert "_ensure_mindmap_artifact(sid" in finalize_route and "mindmap refresh failed" in finalize_route, \
+    "successful re-polishing must immediately replace a stale saved map artifact"
+
+# 保存済み成果物を実際に生成し、会話タイプと比率がHTMLまで届くことを固定する。
+with tempfile.TemporaryDirectory(prefix="live-mtg-map-") as raw:
+    folder = Path(raw)
+    (folder / "data.json").write_text(json.dumps({
+        "summary": "会話構成を確認した。",
+        "mindmap": [{"topic": "論点", "groups": [{"label": "内容", "items": [{"label": "論点A"}]}]}],
+        "conversationMap": {"status": "final", "types": [
+            {"type": "進捗・事実共有", "share": 70, "topics": [{"label": "開発進捗", "summary": "実装状況を共有"}]},
+            {"type": "意思決定・合意形成", "share": 30, "topics": [{"label": "採用判断", "summary": "案Aを採用"}]},
+        ]},
+    }, ensure_ascii=False), encoding="utf-8")
+    result = subprocess.run(["python3", str(ROOT / "make-mindmap.py")],
+                            env=dict(os.environ, SDIR=str(folder), TITLE="構成テスト会議"),
+                            capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr or result.stdout
+    generated = (folder / "mindmap.html").read_text(encoding="utf-8")
+    for token in ("会話の構成", "進捗・事実共有 70%", "意思決定・合意形成 30%", "generated-conversation-balance"):
+        assert token in generated, "generated radial artifact lost: %s" % token
 assert 'grid-template-columns:minmax(0,1fr) minmax(410px,500px)' in html, "prep layout must keep chat dominant with a readable brief sidebar"
 assert 'id="siderail" hidden aria-hidden="true"' in html and 'id="railtoggle" title="支援レールを開閉" hidden' in html, \
     "the former permanent support rail must no longer occupy the live layout"
@@ -370,8 +400,13 @@ assert all(token in html for token in ("Claudeでスライドを生成中です"
 assert all(token in server for token in ('"hasDeckPdf"', 'p == "/deck.pdf"', '"slides.pdf"',
                                           "local_html=os.path.join(sdir(sid), \"slides.html\")")), \
     "presentation slide generation must also create and serve a PDF artifact"
-assert all(token in html for token in ('id="rvbtn-deck-pdf"', "'/deck.pdf?ts='")), \
-    "the review UI must expose the generated presentation PDF"
+assert all(token in html for token in ('id="rvbtn-deck-pdf"', "'/deck.pdf?ts='", "スライドPDFを作る")) \
+    and 'id="rvbtn-deck-open"' not in html and "window.open('/deck.html" not in html, \
+    "presentation slides must expose only the PDF, never a separate HTML viewer"
+assert all(token in server for token in ('deck = os.path.join(folder, "slides.pdf")',
+                                          'os.remove(os.path.join(sdir(sid), "slides.html"))',
+                                          '"url": "/deck.pdf?ts=')) and '"deck_html"' not in server, \
+    "slides.html must remain a temporary PDF-conversion input, not a published artifact"
 assert all(token in server for token in ("PREP_AUTO_CONFIDENCE", "PREP_AUTO_REPLACE_CONFIDENCE", "PREP_MACHINE_REVIEW_LIMIT",
                                           "_prepare_prep_review", '"auto": True')), \
     "high-confidence review answers must be prefilled while machine fallback noise stays bounded"

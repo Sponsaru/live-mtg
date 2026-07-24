@@ -71,6 +71,25 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
     assert saved["diagram"].startswith("flowchart LR")
     assert any(x.get("topic") == "detail topic" for x in saved["mindmap"])
 
+    # 会話タイプは固定8分類へ閉じ、ライブ中は分類済み発話の文字量から比率を積算する。
+    classified = server._normalize_fast_patch(
+        {"summary": "進み具合を共有", "conversationType": "進捗共有"}, "進捗を共有します" * 8)
+    server._merge_patch_to_disk(sid, classified, "12:00:01")
+    classified = server._normalize_fast_patch(
+        {"summary": "次の担当を決定", "conversationType": "実行計画・役割調整"}, "担当を決めます" * 2)
+    server._merge_patch_to_disk(sid, classified, "12:00:02")
+    conversation = json.loads((meeting / "data.json").read_text(encoding="utf-8"))["conversationMap"]
+    assert conversation["status"] == "provisional" and conversation["basis"] == "character_volume"
+    assert sum(row["share"] for row in conversation["types"]) == 100
+    assert conversation["types"][0]["type"] == "進捗・事実共有"
+    final_mix = server._conversation_map({"types": [
+        {"type": "報告", "share": 67, "topics": ["開発進捗"]},
+        {"type": "意思決定", "share": 33, "topics": [{"label": "採用判断", "summary": "案を採用"}]},
+        {"type": "AIが作った未知分類", "share": 90},
+    ]})
+    assert [row["type"] for row in final_mix["types"]] == ["進捗・事実共有", "意思決定・合意形成"]
+    assert sum(row["share"] for row in final_mix["types"]) == 100
+
     # Transcription receipt is visible before AI returns and is marked only after its range is analyzed.
     server._write_live_receipt(sid, "いま届いた発話", 12)
     receipt = json.loads((meeting / "data.json").read_text(encoding="utf-8"))["liveReceipt"]
@@ -151,6 +170,7 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-parallel-") as tmp:
 
 source = Path(server.__file__).read_text(encoding="utf-8")
 assert "議題の追加・状態・合意・結果分類は別レーン" in server._compact_fast_prompt("会議", "発話", {})
+assert "conversationType" in server._compact_fast_prompt("会議", "発話", {})
 assert "進行ボードだけ" in server._compact_flow_prompt("会議", "発話", {})
 assert "mindmap_add" not in server.LIVE_PATCH_PROMPT
 assert '"relation"' in server.LIVE_PATCH_PROMPT and "_normalize_fast_patch" in source

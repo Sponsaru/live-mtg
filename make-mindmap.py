@@ -23,6 +23,10 @@ def label(value, limit=54):
 def full(value):
     return re.sub(r"\s+", " ", str(value or "")).strip()
 
+def number(value):
+    try: return float(value or 0)
+    except (TypeError, ValueError): return 0
+
 def headline(value):
     value = full(value)
     first = re.split(r"[、。:：]", value, maxsplit=1)[0].strip()
@@ -126,15 +130,53 @@ def mermaid_label(value):
     value = re.sub(r'[\r\n\[\](){}"#]+', ' ', str(value or ""))
     return re.sub(r"\s+", " ", value).strip()[:42] or tr("未整理", "Unsorted")
 
-# 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目）
-radial_lines = ["mindmap", "  root((%s))" % mermaid_label(title)]
-for i, (heading, groups) in enumerate(branches[:8]):
+conversation_map = data.get("conversationMap") if isinstance(data.get("conversationMap"), dict) else {}
+conversation_types = [x for x in (conversation_map.get("types") or [])
+                      if isinstance(x, dict) and full(x.get("type")) and number(x.get("share")) > 0]
+radial_branches = []
+for row in conversation_types[:8]:
+    groups = []
+    for topic in (row.get("topics") or [])[:4]:
+        if isinstance(topic, dict):
+            topic_label = full(topic.get("label") or topic.get("topic"))
+            summary = full(topic.get("summary") or topic.get("detail"))
+        else:
+            topic_label, summary = full(topic), ""
+        if topic_label:
+            groups.append({"label": topic_label, "items": [{"label": summary or tr("このタイプの会話", "Conversation of this type")} ]})
+    examples = [full(x) for x in (row.get("examples") or []) if full(x)]
+    if examples:
+        groups.append({"label": tr("代表的な発言", "Representative remarks"),
+                       "items": [{"label": x} for x in examples[:3]]})
+    radial_branches.append(("%s %d%%" % (full(row.get("type")), int(row.get("share") or 0)), groups))
+if not radial_branches:
+    radial_branches = branches
+
+# 論点マップと役割を分け、放射マップは会話タイプ→具体話題→代表内容を描く。
+radial_lines = ["mindmap", "  root((%s))" % mermaid_label(tr("会話の構成", "Conversation mix") if conversation_types else title)]
+for i, (heading, groups) in enumerate(radial_branches[:8]):
     radial_lines.append('    b%d["%s"]' % (i, mermaid_label(heading)))
     for j, group in enumerate(groups[:4]):
         radial_lines.append('      b%dg%d["%s"]' % (i, j, mermaid_label(group.get("label"))))
         for k, item in enumerate((group.get("items") or [])[:5]):
             radial_lines.append('        b%dg%di%d["%s"]' % (i, j, k, mermaid_label(item.get("label") if isinstance(item, dict) else item)))
 radial_diagram = "\n".join(radial_lines)
+palette = ["#1769c2", "#7552a3", "#168077", "#98600a", "#bc3d46", "#4472a8", "#7d6c9c", "#5e7d68"]
+balance = ""
+if conversation_types:
+    segments = "".join('<span style="width:%d%%;--seg-color:%s" title="%s %d%%"></span>' %
+                       (int(row.get("share") or 0), palette[i % len(palette)],
+                        html.escape(full(row.get("type")), quote=True), int(row.get("share") or 0))
+                       for i, row in enumerate(conversation_types))
+    legend = "".join('<b style="--seg-color:%s">%s %d%%</b>' %
+                     (palette[i % len(palette)], html.escape(full(row.get("type"))), int(row.get("share") or 0))
+                     for i, row in enumerate(conversation_types))
+    insights = "".join("<em>%s</em>" % html.escape(full(value))
+                       for value in (conversation_map.get("insights") or [])[:3] if full(value))
+    state = tr("清書後の推定", "Final estimate") if conversation_map.get("status") == "final" else tr("録音中の暫定値", "Live estimate")
+    balance = '<div class="generated-conversation-balance"><div><strong>%s</strong><small>%s</small></div><p>%s</p><section>%s</section>%s</div>' % (
+        tr("会話の配分", "Conversation balance"), state, segments, legend,
+        ('<aside>%s</aside>' % insights) if insights else "")
 
 
 body = '''<div class="slide mindmap-page">
@@ -142,7 +184,7 @@ body = '''<div class="slide mindmap-page">
     <div class="generated-maptools"><button data-generated-map="topics">%s</button><button data-generated-map="radial">%s</button><button data-generated-map="relation">%s</button><button data-generated-map="timeline">%s</button></div>
   </div>
   <div class="stage">
-    <div class="generated-map-view generated-radial" data-generated-view="radial"><div class="mermaid">%s</div></div>
+    <div class="generated-map-view generated-radial" data-generated-view="radial">%s<div class="mermaid">%s</div></div>
     <div class="generated-map-view generated-relation" data-generated-view="relation"><div class="mermaid">%s</div></div>
     <div class="generated-map-view generated-topics" data-generated-view="topics"><div class="tree-map" data-tree>
     <svg class="tree-lines" aria-hidden="true"></svg>
@@ -153,7 +195,7 @@ body = '''<div class="slide mindmap-page">
   </div>
 </div>''' % (html.escape(title), tr("マインドマップ・放射マップ・会話の関係・時系列", "Mind map, radial map, relationships, and timeline"),
              tr("マインドマップ", "Mind map"), tr("放射マップ", "Radial map"), tr("会話の関係", "Conversation relationships"), tr("時系列", "Timeline"),
-             html.escape(radial_diagram), html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
+             balance, html.escape(radial_diagram), html.escape(diagram), node(label(title, 32), "root", "root"), "".join(rows),
              "".join(timeline_rows) or '<div class="generated-empty">%s</div>' % tr("発言を整理中です", "Organizing the conversation"))
 
 

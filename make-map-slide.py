@@ -80,8 +80,28 @@ def relation_items(diagram):
 
 
 if VIEW == "radial":
-    # mermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目）
-    topics = [t for t in (data.get("mindmap") or []) if isinstance(t, dict) and t.get("topic")]
+    # 清書後は会話タイプ別の配分を正本にする。旧会議だけ従来の論点構造へフォールバック。
+    conversation = data.get("conversationMap") if isinstance(data.get("conversationMap"), dict) else {}
+    conversation_types = [row for row in (conversation.get("types") or [])
+                          if isinstance(row, dict) and row.get("type") and float(row.get("share") or 0) > 0]
+    topics = []
+    for row in conversation_types[:8]:
+        groups = []
+        for topic in (row.get("topics") or [])[:4]:
+            if isinstance(topic, dict):
+                topic_label = item_text(topic.get("label") or topic.get("topic"))
+                summary = item_text(topic.get("summary") or topic.get("detail"))
+            else:
+                topic_label, summary = item_text(topic), ""
+            if topic_label:
+                groups.append({"label": topic_label, "items": [summary or tr("このタイプの会話", "Conversation of this type")]})
+        examples = [item_text(value) for value in (row.get("examples") or []) if item_text(value)]
+        if examples:
+            groups.append({"label": tr("代表的な発言", "Representative remarks"), "items": examples[:3]})
+        topics.append({"topic": "%s %d%%" % (item_text(row.get("type")), int(row.get("share") or 0)),
+                       "groups": groups})
+    if not topics:
+        topics = [t for t in (data.get("mindmap") or []) if isinstance(t, dict) and t.get("topic")]
     if not topics:
         # 現在の正本は meeting-flow.json。旧mindmap配列がない会議も、
         # 議題と整理済み結果から同じ放射構造を復元する。
@@ -100,7 +120,7 @@ if VIEW == "radial":
             topics.append({"topic": str(agenda.get("title") or "").strip(), "groups": groups})
     if not topics:
         sys.exit(tr("マインドマップの素材がまだありません", "No mind map content yet"))
-    lines = ["mindmap", "  root((%s))" % mermaid_label(TITLE)]
+    lines = ["mindmap", "  root((%s))" % mermaid_label(tr("会話の構成", "Conversation mix") if conversation_types else TITLE)]
     for i, t in enumerate(topics[:8]):
         lines.append('    b%d["%s"]' % (i, mermaid_label(t.get("topic"))))
         for j, g in enumerate((t.get("groups") or [])[:4]):

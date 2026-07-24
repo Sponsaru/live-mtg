@@ -683,7 +683,7 @@
   #mbg .row button{flex:1;white-space:nowrap;justify-content:center;text-align:center}
   .modal .ok{background:var(--blue);color:#fff}
   .modal .cancel{background:#eef3f7;color:var(--sub)}
-  .delete-modal{width:min(500px,calc(100vw - 32px));padding:28px}.delete-modal-head{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;margin-bottom:17px}.delete-modal-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:#fff0f1;color:#b4232f}.delete-modal-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.delete-modal .delete-modal-head h3{font-size:22px;margin:0}.delete-modal .delete-modal-head p{margin:3px 0 0;font-size:14px;line-height:1.5}.delete-meeting-name{padding:12px 14px;border:1px solid #d6d7db;border-radius:11px;background:#f5f5f7;font-size:17px;font-weight:720;line-height:1.5;overflow-wrap:anywhere}.delete-targets{margin:15px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 15px;list-style:none;color:#55585e;font-size:14px;font-weight:600}.delete-targets li{position:relative;padding-left:15px}.delete-targets li::before{content:"";position:absolute;left:0;top:.65em;width:6px;height:6px;border-radius:50%;background:#a8abb1}.delete-warning{margin-top:16px;padding:11px 13px;border:1px solid #efb7bc;border-radius:10px;background:#fff5f6;color:#9f2430;font-size:14px;font-weight:720;line-height:1.5}.delete-modal .danger-confirm{background:#c93440;color:#fff}.delete-modal .danger-confirm:hover{background:#ad2631}.delete-modal .row button{justify-content:center;text-align:center}.delete-modal .row button:disabled{opacity:.5;cursor:default}
+  .delete-modal{width:min(500px,calc(100vw - 32px));padding:28px}.delete-modal-head{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;margin-bottom:17px}.delete-modal-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:#fff0f1;color:#b4232f}.delete-modal-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.delete-modal .delete-modal-head h3{font-size:22px;margin:0}.delete-modal .delete-modal-head p{margin:3px 0 0;font-size:14px;line-height:1.5}.delete-meeting-name{padding:12px 14px;border:1px solid #d6d7db;border-radius:11px;background:#f5f5f7;font-size:17px;font-weight:720;line-height:1.5;overflow-wrap:anywhere}.delete-targets{margin:15px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 15px;list-style:none;color:#55585e;font-size:14px;font-weight:600}.delete-targets li{display:flex;align-items:baseline;gap:9px;min-width:0}.delete-targets li::before{content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:#a8abb1;transform:translateY(-.08em)}.delete-warning{margin-top:16px;padding:11px 13px;border:1px solid #efb7bc;border-radius:10px;background:#fff5f6;color:#9f2430;font-size:14px;font-weight:720;line-height:1.5}.delete-modal .danger-confirm{background:#c93440;color:#fff}.delete-modal .danger-confirm:hover{background:#ad2631}.delete-modal .row button{justify-content:center;text-align:center}.delete-modal .row button:disabled{opacity:.5;cursor:default}
   @media(max-width:520px){.delete-modal{padding:22px 18px}.delete-targets{grid-template-columns:1fr}.delete-modal .row{flex-direction:column-reverse}.delete-modal .row button{width:100%}}
   #diagbg .modal{box-sizing:border-box;width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
   .diag-section-title{margin:18px 0 9px;font-size:14px;font-weight:750;letter-spacing:.03em;color:var(--sub)}
@@ -833,6 +833,9 @@
   #deck .tree-map.root-collapsed .tree-branches{display:none}
   /* デッキ内のマップ切替は5タブ（#viewtabs）に統合済み */
   #deck .relation-map,#deck .radial-map{display:none;width:100%;height:100%;align-items:center;justify-content:center;padding:36px 52px 70px}
+  #deck .radial-map{flex-direction:column;gap:18px}
+  #deck .radial-map>.mermaid{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+  .conversation-balance{width:min(980px,94%);flex:none}.conversation-balance-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:7px;font-size:12px;color:var(--sub);font-weight:700}.conversation-balance-head b{font-size:15px;color:var(--ink)}.conversation-balance-track{display:flex;height:14px;overflow:hidden;border-radius:3px;background:#eceef1}.conversation-balance-seg{min-width:3px;background:var(--seg-color)}.conversation-balance-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.conversation-balance-key{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--sub)}.conversation-balance-key::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--seg-color)}.conversation-balance-insights{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.conversation-balance-insights span{padding:4px 8px;border-radius:4px;background:#f1f3f6;color:var(--ink);font-size:12px;font-weight:700}
   #deck .relation-map.on,#deck .radial-map.on{display:flex} #deck .tree-map.off{display:none}
   /* 会話の関係：流れ（subgraph）ごとに縦カラムへ分割して横並び（2026-07-17 依頼者指示） */
   .relflows{display:flex;gap:36px;align-items:flex-start;justify-content:center;width:100%;flex-wrap:wrap}
@@ -1344,11 +1347,11 @@
         <div class="review-copy"><div class="review-title-row"><h3>3. 共有用資料を作る</h3><span class="pc-status" id="rvst-minutes" aria-live="polite">—</span></div><p>同じ会議内容から、読むための会議ペーパーか、投影して説明するスライドを選んで作れます。</p>
           <div class="review-format-picker" role="group" aria-label="共有用資料の形式">
             <button type="button" class="review-format-choice on" id="rvformat-paper" data-output-format="paper" aria-pressed="true"><svg aria-hidden="true"><use href="#i-file"/></svg><span><strong>会議ペーパー</strong><small>A4・1〜4ページ｜読む・配る</small></span></button>
-            <button type="button" class="review-format-choice" id="rvformat-slides" data-output-format="slides" aria-pressed="false"><svg aria-hidden="true"><use href="#i-screen"/></svg><span><strong>プレゼン用スライド</strong><small>16:9｜投影して説明する</small></span></button>
+            <button type="button" class="review-format-choice" id="rvformat-slides" data-output-format="slides" aria-pressed="false"><svg aria-hidden="true"><use href="#i-screen"/></svg><span><strong>プレゼン用スライド</strong><small>16:9 PDF｜投影して説明する</small></span></button>
           </div>
         </div>
         <div class="review-actions review-output-actions" id="rvactions-paper"><button class="pcbtn" id="rvbtn-minutes-open" style="display:none"><svg aria-hidden="true"><use href="#i-file"/></svg><span>開く</span></button><button class="pcbtn" id="rvbtn-minutes-pdf"><svg aria-hidden="true"><use href="#i-print"/></svg><span>ペーパーを作る</span></button></div>
-        <div class="review-actions review-output-actions" id="rvactions-slides" hidden><button class="pcbtn" id="rvbtn-deck-open" style="display:none"><svg aria-hidden="true"><use href="#i-screen"/></svg><span>開く</span></button><button class="pcbtn" id="rvbtn-deck-pdf" style="display:none"><svg aria-hidden="true"><use href="#i-file"/></svg><span>PDFを開く</span></button><button class="pcbtn" id="rvbtn-deck-generate"><svg aria-hidden="true"><use href="#i-refresh"/></svg><span>スライドを作る</span></button></div>
+        <div class="review-actions review-output-actions" id="rvactions-slides" hidden><button class="pcbtn" id="rvbtn-deck-pdf" style="display:none"><svg aria-hidden="true"><use href="#i-file"/></svg><span>開く</span></button><button class="pcbtn" id="rvbtn-deck-generate"><svg aria-hidden="true"><use href="#i-refresh"/></svg><span>スライドPDFを作る</span></button></div>
       </article>
     </div>
   </div>
@@ -2180,8 +2183,8 @@ function applyState(s){
   $('slides').title = hasSlides ? tr('生成済みマインドマップをすぐ開く','Open the generated mind map') : tr('この会議を1画面のマインドマップに変換','Turn this meeting into a one-page mind map');
   $('regen').style.display = hasSlides ? '' : 'none';
   hasDeck = !!s.hasDeck;
-  setMenuLabel('deckbtn',hasDeck ? tr('スライドを開く','Open slides') : tr('スライド化','Create slides'));
-  $('deckbtn').title = hasDeck ? tr('生成済みスライドデッキをすぐ開く','Open the generated slide deck') : tr('この会議を経営者向けスライドデッキに変換','Turn this meeting into an executive slide deck');
+  setMenuLabel('deckbtn',hasDeck ? tr('スライドPDFを開く','Open slide PDF') : tr('スライドPDF化','Create slide PDF'));
+  $('deckbtn').title = hasDeck ? tr('生成済みスライドPDFを開く','Open the generated slide PDF') : tr('この会議をプレゼン用スライドPDFに変換','Turn this meeting into a presentation PDF');
   $('deckregen').style.display = hasDeck ? '' : 'none';
   // 清書ボタン：保存音声があれば押せる。清書済みなら表示を変える
   $('final').disabled = !s.hasAudio;
@@ -2564,13 +2567,13 @@ function todayStr(){ const d=new Date();
 function activeView(){return view==='list'?'list':mindmapMode;}
 function deckSignature(d){
   if(view!=='slide')return '';
-  const key=mindmapMode==='tree'||mindmapMode==='radial'?'map':mindmapMode;
+  const key=mindmapMode;
   if(key==='relation')return JSON.stringify([key,d&&d.diagram,d&&d.relations]);
   // 時系列は全体をstringifyせず件数＋末尾＋サーバ更新時刻で変化検知（長い会議でも署名が軽い）。
   // _viewUpdatedAt.timeline を含める理由：話者分離が過去エントリのwhoだけ後から書き換えるため、
   // 件数と末尾だけでは「話者確認中→実名」の更新を取りこぼす（2026-07-20 レビューで発覚）
   if(key==='timeline'){const tl=(d&&d.timeline)||[],lg=(d&&d.log)||[],vu=(d&&d._viewUpdatedAt)||{};return JSON.stringify([key,tl.length,tl[tl.length-1],lg.length,vu.timeline||0]);}
-  return JSON.stringify([key,d&&d.mindmap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
+  return JSON.stringify([key,d&&d.mindmap,d&&d.conversationMap,d&&d.preparation,d&&d.summary,d&&d.points,d&&d.decisions,d&&d.todos,d&&d.open]);
 }
 function deckHeight(){
   // ボトムシート内の利用可能高に合わせる。閉じている間はキャッシュDOMを維持するだけ。
@@ -2664,15 +2667,20 @@ function buildDeck(d){
   const tlHidden=Math.max(0,tlAll.length-timelinePage);
   const tlMore=tlHidden>0?`<button class="timeline-more" onclick="showMoreTimeline()">${tr('以前の発言を表示','Show earlier')}（${tr('残り','')}${tlHidden}${tr('件','')}）</button>`:'';
   const timeline=tlMore+tlAll.slice(-timelinePage).map((x,i)=>`<div class="timeline-item"><span class="timeline-dot"></span><span class="timeline-at">${esc(x.at||String(i+1).padStart(2,'0'))}</span><div class="timeline-card"><div class="timeline-who">${esc(x.who||tr('不明','Unknown'))}</div><div class="timeline-text">${esc(x.text||'')}</div></div></div>`).join('');
-  // 放射マップはmermaid版（2026-07-17 依頼者決定：多少の重なりは許容して従来の見た目に戻す）
+  // 放射マップは論点の再掲ではなく、会話タイプ別の配分と具体的内容を示す。
+  const conversationTypes=d.conversationMap&&Array.isArray(d.conversationMap.types)?d.conversationMap.types.filter(x=>Number(x.share)>0):[];
+  const radialBranches=conversationTypes.length?conversationTypes.slice(0,8).map(x=>[`${itemText(x.type)} ${Number(x.share)||0}%`,(Array.isArray(x.topics)?x.topics:[]).slice(0,4).map(t=>({label:itemText(t.label||t.topic),items:[{label:itemText(t.summary)||tr('このタイプの会話','Conversation of this type')}]})).concat((x.examples||[]).length?[{label:tr('代表的な発言','Representative remarks'),items:(x.examples||[]).slice(0,3).map(v=>({label:itemText(v)}))}]:[]) ]):branches;
   const mmLabel=v=>itemText(v).replace(/[\r\n\[\](){}"#]/g,' ').replace(/\s+/g,' ').trim().slice(0,42)||tr('未整理','Unsorted');
-  const radial=['mindmap',`  root((${mmLabel(meetingTitle||tr('会議','Meeting'))}))`];
-  branches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,4).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,5).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
+  const radial=['mindmap',`  root((${mmLabel(conversationTypes.length?tr('会話の構成','Conversation mix'):(meetingTitle||tr('会議','Meeting')))}))`];
+  radialBranches.slice(0,8).forEach(([name,groups],i)=>{radial.push(`    b${i}["${mmLabel(name)}"]`);(groups||[]).slice(0,5).forEach((g,j)=>{radial.push(`      b${i}g${j}["${mmLabel(g.label)}"]`);(g.items||[]).slice(0,4).forEach((x,k)=>radial.push(`        b${i}g${j}i${k}["${mmLabel(x&&typeof x==='object'?(x.label||x.detail):x)}"]`));});});
+  const palette=['var(--viz-blue)','var(--viz-purple)','var(--viz-teal)','var(--viz-amber)','var(--viz-red)','#4472a8','#7d6c9c','#5e7d68'];
+  const balanceInsights=d.conversationMap&&Array.isArray(d.conversationMap.insights)?d.conversationMap.insights.slice(0,3):[];
+  const balance=conversationTypes.length?`<div class="conversation-balance"><div class="conversation-balance-head"><b>${tr('会話の配分','Conversation balance')}</b><span>${d.conversationMap.status==='final'?tr('清書後の推定','Final estimate'):tr('録音中の暫定値','Live estimate')}</span></div><div class="conversation-balance-track">${conversationTypes.map((x,i)=>`<span class="conversation-balance-seg" style="width:${Number(x.share)||0}%;--seg-color:${palette[i%palette.length]}" title="${esc(itemText(x.type))} ${Number(x.share)||0}%"></span>`).join('')}</div><div class="conversation-balance-legend">${conversationTypes.map((x,i)=>`<span class="conversation-balance-key" style="--seg-color:${palette[i%palette.length]}">${esc(itemText(x.type))} ${Number(x.share)||0}%</span>`).join('')}</div>${balanceInsights.length?`<div class="conversation-balance-insights">${balanceInsights.map(x=>`<span>${esc(itemText(x))}</span>`).join('')}</div>`:''}</div>`:'';
 
   $('deck').innerHTML=ds('mindmap-slide', `<div class="dstage"><div class="zoomwrap"><div class="timeline-map">${timeline||`<div class="timeline-empty">${tr('会話が入ると、上から下へ時系列で追加されます','Conversation will appear here chronologically from top to bottom.')}</div>`}</div><div class="tree-map off" data-tree><svg class="tree-lines"></svg>
       <div class="tree-root-wrap"><div class="tree-node root" data-node-id="root">${esc(ml(meetingTitle||tr('会議','Meeting'),32))}</div></div>
       <div class="tree-branches">${rows}</div></div>
-      <div class="radial-map"><div class="mermaid">${esc(radial.join('\n'))}</div></div>
+      <div class="radial-map">${balance}<div class="mermaid">${esc(radial.join('\n'))}</div></div>
       <div class="relation-map"><div class="mermaid">${esc(d.diagram||tr('flowchart LR\n  A[会話の関係を整理中]','flowchart LR\n  A[Analyzing relationships]'))}</div></div></div></div>
       <div class="timeline-jumps"><button type="button" onclick="jumpTimeline('top')" aria-label="${tr('時系列の一番上へ','Go to the start of the timeline')}">↑ ${tr('一番上','Top')}</button><button type="button" onclick="jumpTimeline('bottom')" aria-label="${tr('時系列の一番下へ','Go to the end of the timeline')}">↓ ${tr('一番下','Bottom')}</button></div>`);
   applyDeckZoom();
@@ -3250,7 +3258,6 @@ async function exportPdf(btn, path, body, cancelKind){
 }
 $('rvbtn-minutes-pdf').onclick=()=>exportPdf($('rvbtn-minutes-pdf'),'/api/minutes_pdf',{},'minutespdf');
 $('rvbtn-minutes-open').onclick=()=>window.open('/minutes.pdf?ts='+Date.now(),'_blank');
-$('rvbtn-deck-open').onclick=()=>openDeck();
 $('rvbtn-deck-pdf').onclick=()=>window.open('/deck.pdf?ts='+Date.now(),'_blank');
 $('rvbtn-deck-generate').onclick=()=>genDeck();
 $('lok').onclick = async ()=>{
@@ -3637,7 +3644,7 @@ async function genSlides(){
 $('slides').onclick = ()=>{ if(hasSlides) openSlides(); else genSlides(); };  // 生成済みは再生成せず即開く
 $('regen').onclick = genSlides;
 // 従来の経営者向けスライドデッキ（マインドマップとは別成果物・2026-07-14 依頼者要望で復活）
-function openDeck(){ window.open('/deck.html?ts='+Date.now(), '_blank'); }
+function openDeck(){ window.open('/deck.pdf?ts='+Date.now(), '_blank'); }
 async function genDeck(){
   const buttons=['deckbtn','deckregen','rvbtn-deck-generate'].map($).filter(Boolean);
   buttons.forEach(button=>button.disabled=true);
@@ -3654,7 +3661,7 @@ async function genDeck(){
         if(job&&job.status==='running')continue;
         hideToast();buttons.forEach(button=>button.disabled=false);
         if(job&&job.status==='complete'){
-          hasDeck=true;const w=window.open('/deck.html?ts='+Date.now(),'_blank');toast(w?tr('スライドが完成しました','Slides ready.'):tr('スライドが完成しました。「開く」で表示できます','Slides ready. Use “Open” to view them.'));await pollState();return;
+          hasDeck=true;const w=window.open('/deck.pdf?ts='+Date.now(),'_blank');toast(w?tr('スライドPDFが完成しました','Slide PDF ready.'):tr('スライドPDFが完成しました。「開く」で表示できます','Slide PDF ready. Use “Open” to view it.'));await pollState();return;
         }
         if(job&&job.status==='cancelled'){toast(tr('キャンセルしました','Cancelled'));return;}
         toast(tr('スライド生成に失敗しました：','Slide generation failed: ')+(job&&job.message||tr('AIから有効な応答がありませんでした','No valid response from AI')));return;
@@ -4013,10 +4020,9 @@ function updateReviewCards(s){
   chip('rvst-minutes',outputLabel,s.hasMinutesPdf||s.hasDeck);
   const mo=$('rvbtn-minutes-open'); if(mo)mo.style.display=s.hasMinutesPdf?'':'none';
   const mb=$('rvbtn-minutes-pdf'); if(mb){ buttonLabel('rvbtn-minutes-pdf',s.hasMinutesPdf?tr('作り直す','Regenerate'):tr('ペーパーを作る','Create paper')); mb.classList.toggle('sub',!!s.hasMinutesPdf); }
-  const deckOpen=$('rvbtn-deck-open');if(deckOpen)deckOpen.style.display=s.hasDeck?'':'none';
   const deckPdf=$('rvbtn-deck-pdf');if(deckPdf)deckPdf.style.display=s.hasDeckPdf?'':'none';
   const deckJob=s.jobStatus&&s.jobStatus.deck,deckRunning=deckJob&&deckJob.status==='running';
-  const deckGenerate=$('rvbtn-deck-generate');if(deckGenerate){buttonLabel('rvbtn-deck-generate',deckRunning?tr('生成中…','Generating…'):s.hasDeck?tr('作り直す','Regenerate'):tr('スライドを作る','Create slides'));deckGenerate.classList.toggle('sub',!!s.hasDeck);deckGenerate.disabled=!!deckRunning;}
+  const deckGenerate=$('rvbtn-deck-generate');if(deckGenerate){buttonLabel('rvbtn-deck-generate',deckRunning?tr('生成中…','Generating…'):s.hasDeck?tr('作り直す','Regenerate'):tr('スライドPDFを作る','Create slide PDF'));deckGenerate.classList.toggle('sub',!!s.hasDeck);deckGenerate.disabled=!!deckRunning;}
   selectReviewOutputFormat(reviewOutputFormat,false);
 }
 // ===== 3フェーズナビ：準備／ライブ／振り返り。行き来自由・会議ごとに最後のフェーズを記憶 =====

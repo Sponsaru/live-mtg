@@ -320,6 +320,28 @@ def radial_sheet(agenda_chunk, page_index, page_total):
                  blocks, source=tr("出典：進行ボードの議題・着地点", "Source: meeting agenda board"), cls="map-sheet")
 
 
+def conversation_radial_sheet(type_chunk, page_index, page_total):
+    """画像撮影が使えない詳細版でも、放射マップの意味を会話タイプで統一する。"""
+    positions = radial_positions(len(type_chunk))
+    lines, nodes = [], []
+    for (x, y), row in zip(positions, type_chunk):
+        lines.append('<line x1="50" y1="50" x2="%s" y2="%s" vector-effect="non-scaling-stroke"/>' % (x, y))
+        topics = [item_text(topic.get("label") if isinstance(topic, dict) else topic)
+                  for topic in (row.get("topics") or []) if item_text(topic.get("label") if isinstance(topic, dict) else topic)]
+        nodes.append('<div class="radial-node" style="left:%s%%;top:%s%%">%s %d%%<small>%s</small></div>' %
+                     (x, y, esc(item_text(row.get("type"))), int(row.get("share") or 0),
+                      esc("・".join(topics[:2]) or tr("具体話題を整理", "Topics organized"))))
+    blocks = ['<div class="blk sec" style="display:flex;flex:1;min-height:0;flex-direction:column">'
+              '<h2>1. %s</h2><div class="map-canvas"><svg class="radial-lines" viewBox="0 0 100 100" preserveAspectRatio="none">%s</svg>'
+              '<div class="radial-center">%s</div>%s</div></div>' %
+              (esc(tr("会話タイプ別の構成", "Conversation mix by type")), "".join(lines),
+               esc(tr("会話の構成", "Conversation mix")), "".join(nodes))]
+    suffix = (" %d/%d" % (page_index, page_total)) if page_total > 1 else ""
+    return sheet(tr("放射マップ", "Radial map") + suffix,
+                 tr("会議で何に会話量を使ったかを俯瞰", "How the meeting's conversation was distributed"),
+                 blocks, source=tr("出典：清書後の会話タイプ分析", "Source: finalized conversation-type analysis"), cls="map-sheet")
+
+
 def parse_relations(diagram):
     diagram = str(diagram or "")
     nodes = {}
@@ -373,6 +395,25 @@ def numbered_list(values, limit=3):
         for index, value in enumerate(rows, 1) if value)
 
 
+def conclusion_block(number, values, context=""):
+    """結論が複数ある会議は、冒頭で最大4件を独立して読める形にする。"""
+    conclusions = []
+    for value in values:
+        text = lead_sentences(value, 1)
+        if text and text not in conclusions:
+            conclusions.append(text)
+    conclusions = conclusions[:4]
+    context = lead_sentences(context, 2)
+    if not conclusions:
+        conclusions = [context] if context else [tr("確定した結論はありません", "No finalized outcome")]
+    if len(conclusions) == 1:
+        return summary_block(number, tr("結論", "Outcomes"), conclusions[0],
+                             context if context and context != conclusions[0] else "")
+    context_html = '<p class="sub">%s</p>' % esc(context) if context and context not in conclusions else ""
+    return '<div class="blk sec"><h2>%s. %s</h2><div class="sum">%s%s</div></div>' % (
+        number, esc(tr("結論", "Outcomes")), numbered_list(conclusions, 4), context_html)
+
+
 def compact_overview_sheet():
     decisions = text_list(data.get("decisions"))
     if not decisions:
@@ -380,7 +421,6 @@ def compact_overview_sheet():
     opens = text_list(data.get("open"))
     if not opens:
         opens = [item_text(value) for agenda in agendas for value in agenda_result(agenda, "unresolved")]
-    conclusion = lead_sentences(decisions[0] if decisions else summary, 1)
     context = lead_sentences(summary, 2)
     decision_rows = "".join(
         '<tr><td>%s</td><td><span class="st-chip ok">%s</span></td></tr>' %
@@ -391,7 +431,7 @@ def compact_overview_sheet():
         (esc(lead_sentences(action["what"])), esc(action["who"]), esc(action["due"]))
         for action in all_actions[:4])
     blocks = [
-        summary_block(1, tr("結論", "Outcome"), conclusion or context, context if context != conclusion else ""),
+        conclusion_block(1, decisions, context),
         '<div class="blk sec"><h2>2. %s</h2><div class="kpis n4">%s</div>'
         '<div class="kfoot">%s</div></div>' % (
             esc(tr("会議の到達点", "Meeting results")),
@@ -515,16 +555,25 @@ sheets = []
 decision_count = sum(len(agenda_result(agenda, "decisions")) for agenda in agendas)
 unresolved_count = sum(len(agenda_result(agenda, "unresolved")) for agenda in agendas)
 summary_blocks = []
-summary_blocks.append(summary_block(1, tr("会議の結論", "Meeting outcome"),
-                                    summary or tr("確定済みの要旨はありません", "No finalized summary"),
-                                    flow_target()))
+paper_decisions = text_list(data.get("decisions"))
+if not paper_decisions:
+    paper_decisions = [item_text(value) for agenda in agendas for value in agenda_result(agenda, "decisions")]
+summary_blocks.append(conclusion_block(1, paper_decisions,
+                                      summary or tr("確定済みの要旨はありません", "No finalized summary")))
 kpis = [(len(agendas), tr("議題", "Agendas")), (decision_count, tr("決定", "Decisions")),
         (len(all_actions), tr("次の行動", "Actions")), (unresolved_count, tr("未解決", "Open items"))]
 summary_blocks.append('<div class="blk sec"><h2>2. %s</h2><div class="kpis n4">%s</div></div>' % (
     esc(tr("全体像", "Overview")), "".join(
         '<div class="k"><div class="v">%d</div><div class="l">%s</div></div>' % (value, esc(label))
         for value, label in kpis)))
-if agendas:
+conversation_map = data.get("conversationMap") if isinstance(data.get("conversationMap"), dict) else {}
+conversation_types = [row for row in (conversation_map.get("types") or [])
+                      if isinstance(row, dict) and item_text(row.get("type")) and int(row.get("share") or 0) > 0]
+if conversation_types:
+    type_pages = [conversation_types[index:index + 6] for index in range(0, len(conversation_types), 6)]
+    for page_index, type_chunk in enumerate(type_pages, 1):
+        sheets.append(conversation_radial_sheet(type_chunk, page_index, len(type_pages)))
+elif agendas:
     overview_rows = []
     for agenda in agendas[:5]:
         overview_rows.append({"label": status_label(agenda.get("status")),
