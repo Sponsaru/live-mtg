@@ -178,13 +178,41 @@ function windowsWhisperExe() {
   return isWindows ? findFile(windowsWhisperRoot, "whisper-cli.exe") : null;
 }
 
+function collectWindowsToolPaths(localAppData = process.env.LOCALAPPDATA || "") {
+  // wingetはインストール先とユーザーPATHを更新しても、起動済みPowerShell/Nodeの
+  // process.env.PATHまでは更新しない。新しいターミナルを開かせず、このプロセス中に
+  // 導入したPython/ffmpegを既知の配置先から直接見つける。
+  if (!localAppData) return [];
+  const paths = [];
+  const pythonRoot = join(localAppData, "Programs", "Python");
+  try {
+    for (const name of readdirSync(pythonRoot)) {
+      const dir = join(pythonRoot, name);
+      if (!/^Python\d+/i.test(name) || !existsSync(join(dir, "python.exe"))) continue;
+      paths.push(dir);
+      if (existsSync(join(dir, "Scripts"))) paths.push(join(dir, "Scripts"));
+    }
+  } catch {}
+  const packages = join(localAppData, "Microsoft", "WinGet", "Packages");
+  try {
+    for (const name of readdirSync(packages)) {
+      if (!/^Gyan\.FFmpeg_/i.test(name)) continue;
+      const exe = findFile(join(packages, name), "ffmpeg.exe");
+      if (exe) paths.push(dirname(exe));
+    }
+  } catch {}
+  const links = join(localAppData, "Microsoft", "WinGet", "Links");
+  if (existsSync(links)) paths.push(links);
+  return [...new Set(paths)];
+}
+
 function effectivePath() {
   if (isMac) return [join(homedir(), ".local", "bin"), "/opt/homebrew/bin", "/usr/local/bin", process.env.PATH || ""].join(":");
   if (!isWindows) return process.env.PATH || "";
   const paths = [];
   const whisper = windowsWhisperExe();
   if (whisper) paths.push(dirname(whisper));
-  if (process.env.LOCALAPPDATA) paths.push(join(process.env.LOCALAPPDATA, "Microsoft", "WinGet", "Links"));
+  paths.push(...collectWindowsToolPaths());
   paths.push(process.env.PATH || "");
   return paths.join(";");
 }
@@ -523,8 +551,8 @@ function pythonWorks(name) {
   // Microsoft Storeの0バイトスタブは実行しても何も出さずに終了する
   // （2026-07-17 Windows実機レポートの壁②）。--versionの出力有無で本物か判定する
   try {
-    const r = spawnSync(name, name === "py" ? ["-3", "--version"] : ["--version"],
-                        { encoding: "utf8", timeout: 8000 });
+    const r = runCommandSync(name, name === "py" ? ["-3", "--version"] : ["--version"],
+                             { encoding: "utf8", timeout: 8000 });
     return r.status === 0 && /Python 3/.test((r.stdout || "") + (r.stderr || ""));
   } catch { return false; }
 }
@@ -691,7 +719,7 @@ function doctor(provider = selectedProvider()) {
     { stdio: "ignore", env: commandEnv() }).status === 0;
   const checks = [
     ["Node.js 20+", Number(process.versions.node.split(".")[0]) >= 20, process.version],
-    ["Python 3", Boolean(pythonCommand()), "python3"],
+    ["Python 3", Boolean(pythonCommand()), isWindows ? "winget install -e --id Python.Python.3.12" : "python3"],
     [aiLabel, aiInstalled, provider === "codex" ? "npm install -g @openai/codex" : "npm install -g @anthropic-ai/claude-code"],
     [t(`${aiLabel} ログイン`, `${aiLabel} sign-in`), aiLoggedIn, provider === "codex" ? "codex login" : "claude auth login"],
     ["ffmpeg", commandExists("ffmpeg"), isMac ? "brew install ffmpeg" : "winget install Gyan.FFmpeg"],
@@ -1324,6 +1352,7 @@ try {
 }
 
 export {
+  collectWindowsToolPaths,
   createRotatingLogWriter,
   confirmedServiceHealth,
   downloadFileWithProgress,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -50,6 +50,22 @@ const literal = "safe;echo-not-executed";
 const child = helpers.runCommandSync(process.execPath, ["-e", "process.stdout.write(process.argv[1])", literal], { encoding: "utf8" });
 assert.equal(child.status, 0, child.stderr);
 assert.equal(child.stdout, literal);
+
+// Windows package managers update the persisted PATH, not an already-open
+// PowerShell. The CLI must find standard winget Python/ffmpeg locations itself.
+const fakeLocalAppData = mkdtempSync(join(tmpdir(), "live-mtg-win-tools-"));
+const fakePython = join(fakeLocalAppData, "Programs", "Python", "Python312");
+const fakeFfmpeg = join(fakeLocalAppData, "Microsoft", "WinGet", "Packages",
+  "Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe", "ffmpeg-7.1", "bin");
+const fakeLinks = join(fakeLocalAppData, "Microsoft", "WinGet", "Links");
+mkdirSync(join(fakePython, "Scripts"), { recursive: true });
+mkdirSync(fakeFfmpeg, { recursive: true });
+mkdirSync(fakeLinks, { recursive: true });
+writeFileSync(join(fakePython, "python.exe"), "");
+writeFileSync(join(fakeFfmpeg, "ffmpeg.exe"), "");
+assert.deepEqual(helpers.collectWindowsToolPaths(fakeLocalAppData), [
+  fakePython, join(fakePython, "Scripts"), fakeFfmpeg, fakeLinks,
+]);
 
 const payload = Buffer.alloc(256_000, 7);
 const downloadDir = mkdtempSync(join(tmpdir(), "live-mtg-download-"));
