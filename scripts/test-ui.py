@@ -293,6 +293,12 @@ assert all(token in html for token in (
     '#mbg .row button{flex:1;white-space:nowrap;justify-content:center;text-align:center}',
     '終了済みの録音ファイルから作る'
 )), "finished-recording import must stay separate from the two-button new-meeting action row"
+delete_handler = html[html.index("$('delete').onclick"):html.index("// 学びの抽出", html.index("$('delete').onclick"))]
+assert all(token in html for token in (
+    'id="deletebg" role="alertdialog"', 'id="deletemeetingname"',
+    'id="deletecancel"', 'id="deleteconfirm"', 'class="danger-confirm"'
+)) and "confirm(" not in delete_handler and "deleteDialogSid=currentSessionId" in delete_handler and "sid!==currentSessionId" in delete_handler, \
+    "meeting deletion must use a custom, meeting-bound destructive confirmation dialog"
 assert ".flow-visual-list{display:none}" in html and \
        ".visual-sheet>.visual-scroll>.summary,.visual-sheet>.visual-scroll>.grid{display:none!important}" not in html, \
     "the Organize view must keep showing the complete legacy data.json summary"

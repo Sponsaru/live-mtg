@@ -683,6 +683,8 @@
   #mbg .row button{flex:1;white-space:nowrap;justify-content:center;text-align:center}
   .modal .ok{background:var(--blue);color:#fff}
   .modal .cancel{background:#eef3f7;color:var(--sub)}
+  .delete-modal{width:min(500px,calc(100vw - 32px));padding:28px}.delete-modal-head{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;margin-bottom:17px}.delete-modal-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:#fff0f1;color:#b4232f}.delete-modal-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.delete-modal .delete-modal-head h3{font-size:22px;margin:0}.delete-modal .delete-modal-head p{margin:3px 0 0;font-size:14px;line-height:1.5}.delete-meeting-name{padding:12px 14px;border:1px solid #d6d7db;border-radius:11px;background:#f5f5f7;font-size:17px;font-weight:720;line-height:1.5;overflow-wrap:anywhere}.delete-targets{margin:15px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 15px;list-style:none;color:#55585e;font-size:14px;font-weight:600}.delete-targets li{position:relative;padding-left:15px}.delete-targets li::before{content:"";position:absolute;left:0;top:.65em;width:6px;height:6px;border-radius:50%;background:#a8abb1}.delete-warning{margin-top:16px;padding:11px 13px;border:1px solid #efb7bc;border-radius:10px;background:#fff5f6;color:#9f2430;font-size:14px;font-weight:720;line-height:1.5}.delete-modal .danger-confirm{background:#c93440;color:#fff}.delete-modal .danger-confirm:hover{background:#ad2631}.delete-modal .row button{justify-content:center;text-align:center}.delete-modal .row button:disabled{opacity:.5;cursor:default}
+  @media(max-width:520px){.delete-modal{padding:22px 18px}.delete-targets{grid-template-columns:1fr}.delete-modal .row{flex-direction:column-reverse}.delete-modal .row button{width:100%}}
   #diagbg .modal{box-sizing:border-box;width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
   .diag-section-title{margin:18px 0 9px;font-size:14px;font-weight:750;letter-spacing:.03em;color:var(--sub)}
   .diag-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
@@ -1376,6 +1378,17 @@
   </div>
 </div>
 
+<!-- 会議削除は対象と不可逆性を明示するカスタム確認。ブラウザ標準confirmは使わない。 -->
+<div class="modal-bg" id="deletebg" role="alertdialog" aria-modal="true" aria-labelledby="deletetitle" aria-describedby="deletedescription">
+  <div class="modal delete-modal">
+    <div class="delete-modal-head"><span class="delete-modal-icon" aria-hidden="true"><svg><use href="#i-trash"/></svg></span><div><h3 id="deletetitle">この会議を削除しますか？</h3><p id="deletedescription">会議に保存されたすべてのデータを削除します。</p></div></div>
+    <div class="delete-meeting-name" id="deletemeetingname">—</div>
+    <ul class="delete-targets" aria-label="削除されるもの"><li>録音音声</li><li>文字起こし全文</li><li>議事録・成果物</li><li>マップ・可視化</li><li>準備・調査情報</li><li>同期コピー</li></ul>
+    <div class="delete-warning">この操作は取り消せません。</div>
+    <div class="row"><button type="button" class="cancel" id="deletecancel">キャンセル</button><button type="button" class="danger-confirm" id="deleteconfirm"><svg class="inline-icon" aria-hidden="true"><use href="#i-trash"/></svg>完全に削除</button></div>
+  </div>
+</div>
+
 <!-- 清書の前の固有名詞確認モーダル -->
 <div class="modal-bg" id="fbg">
   <div class="modal fmodal">
@@ -1630,6 +1643,7 @@ const EN_TEXT=new Map([
   ['スライド化','Create slides'],['スライドを作り直す','Regenerate slides'],['1ページPDF保存','Save one-page PDF'],['学びを抽出','Extract learnings'],
   ['設定・会議管理','Settings & meetings'],['新規会議','New meeting'],['プロフィール','Profile'],['言語：日本語','Language: Japanese'],
   ['デザイン：ブルー','Design: Blue'],['この会議を削除','Delete this meeting'],['接続中…','Connecting…'],['最終解析：確認中…','Last analysis: checking…'],['状態の詳細','Status details'],
+  ['この会議を削除しますか？','Delete this meeting?'],['会議に保存されたすべてのデータを削除します。','All data saved for this meeting will be deleted.'],['削除されるもの','Items to be deleted'],['録音音声','Audio recordings'],['文字起こし全文','Full transcript'],['議事録・成果物','Minutes and outputs'],['マップ・可視化','Maps and visualizations'],['準備・調査情報','Preparation and research'],['同期コピー','Synced copies'],['この操作は取り消せません。','This action cannot be undone.'],['完全に削除','Delete permanently'],
   ['音声を待っています…','Waiting for audio…'],['今、次にするべき質問','Best next questions'],['タップで意図を表示','Tap to show intent'],
   ['タップで回答（参考情報・要確認）','Tap for an answer'],
   ['議題','Agenda'],['論点・意見','Discussion points'],['決定事項','Decisions'],['未解決・要確認','Open questions'],['会話全文','Full transcript'],
@@ -3174,17 +3188,26 @@ $('rtab').onclick = ()=>{ $('rbg').classList.remove('show'); doStart(true,reques
 // 新規会議（カスタムモーダル）
 $('new').onclick = ()=>{ $('mtitle').value=''; $('mbg').classList.add('show'); setTimeout(()=>$('mtitle').focus(),50); };
 // 表示中の会議を、ローカル本体・Drive同期・案件フォルダ書き出しまで会議ID限定で削除
-$('delete').onclick=async()=>{
+let deleteDialogSid='';
+function closeDeleteDialog(){deleteDialogSid='';$('deletebg').classList.remove('show');$('deleteconfirm').disabled=false;$('deletecancel').disabled=false}
+$('delete').onclick=()=>{
   if(recording){ toast(tr('録音を停止してから削除してください','Stop recording before deleting the meeting.')); return; }
   const title=meetingTitle||tr('この会議','this meeting');
-  if(!confirm(tr(`「${title}」をデータごと削除しますか？\n\n音声・全文・議事録・マインドマップ・調査・作戦チャット・同期コピーが削除されます。\nこの操作は取り消せません。`,`Delete “${title}” and all of its data?\n\nAudio, transcripts, minutes, mind maps, research, prep chat, and synced copies will be deleted.\nThis cannot be undone.`))) return;
-  $('delete').disabled=true; toast(tr('会議データを削除中…','Deleting meeting data…'),true);
+  deleteDialogSid=currentSessionId;$('deletemeetingname').textContent=title;$('deletebg').classList.add('show');requestAnimationFrame(()=>$('deletecancel').focus());
+};
+$('deletecancel').onclick=closeDeleteDialog;
+$('deletebg').onclick=event=>{if(event.target===$('deletebg'))closeDeleteDialog()};
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('deletebg').classList.contains('show')){event.preventDefault();closeDeleteDialog()}});
+$('deleteconfirm').onclick=async()=>{
+  const sid=deleteDialogSid;
+  if(!sid||sid!==currentSessionId){closeDeleteDialog();toast(tr('表示中の会議が変わったため削除しませんでした','The selected meeting changed, so nothing was deleted.'));return}
+  $('deleteconfirm').disabled=true;$('deletecancel').disabled=true;$('delete').disabled=true;toast(tr('会議データを削除中…','Deleting meeting data…'),true);
   try{
-    const r=await api('/api/delete',{id:currentSessionId}); hideToast();
-    if(r.ok){ lastData=null; guideSig=''; renderNextQuestions([]); applyState(r.state); await pollData(); toast(tr(`削除しました（${r.removed||0}箇所）`,`Deleted from ${r.removed||0} location(s).`)); }
+    const r=await api('/api/delete',{id:sid}); hideToast();
+    if(r.ok){ closeDeleteDialog();lastData=null; guideSig=''; renderNextQuestions([]); applyState(r.state); await pollData(); toast(tr(`削除しました（${r.removed||0}箇所）`,`Deleted from ${r.removed||0} location(s).`)); }
     else toast(tr('削除に失敗：','Deletion failed: ')+localizeMessage(r.msg||tr('不明なエラー','Unknown error')));
   }catch(e){ hideToast(); toast(tr('削除に失敗しました','Deletion failed.')); }
-  $('delete').disabled=recording||!currentSessionId;
+  $('deleteconfirm').disabled=false;$('deletecancel').disabled=false;$('delete').disabled=recording||!currentSessionId;
 };
 // 学びの抽出：依頼主個人への気づきレポートを表示（プレイブック蓄積は任意の脇役として承認制で継続）
 $('learnbtn').onclick = async ()=>{
