@@ -151,7 +151,8 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-map-") as raw:
         ]},
     }, ensure_ascii=False), encoding="utf-8")
     result = subprocess.run(["python3", str(ROOT / "make-mindmap.py")],
-                            env=dict(os.environ, SDIR=str(folder), TITLE="構成テスト会議"),
+                            env=dict(os.environ, SDIR=str(folder), TITLE="構成テスト会議",
+                                     PYTHONUTF8="1", PYTHONIOENCODING="utf-8"),
                             capture_output=True, text=True, timeout=20)
     assert result.returncode == 0, result.stderr or result.stdout
     generated = (folder / "mindmap.html").read_text(encoding="utf-8")
