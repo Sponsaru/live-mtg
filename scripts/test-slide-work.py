@@ -77,10 +77,14 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-slide-runner-") as raw:
     def fake_killpg(pid, sig): return None
     def fake_popen(command, **kwargs):
         return FakeProcess(command, **kwargs)
+    def fake_run(command, **kwargs):
+        return subprocess.CompletedProcess(command, 0, "", "")
     original_popen = runner_module.subprocess.Popen
-    original_killpg = runner_module.os.killpg
+    original_run = runner_module.subprocess.run
+    original_killpg = getattr(runner_module.os, "killpg", None)
     original_argv = runner_module.sys.argv
     runner_module.subprocess.Popen = fake_popen
+    runner_module.subprocess.run = fake_run
     runner_module.os.killpg = fake_killpg
     runner_module.sys.argv = ["run-slide-ai.py", str(prompt_path), "--provider", "claude",
                               "--model", "opus", "--fallback-model", "sonnet",
@@ -91,7 +95,11 @@ with tempfile.TemporaryDirectory(prefix="live-mtg-slide-runner-") as raw:
             assert runner_module.main() == 0
     finally:
         runner_module.subprocess.Popen = original_popen
-        runner_module.os.killpg = original_killpg
+        runner_module.subprocess.run = original_run
+        if original_killpg is None:
+            delattr(runner_module.os, "killpg")
+        else:
+            runner_module.os.killpg = original_killpg
         runner_module.sys.argv = original_argv
     assert len(calls) == 2 and calls[0][-1] == "opus" and calls[1][-1] == "sonnet"
     assert "fallback" in stdout.getvalue() and "fallback completed" in stderr.getvalue()
